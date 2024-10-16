@@ -16,6 +16,7 @@ public class ActorIOEditor : ModuleRules
         {
             "Core",
             "CoreUObject",
+            "Slate",
             "SlateCore"
         });
 
@@ -23,10 +24,7 @@ public class ActorIOEditor : ModuleRules
         PrivateDependencyModuleNames.AddRange(new string[]
         {
             "UnrealEd",
-            "Engine",
-            "EngineSettings",
-            "Projects",
-            "MessageLog"
+            "Engine"
         });
     }
 }

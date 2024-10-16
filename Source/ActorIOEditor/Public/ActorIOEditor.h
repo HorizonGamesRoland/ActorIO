@@ -5,6 +5,8 @@
 #include "CoreMinimal.h"
 #include "Modules/ModuleManager.h"
 
+class SDockTab;
+
 class FActorIOEditorModule : public IModuleInterface
 {
 public:
@@ -17,15 +19,5 @@ public:
 
 private:
 
-	/** Register the plugin's settings window. */
-	void RegisterSettings();
-
-	/** Register the plugin's message log category. */
-	void RegisterMessageLog();
-
-	/** Unregister the plugin's settings window. */
-	void UnRegisterSettings();
-
-	/** Unregister the plugin's message log category. */
-	void UnRegisterMessageLog();
+	TSharedRef<SDockTab> SpawnTab(const FSpawnTabArgs& TabSpawnArgs);
 };

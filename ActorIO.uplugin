@@ -17,8 +17,13 @@
 	"Modules": [
 		{
 			"Name": "ActorIO",
-			"Type": "Editor",
+			"Type": "Runtime",
 			"LoadingPhase": "Default"
+		},
+		{
+			"Name": "ActorIOEditor",
+			"Type": "Editor",
+			"LoadingPhase": "PostEngineInit"
 		}
 	]
 }

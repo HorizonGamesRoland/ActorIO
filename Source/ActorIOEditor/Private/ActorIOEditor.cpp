@@ -2,10 +2,9 @@
 
 #include "ActorIOEditor.h"
 #include "ActorIOEditorStyle.h"
-#include "ISettingsModule.h"
-#include "Developer/MessageLog/Public/MessageLogInitializationOptions.h"
-#include "Developer/MessageLog/Public/MessageLogModule.h"
-#include "Developer/MessageLog/Public/IMessageLogListing.h"
+#include "SActorIOPanel.h"
+#include "Framework/Docking/TabManager.h"
+#include "Widgets/Docking/SDockTab.h"
 
 #define LOCTEXT_NAMESPACE "FActorIOEditorModule"
 
@@ -14,58 +13,27 @@ void FActorIOEditorModule::StartupModule()
 	// Initialize the editor style of the plugin.
 	FActorIOEditorStyle::Initialize();
 
-	// Register various engine extensions.
-	RegisterSettings();
-	RegisterMessageLog();
+	FGlobalTabmanager::Get()->RegisterNomadTabSpawner(TEXT("ActorIO"), FOnSpawnTab::CreateRaw(this, &FActorIOEditorModule::SpawnTab))
+		.SetGroup(FWorkspaceItem::NewGroup(FText::FromString("Menu Root")))
+		.SetDisplayName(FText::FromString("Actor IO"))
+		.SetTooltipText(FText::FromString("Actor IO Window"));
 }
 
 void FActorIOEditorModule::ShutdownModule()
 {
-	// Unregister various engine extensions.
-	UnRegisterSettings();
-	UnRegisterPlacementCategory();
-	UnRegisterMessageLog();
-
-	// Unregister the editor style of the plugin.
-	FActorIOEditorStyle::Shutdown();
+	FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(TEXT("ActorIO"));
 }
 
-void FActorIOEditorModule::RegisterSettings()
+TSharedRef<SDockTab> FActorIOEditorModule::SpawnTab(const FSpawnTabArgs& TabSpawnArgs)
 {
-	ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
-	if (SettingsModule)
-	{
-		const FText DisplayName = LOCTEXT("ActorIOConfigName", "ActorIO Matchmaking");
-		const FText Description = LOCTEXT("ActorIOConfigDescription", "Settings for the ActorIO Matchmaking plugin.");
-		const TWeakObjectPtr<UObject> SettingsObject = GetMutableDefault<UActorIOConfig>(UActorIOConfig::StaticClass());
+	TSharedRef<SDockTab> SpawnedTab = SNew(SDockTab)
+	.TabRole(ETabRole::NomadTab)
+	[
+		SNew(SActorIOPanel)
+		.Tool(SharedThis(this))
+	];
 
-		SettingsModule->RegisterSettings("Project", "Game", "ActorIOConfig", DisplayName, Description, SettingsObject);
-	}
-}
-
-void FActorIOEditorModule::RegisterMessageLog()
-{
-	FMessageLogModule& MessageLogModule = FModuleManager::LoadModuleChecked<FMessageLogModule>("MessageLog");
-	FMessageLogInitializationOptions InitOptions;
-	MessageLogModule.RegisterLogListing("ActorIO", LOCTEXT("LogActorIO", "ActorIO Matchmaking"), InitOptions);
-}
-
-void FActorIOEditorModule::UnRegisterSettings()
-{
-	ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
-	if (SettingsModule)
-	{
-		SettingsModule->UnregisterSettings("Projects", "Plugins", "ActorIOConfig");
-	}
-}
-
-void FActorIOEditorModule::UnRegisterMessageLog()
-{
-	if (FModuleManager::Get().IsModuleLoaded("MessageLog"))
-	{
-		FMessageLogModule& MessageLogModule = FModuleManager::GetModuleChecked<FMessageLogModule>("MessageLog");
-		MessageLogModule.UnregisterLogListing("ActorIO");
-	}
+	return SpawnedTab;
 }
 
 #undef LOCTEXT_NAMESPACE
