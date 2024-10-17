@@ -15,7 +15,7 @@ void FActorIOEditor::StartupModule()
 	// Initialize the editor style of the plugin.
 	FActorIOEditorStyle::Initialize();
 	
-	FGlobalTabmanager::Get()->RegisterNomadTabSpawner(TEXT("ActorIO"), FOnSpawnTab::CreateRaw(this, &FActorIOEditor::SpawnTab))
+	FGlobalTabmanager::Get()->RegisterNomadTabSpawner(TEXT("ActorIO"), FOnSpawnTab::CreateRaw(this, &FActorIOEditor::SpawnTab_ActorIO))
 		.SetDisplayName(FText::FromString("Actor IO"))
 		.SetTooltipText(FText::FromString("Open the Actor IO tab. Use this for level scripting."))
 		.SetGroup(WorkspaceMenu::GetMenuStructure().GetLevelEditorCategory())
@@ -29,15 +29,36 @@ void FActorIOEditor::ShutdownModule()
 	FActorIOEditorStyle::Shutdown();
 }
 
-TSharedRef<SDockTab> FActorIOEditor::SpawnTab(const FSpawnTabArgs& TabSpawnArgs)
+void FActorIOEditor::UpdateActorIOPanel(AActor* InActor)
+{
+	if (ActorIOPanel.IsValid())
+	{
+		ActorIOPanel->RebuildFromState(InActor);
+	}
+}
+
+TSharedRef<SDockTab> FActorIOEditor::SpawnTab_ActorIO(const FSpawnTabArgs& TabSpawnArgs)
 {
 	TSharedRef<SDockTab> SpawnedTab = SNew(SDockTab)
 	.TabRole(ETabRole::NomadTab)
 	[
-		SNew(SActorIOPanel)
+		SAssignNew(ActorIOPanel, SActorIOPanel)
 	];
 
+	const SDockTab::FOnTabClosedCallback TabClosedDelegate = SDockTab::FOnTabClosedCallback::CreateRaw(this, &FActorIOEditor::OnActorIOEditorClosed);
+	SpawnedTab->SetOnTabClosed(TabClosedDelegate);
+
 	return SpawnedTab;
+}
+
+void FActorIOEditor::OnActorIOEditorClosed(TSharedRef<SDockTab> DockTab)
+{
+	ActorIOPanel.Reset();
+}
+
+SActorIOPanel* FActorIOEditor::GetActorIOPanel() const
+{
+	return ActorIOPanel.Get();
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -5,10 +5,15 @@
 #include "CoreMinimal.h"
 #include "Modules/ModuleManager.h"
 
+class SActorIOPanel;
 class SDockTab;
 
 class FActorIOEditor : public IModuleInterface, public TSharedFromThis<FActorIOEditor>
 {
+private:
+
+	TSharedPtr<SActorIOPanel> ActorIOPanel;
+
 public:
 
 	/** Register the ActorIO editor module with the engine. */
@@ -17,7 +22,14 @@ public:
 	/** Unregister the ActorIO editor module. */
 	virtual void ShutdownModule() override;
 
+	void UpdateActorIOPanel(AActor* InActor);
+
+	/** @return The editor widget inside the Actor IO tab. */
+	SActorIOPanel* GetActorIOPanel() const;
+
 private:
 
-	TSharedRef<SDockTab> SpawnTab(const FSpawnTabArgs& TabSpawnArgs);
+	TSharedRef<SDockTab> SpawnTab_ActorIO(const FSpawnTabArgs& TabSpawnArgs);
+
+	void OnActorIOEditorClosed(TSharedRef<SDockTab> DockTab);
 };

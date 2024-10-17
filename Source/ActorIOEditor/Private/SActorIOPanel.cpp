@@ -1,15 +1,14 @@
 // Copyright 2024 Horizon Games. All Rights Reserved.
 
 #include "SActorIOPanel.h"
+#include "GameFramework/Actor.h"
+
+#define LOCTEXT_NAMESPACE "ActorIOPanel"
+
+BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 void SActorIOPanel::Construct(const FArguments& InArgs)
 {
-    //MyEditor = InArgs._IOModule;
-    //if (MyEditor.IsValid())
-    //{
-    //    // do anything you need from tool object
-    //}
-
     ChildSlot
     [
         SNew(SScrollBox)
@@ -21,9 +20,28 @@ void SActorIOPanel::Construct(const FArguments& InArgs)
             .BorderBackgroundColor(FColor(192, 192, 192, 255))
             .Padding(15.0f)
             [
-                SNew(STextBlock)
-                .Text(FText::FromString(TEXT("This is a tab example.")))
+                SAssignNew(ActorNameText, STextBlock)
             ]
         ]
     ];
 }
+
+void SActorIOPanel::RebuildFromState(AActor* InActor)
+{
+    if (!ValidateElements())
+    {
+        return;
+    }
+
+    FString ActorName = InActor ? InActor->GetActorNameOrLabel() : TEXT("None");
+    ActorNameText->SetText(FText::Format(LOCTEXT("SelectedActorName", "Selected: {0}"), FText::FromString(ActorName)));
+}
+
+bool SActorIOPanel::ValidateElements() const
+{
+    return ActorNameText.IsValid();
+}
+
+END_SLATE_FUNCTION_BUILD_OPTIMIZATION
+
+#undef LOCTEXT_NAMESPACE

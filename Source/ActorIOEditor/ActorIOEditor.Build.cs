@@ -14,16 +14,20 @@ public class ActorIOEditor : ModuleRules
 
         PublicDependencyModuleNames.AddRange(new string[]
         {
-            "Core"
+            "Core",
+            "CoreUObject",
+            "Engine",
         });
 
         PrivateDependencyModuleNames.Add("ActorIO");
         PrivateDependencyModuleNames.AddRange(new string[]
         {
+            "UnrealEd",
+            "EditorSubsystem",
             "Projects",
             "Slate",
             "SlateCore",
-            "WorkspaceMenuStructure"
+            "WorkspaceMenuStructure",
         });
     }
 }
