@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "Widgets/Docking/SDockTab.h"
 
-class ActorIOEditor;
+class FActorIOEditor;
 
 class SActorIOPanel : public SCompoundWidget
 {
@@ -13,12 +13,11 @@ public:
 
     SLATE_BEGIN_ARGS(SActorIOPanel)
     {}
-    SLATE_ARGUMENT(TWeakPtr<ActorIOEditor>, Tool)
     SLATE_END_ARGS()
 
     void Construct(const FArguments& InArgs);
 
 protected:
 
-    TWeakPtr<ActorIOEditor> MyEditor;
+    //TWeakPtr<FActorIOEditor> MyEditor;
 };

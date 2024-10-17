@@ -4,11 +4,11 @@
 
 void SActorIOPanel::Construct(const FArguments& InArgs)
 {
-    MyEditor = InArgs._Tool;
-    if (MyEditor.IsValid())
-    {
-        // do anything you need from tool object
-    }
+    //MyEditor = InArgs._IOModule;
+    //if (MyEditor.IsValid())
+    //{
+    //    // do anything you need from tool object
+    //}
 
     ChildSlot
     [

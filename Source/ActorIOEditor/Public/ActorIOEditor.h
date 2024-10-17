@@ -7,7 +7,7 @@
 
 class SDockTab;
 
-class FActorIOEditorModule : public IModuleInterface
+class FActorIOEditor : public IModuleInterface, public TSharedFromThis<FActorIOEditor>
 {
 public:
 
