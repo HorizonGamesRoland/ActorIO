@@ -19,9 +19,13 @@ public:
 
     void RebuildFromState(AActor* InActor);
 
-    bool ValidateElements() const;
-
 protected:
+
+    const TSharedRef<SWidget> ConstructMenuPanel(const FArguments& InArgs);
+
+    const TSharedRef<SWidget> ConstructDetailsPanel(const FArguments& InArgs);
+
+    bool ValidateElements() const;
 
     TSharedPtr<class STextBlock> ActorNameText;
 };
