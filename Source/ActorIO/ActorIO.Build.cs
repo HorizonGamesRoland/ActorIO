@@ -16,7 +16,7 @@ public class ActorIO : ModuleRules
 
 		PrivateDependencyModuleNames.AddRange(new string[]
 		{
-			
+			"Engine"
 		});
 	}
 }
