@@ -3,51 +3,34 @@
 #pragma once
 
 #include "ActorIO.h"
+#include "ActorIOTypes.h"
 #include "Components/ActorComponent.h"
 #include "ActorIOComponent.generated.h"
 
-USTRUCT()
-struct FActorIOAction
-{
-	GENERATED_BODY()
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FActorIOTestDelegate, int32, TestNum);
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Properties")
-	FGuid ActionId;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Properties")
-	FName SourceEvent;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Properties")
-	TObjectPtr<AActor> TargetActor;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Properties")
-	FName TargetFunction;
-
-	FDelegateHandle ActionDelegateHandle;
-
-	FActorIOAction() :
-		ActionId(FGuid::NewGuid()),
-		SourceEvent(FName()),
-		TargetActor(nullptr),
-		TargetFunction(FName()),
-		ActionDelegateHandle(FDelegateHandle())
-	{}
-
-	bool IsValid() const
-	{
-		return ActionId.IsValid() && !SourceEvent.IsNone() && TargetActor && !TargetFunction.IsNone();
-	}
-};
-
-UCLASS()
+UCLASS(Blueprintable, ClassGroup = ActorIO, meta = (BlueprintSpawnableComponent))
 class ACTORIO_API UActorIOComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
-private:
+protected:
 
 	UPROPERTY()
 	TArray<FActorIOAction> ActionBindings;
+
+	UPROPERTY()
+	TArray<FActorIOEvent> MappedEvents;
+
+	UPROPERTY()
+	TArray<FActorIOFunction> MappedFunctions;
+
+
+
+
+
+	UPROPERTY(BlueprintAssignable)
+	FActorIOTestDelegate TestEvent;
 
 public:
 
@@ -55,15 +38,20 @@ public:
 
 	void RemoveAction(const FGuid& ActionId);
 
-	bool GetAction(const FGuid& ActionId, FActorIOAction& OutAction);
-
-	bool HasAction(const FGuid& ActionId) const;
+	FActorIOAction* FindAction(const FGuid& ActionId);
 
 protected:
 
-	void BindActions();
+	void InitializeMappings();
+
+	void BindAction(const FActorIOAction& Action);
 
 	void RemoveActionBindings();
+
+protected:
+
+	UFUNCTION()
+	void SomethingOnTestEvent();
 
 public:
 
