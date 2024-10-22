@@ -7,51 +7,45 @@
 #include "Components/ActorComponent.h"
 #include "ActorIOComponent.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FActorIOTestDelegate, int32, TestNum);
+class UActorIOLink;
 
 UCLASS(Blueprintable, ClassGroup = ActorIO, meta = (BlueprintSpawnableComponent))
 class ACTORIO_API UActorIOComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
+public:
+
+	UActorIOComponent();
+
 protected:
 
 	UPROPERTY()
-	TArray<FActorIOAction> ActionBindings;
+	TArray<FActorIOAction> Actions;
 
 	UPROPERTY()
-	TArray<FActorIOEvent> MappedEvents;
-
-	UPROPERTY()
-	TArray<FActorIOFunction> MappedFunctions;
-
-
-
-
-
-	UPROPERTY(BlueprintAssignable)
-	FActorIOTestDelegate TestEvent;
+	TArray<TObjectPtr<UActorIOLink>> ActionBindings;
 
 public:
 
-	void AddAction(const FActorIOAction& NewAction);
+	TArray<FActorIOAction>& GetActions() { return Actions; }
 
-	void RemoveAction(const FGuid& ActionId);
+	const TArray<FActorIOAction>& GetActions() const { return Actions; }
 
-	FActorIOAction* FindAction(const FGuid& ActionId);
+	const TArray<FActorIOEvent> GetEvents() const;
+
+	const TArray<FActorIOFunction> GetFunctions() const;
 
 protected:
 
-	void InitializeMappings();
-
-	void BindAction(const FActorIOAction& Action);
+	void CreateActionBindings();
 
 	void RemoveActionBindings();
 
-protected:
+
 
 	UFUNCTION()
-	void SomethingOnTestEvent();
+	void TestHelloWorld();
 
 public:
 

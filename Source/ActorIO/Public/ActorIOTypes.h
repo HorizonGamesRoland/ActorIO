@@ -61,37 +61,23 @@ struct ACTORIO_API FActorIOAction
 {
 	GENERATED_BODY()
 
-	FGuid ActionId;
-
+	UPROPERTY()
 	FName SourceEvent;
 
 	UPROPERTY()
 	TObjectPtr<AActor> TargetActor;
 
+	UPROPERTY()
 	FName TargetFunction;
 
-	FDelegateHandle ActionDelegateHandle;
-
 	FActorIOAction() :
-		ActionId(FGuid::NewGuid()),
 		SourceEvent(FName()),
 		TargetActor(nullptr),
-		TargetFunction(FName()),
-		ActionDelegateHandle(FDelegateHandle())
+		TargetFunction(FName())
 	{}
-
-	bool operator==(const FGuid& InBindId) const
-	{
-		return ActionId == InBindId;
-	}
-
-	bool operator==(const FActorIOAction& Other) const
-	{
-		return ActionId == Other.ActionId;
-	}
 
 	bool IsValid() const
 	{
-		return ActionId.IsValid() && !SourceEvent.IsNone() && TargetActor && !TargetFunction.IsNone();
+		return !SourceEvent.IsNone() && TargetActor && !TargetFunction.IsNone();
 	}
 };

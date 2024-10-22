@@ -1,18 +1,23 @@
 // Copyright 2024 Horizon Games. All Rights Reserved.
 
 #include "ActorIOComponent.h"
+#include "ActorIOLink.h"
 #include "ActorIOInterface.h"
+
+UActorIOComponent::UActorIOComponent()
+{
+	Actions = TArray<FActorIOAction>();
+	ActionBindings = TArray<TObjectPtr<UActorIOLink>>();
+}
 
 void UActorIOComponent::OnRegister()
 {
 	Super::OnRegister();
 
-	InitializeMappings();
-
 	UWorld* MyWorld = GetWorld();
 	if (!MyWorld || !MyWorld->IsGameWorld())
 	{
-		// Do nothing in the editor (e.g. blueprint editor).
+		// Do nothing in the editor (e.g level editor, blueprint).
 		return;
 	}
 
@@ -20,93 +25,84 @@ void UActorIOComponent::OnRegister()
 	FActorIOAction NewAction = FActorIOAction();
 	NewAction.SourceEvent = TEXT("TestEvent");
 	NewAction.TargetActor = GetOwner();
-	NewAction.TargetFunction = TEXT("Something");
-	AddAction(NewAction);
+	NewAction.TargetFunction = TEXT("TestHelloWorld");
+	Actions.Add(NewAction);
 
-	for (const FActorIOAction& Action : ActionBindings)
-	{
-		BindAction(Action);
-	}
+	CreateActionBindings();
 
 	// #TEMP: Raise the test event
-	TestEvent.Broadcast(0);
+	//TestEvent.Broadcast(0);
 }
 
-void UActorIOComponent::InitializeMappings()
+const TArray<FActorIOEvent> UActorIOComponent::GetEvents() const
 {
-	MappedEvents.Reset();
-	MappedFunctions.Reset();
-
-	// #TEMP: Register self test event
-	MappedEvents.Emplace(TEXT("TestEvent"), &TestEvent);
-
+	TArray<FActorIOEvent> OutEvents = TArray<FActorIOEvent>();
 	IActorIOInterface* OwnerIO = Cast<IActorIOInterface>(GetOwner());
 	if (OwnerIO)
 	{
-		OwnerIO->GetActorIOEvents(MappedEvents);
-		OwnerIO->GetActorIOFunctions(MappedFunctions);
+		OwnerIO->GetActorIOEvents(OutEvents);
 	}
+
+	return OutEvents;
 }
 
-void UActorIOComponent::AddAction(const FActorIOAction& NewAction)
+const TArray<FActorIOFunction> UActorIOComponent::GetFunctions() const
 {
-	if (!NewAction.IsValid())
+	TArray<FActorIOFunction> OutFunctions = TArray<FActorIOFunction>();
+	IActorIOInterface* OwnerIO = Cast<IActorIOInterface>(GetOwner());
+	if (OwnerIO)
 	{
-		UE_LOG(LogTemp, Error, TEXT("ActorIOComponent: AddAction failed - The action was invalid!"));
-		return;
+		OwnerIO->GetActorIOFunctions(OutFunctions);
 	}
 
-	FActorIOAction* ExistingAction = FindAction(NewAction.ActionId);
-	if (ExistingAction)
-	{
-		UE_LOG(LogTemp, Error, TEXT("ActorIOComponent: AddAction failed - The action already exists!"));
-		return;
-	}
 
-	ActionBindings.Add(NewAction);
+
+	// #TEMP: Inject test function.
+	OutFunctions.Emplace(TEXT("TestHelloWorld"), TEXT("TestHelloWorld"));
+
+
+	return OutFunctions;
 }
 
-void UActorIOComponent::RemoveAction(const FGuid& ActionId)
+void UActorIOComponent::CreateActionBindings()
 {
-	// ...
-}
-
-FActorIOAction* UActorIOComponent::FindAction(const FGuid& ActionId)
-{
-	return ActionBindings.FindByKey(ActionId);
-}
-
-void UActorIOComponent::BindAction(const FActorIOAction& Action)
-{
-	FActorIOEvent* TargetEvent = MappedEvents.FindByKey(Action.SourceEvent);
-	if (!TargetEvent)
+	const int32 NumActions = Actions.Num();
+	if (NumActions == 0)
 	{
 		return;
 	}
 
-	FMulticastScriptDelegate* TargetDelegate = TargetEvent->EventDelegate;
-	if (TargetDelegate)
+	TArray<FActorIOEvent> ValidEvents = GetEvents();
+	TArray<FActorIOFunction> ValidFunctions = GetFunctions();
+
+	ActionBindings.Init(nullptr, NumActions);
+	for (int32 ActionIdx = 0; ActionIdx != NumActions; ++ActionIdx)
 	{
-		FScriptDelegate NewDelegate;
-		NewDelegate.BindUFunction(this, TEXT("SomethingOnTestEvent"));
-	
-		TargetDelegate->Add(NewDelegate);
+		ActionBindings[ActionIdx] = NewObject<UActorIOLink>(this);
+		ActionBindings[ActionIdx]->BindAction(Actions[ActionIdx]);
 	}
 }
 
 void UActorIOComponent::RemoveActionBindings()
 {
-	// ...
+	for (UActorIOLink* Link : ActionBindings)
+	{
+		if (IsValid(Link))
+		{
+			Link->ClearAction();
+			Link->MarkAsGarbage();
+		}
+	}
 }
 
-void UActorIOComponent::SomethingOnTestEvent()
+void UActorIOComponent::TestHelloWorld()
 {
-	UE_LOG(LogTemp, Warning, TEXT("SomethingOnTestEvent called!"));
+	UE_LOG(LogTemp, Warning, TEXT("Hello World!"));
 }
 
 void UActorIOComponent::OnUnregister()
 {
-	Super::OnUnregister();
-
 	RemoveActionBindings();
+
+	Super::OnUnregister();
 }
