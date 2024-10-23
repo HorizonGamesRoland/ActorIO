@@ -14,7 +14,7 @@ void FActorIOEditor::StartupModule()
 {
 	// Initialize the editor style of the plugin.
 	FActorIOEditorStyle::Initialize();
-	
+
 	FGlobalTabmanager::Get()->RegisterNomadTabSpawner(TEXT("ActorIO"), FOnSpawnTab::CreateRaw(this, &FActorIOEditor::SpawnTab_ActorIO))
 		.SetDisplayName(FText::FromString("Actor IO"))
 		.SetTooltipText(FText::FromString("Open the Actor IO tab. Use this for level scripting."))
@@ -29,11 +29,11 @@ void FActorIOEditor::ShutdownModule()
 	FActorIOEditorStyle::Shutdown();
 }
 
-void FActorIOEditor::UpdateActorIOPanel(AActor* InActor)
+void FActorIOEditor::UpdateActorIOPanel()
 {
 	if (ActorIOPanel.IsValid())
 	{
-		ActorIOPanel->RebuildFromState(InActor);
+		ActorIOPanel->RebuildWidget();
 	}
 }
 

@@ -1,6 +1,9 @@
 // Copyright 2024 Horizon Games. All Rights Reserved.
 
 #include "SActorIOPanel.h"
+#include "ActorIOEditor.h"
+#include "ActorIOEditorSubsystem.h"
+#include "ActorIOComponent.h"
 #include "GameFramework/Actor.h"
 
 #define LOCTEXT_NAMESPACE "ActorIOPanel"
@@ -9,6 +12,9 @@ BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 void SActorIOPanel::Construct(const FArguments& InArgs)
 {
+    // By default display the outputs tab.
+    bViewOutputs = true;
+
     ChildSlot
     [
         SNew(SBox)
@@ -56,6 +62,7 @@ const TSharedRef<SWidget> SActorIOPanel::ConstructMenuPanel(const FArguments& In
                 .VAlign(VAlign_Center)
                 .ContentPadding(10.0f)
                 .Text(LOCTEXT("Outputs", "Outputs (0)"))
+                .OnClicked(this, &SActorIOPanel::OnClick_Outputs)
             ]
             + SVerticalBox::Slot()
             .AutoHeight()
@@ -66,6 +73,7 @@ const TSharedRef<SWidget> SActorIOPanel::ConstructMenuPanel(const FArguments& In
                 .VAlign(VAlign_Center)
                 .ContentPadding(10.0f)
                 .Text(LOCTEXT("Inputs", "Inputs (0)"))
+                .OnClicked(this, &SActorIOPanel::OnClick_Inputs)
             ]
             + SVerticalBox::Slot()
             .FillHeight(1.0)
@@ -80,6 +88,7 @@ const TSharedRef<SWidget> SActorIOPanel::ConstructMenuPanel(const FArguments& In
                 .VAlign(VAlign_Center)
                 .ContentPadding(10.0f)
                 .Text(LOCTEXT("NewAction", "+ New Action"))
+                .OnClicked(this, &SActorIOPanel::OnClick_NewAction)
             ]
         ];
 }
@@ -90,26 +99,75 @@ const TSharedRef<SWidget> SActorIOPanel::ConstructDetailsPanel(const FArguments&
         .BorderBackgroundColor(FColor(192, 192, 192, 255))
         .Padding(5.0f)
         [
-            SNew(SBox)
+            SAssignNew(ActionsBox, SVerticalBox)
         ];
 }
 
-void SActorIOPanel::RebuildFromState(AActor* InActor)
+void SActorIOPanel::RebuildWidget()
 {
-    if (!ValidateElements())
-    {
-        // Do nothing if any of our widget elements are invalid.
-        // This should never happen.
-        return;
-    }
+    ActionsBox->ClearChildren();
 
-    FString ActorName = InActor ? InActor->GetActorNameOrLabel() : TEXT("None");
+    UActorIOEditorSubsystem* ActorIOEditorSubsystem = GEditor->GetEditorSubsystem<UActorIOEditorSubsystem>();
+    AActor* SelectedActor = ActorIOEditorSubsystem->GetSelectedActor();
+
+    FString ActorName = SelectedActor ? SelectedActor->GetActorNameOrLabel() : TEXT("None");
     ActorNameText->SetText(FText::Format(LOCTEXT("SelectedActorName", "Actor: {0}"), FText::FromString(ActorName)));
+
+    UActorIOComponent* ActorIOComponent = SelectedActor ? SelectedActor->GetComponentByClass<UActorIOComponent>() : nullptr;
+    if (ActorIOComponent)
+    {
+        for (FActorIOAction& Action : ActorIOComponent->GetActions())
+        {
+            ActionsBox->AddSlot()
+            .AutoHeight()
+            [
+                SNew(STextBlock)
+                .Text(LOCTEXT("Hello", "Hello!"))
+            ];
+        }
+    }
 }
 
-bool SActorIOPanel::ValidateElements() const
+FReply SActorIOPanel::OnClick_Outputs()
 {
-    return ActorNameText.IsValid();
+    if (!bViewOutputs)
+    {
+        bViewOutputs = true;
+        RebuildWidget();
+    }
+    
+    return FReply::Handled();
+}
+
+FReply SActorIOPanel::OnClick_Inputs()
+{
+    if (bViewOutputs)
+    {
+        bViewOutputs = false;
+        RebuildWidget();
+    }
+
+    return FReply::Handled();
+}
+
+FReply SActorIOPanel::OnClick_NewAction()
+{
+    UActorIOEditorSubsystem* ActorIOEditorSubsystem = GEditor->GetEditorSubsystem<UActorIOEditorSubsystem>();
+    AActor* SelectedActor = ActorIOEditorSubsystem->GetSelectedActor();
+    if (SelectedActor)
+    {
+        // #TODO: Add ActorIO component to actor if missing
+
+        UActorIOComponent* ActorIOComponent = SelectedActor ? SelectedActor->GetComponentByClass<UActorIOComponent>() : nullptr;
+        if (ActorIOComponent)
+        {
+            TArray<FActorIOAction>& Actions = ActorIOComponent->GetActions();
+            Actions.Emplace();
+        }
+    }
+
+    RebuildWidget();
+    return FReply::Handled();
 }
 
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION

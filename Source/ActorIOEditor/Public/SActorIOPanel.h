@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "Widgets/Docking/SDockTab.h"
 
-class AActor;
+class FActorIOEditor;
 
 class SActorIOPanel : public SCompoundWidget
 {
@@ -17,7 +17,15 @@ public:
 
     void Construct(const FArguments& InArgs);
 
-    void RebuildFromState(AActor* InActor);
+    void RebuildWidget();
+
+protected:
+
+    bool bViewOutputs;
+
+    TSharedPtr<class STextBlock> ActorNameText;
+
+    TSharedPtr<class SVerticalBox> ActionsBox;
 
 protected:
 
@@ -25,7 +33,9 @@ protected:
 
     const TSharedRef<SWidget> ConstructDetailsPanel(const FArguments& InArgs);
 
-    bool ValidateElements() const;
+    FReply OnClick_Outputs();
 
-    TSharedPtr<class STextBlock> ActorNameText;
+    FReply OnClick_Inputs();
+
+    FReply OnClick_NewAction();
 };

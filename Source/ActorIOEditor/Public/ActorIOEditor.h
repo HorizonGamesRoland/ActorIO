@@ -8,7 +8,7 @@
 class SActorIOPanel;
 class SDockTab;
 
-class FActorIOEditor : public IModuleInterface, public TSharedFromThis<FActorIOEditor>
+class FActorIOEditor : public IModuleInterface
 {
 private:
 
@@ -22,7 +22,7 @@ public:
 	/** Unregister the ActorIO editor module. */
 	virtual void ShutdownModule() override;
 
-	void UpdateActorIOPanel(AActor* InActor);
+	void UpdateActorIOPanel();
 
 	/** @return The editor widget inside the Actor IO tab. */
 	SActorIOPanel* GetActorIOPanel() const;

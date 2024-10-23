@@ -21,17 +21,7 @@ void UActorIOComponent::OnRegister()
 		return;
 	}
 
-	// #TEMP: Test action
-	FActorIOAction NewAction = FActorIOAction();
-	NewAction.SourceEvent = TEXT("TestEvent");
-	NewAction.TargetActor = GetOwner();
-	NewAction.TargetFunction = TEXT("TestHelloWorld");
-	Actions.Add(NewAction);
-
 	CreateActionBindings();
-
-	// #TEMP: Raise the test event
-	//TestEvent.Broadcast(0);
 }
 
 const TArray<FActorIOEvent> UActorIOComponent::GetEvents() const

@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// Copyright 2024 Horizon Games. All Rights Reserved.
 
 #include "ActorIOEditorSubsystem.h"
 #include "ActorIOEditor.h"
@@ -12,7 +12,7 @@ void UActorIOEditorSubsystem::Tick(float DeltaTime)
 	SelectedActor = SelectedActors ? SelectedActors->GetBottom<AActor>() : nullptr;
 
 	FActorIOEditor& ActorIOEditorModule = FModuleManager::GetModuleChecked<FActorIOEditor>("ActorIOEditor");
-	ActorIOEditorModule.UpdateActorIOPanel(SelectedActor);
+	ActorIOEditorModule.UpdateActorIOPanel();
 }
 
 TStatId UActorIOEditorSubsystem::GetStatId() const
