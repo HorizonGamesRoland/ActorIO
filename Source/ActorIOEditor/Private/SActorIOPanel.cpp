@@ -117,16 +117,64 @@ void SActorIOPanel::RebuildWidget()
     UActorIOComponent* ActorIOComponent = SelectedActor ? SelectedActor->GetComponentByClass<UActorIOComponent>() : nullptr;
     if (ActorIOComponent)
     {
-        for (FActorIOAction& Action : ActorIOComponent->GetActions())
+        for (int32 ActionIdx = 0; ActionIdx != ActorIOComponent->GetActions().Num(); ++ActionIdx)
         {
             ActionsBox->AddSlot()
             .AutoHeight()
             [
-                SNew(STextBlock)
-                .Text(LOCTEXT("Hello", "Hello!"))
+                ConstructActionRow(ActorIOComponent, ActionIdx)
             ];
         }
     }
+}
+
+const TSharedRef<SWidget> SActorIOPanel::ConstructActionRow(UActorIOComponent* InActorIOComponent, int32 ActionIdx)
+{
+    const FActorIOAction& Action = InActorIOComponent->GetActions()[ActionIdx];
+
+    SelectableEvents.Reset();
+    SelectableEvents.Add(TEXT("Null"));
+
+    TArray<FActorIOEvent> ValidEvents = InActorIOComponent->GetEvents();
+    for (const FActorIOEvent& IOEvent : ValidEvents)
+    {
+        SelectableEvents.Emplace(IOEvent.EventName);
+    }
+
+    return SNew(SBox)
+    .HeightOverride(30)
+    [
+        SNew(SHorizontalBox)
+        + SHorizontalBox::Slot()
+        .HAlign(HAlign_Left)
+        .AutoWidth()
+        [
+            SNew(SBox)
+            .WidthOverride(200)
+            .Padding(0.0f, 0.0f, 0.0f, 5.0f)
+            [
+                SNew(SComboBox<FName>)
+                .OptionsSource(&SelectableEvents)
+                .OnGenerateWidget_Lambda([](FName InName)
+                {
+                    return SNew(STextBlock)
+                        .Text(FText::FromName(InName));
+                })
+                .OnSelectionChanged_Lambda([this, InActorIOComponent, ActionIdx](FName InName, ESelectInfo::Type InSelectType)
+                {
+                    if (InSelectType != ESelectInfo::Direct)
+                    {
+                        ModifyAction_Event(InActorIOComponent, ActionIdx, InName);
+                    }
+                })
+                .Content()
+                [
+                    SNew(STextBlock)
+                    .Text(FText::FromName(Action.SourceEvent))
+                ]
+            ]
+        ]
+    ];
 }
 
 FReply SActorIOPanel::OnClick_Outputs()
@@ -185,6 +233,26 @@ FReply SActorIOPanel::OnClick_NewAction()
 
     RebuildWidget();
     return FReply::Handled();
+}
+
+void SActorIOPanel::ModifyAction_Event(UActorIOComponent* InActorIOComponent, int32 ActionIdx, FName InNewEvent)
+{
+    if (InActorIOComponent)
+    {
+        TArray<FActorIOAction>& Actions = InActorIOComponent->GetActions();
+        if (Actions.IsValidIndex(ActionIdx))
+        {
+            if (Actions[ActionIdx].SourceEvent != InNewEvent)
+            {
+                const FScopedTransaction Transaction(LOCTEXT("ModifyActorIOAction", "Modify ActorIO Action"));
+                InActorIOComponent->Modify();
+
+                Actions[ActionIdx].SourceEvent = InNewEvent;
+            }
+        }
+    }
+
+    RebuildWidget();
 }
 
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION

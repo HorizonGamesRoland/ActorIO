@@ -28,6 +28,7 @@ public class ActorIOEditor : ModuleRules
             "Projects",
             "Slate",
             "SlateCore",
+            "InputCore",
             "WorkspaceMenuStructure",
         });
     }

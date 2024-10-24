@@ -5,7 +5,8 @@
 #include "CoreMinimal.h"
 #include "Widgets/Docking/SDockTab.h"
 
-class FActorIOEditor;
+class UActorIOComponent;
+struct FActorIOAction;
 
 class SActorIOPanel : public SCompoundWidget
 {
@@ -27,15 +28,21 @@ protected:
 
     TSharedPtr<class SVerticalBox> ActionsBox;
 
+    TArray<FName> SelectableEvents;
+
 protected:
 
     const TSharedRef<SWidget> ConstructMenuPanel(const FArguments& InArgs);
 
     const TSharedRef<SWidget> ConstructDetailsPanel(const FArguments& InArgs);
 
+    const TSharedRef<SWidget> ConstructActionRow(UActorIOComponent* InActorIOComponent, int32 ActionIdx);
+
     FReply OnClick_Outputs();
 
     FReply OnClick_Inputs();
 
     FReply OnClick_NewAction();
+
+    void ModifyAction_Event(UActorIOComponent* InActorIOComponent, int32 ActionIdx, FName InNewEvent);
 };

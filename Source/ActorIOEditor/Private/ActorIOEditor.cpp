@@ -48,6 +48,8 @@ TSharedRef<SDockTab> FActorIOEditor::SpawnTab_ActorIO(const FSpawnTabArgs& TabSp
 	const SDockTab::FOnTabClosedCallback TabClosedDelegate = SDockTab::FOnTabClosedCallback::CreateRaw(this, &FActorIOEditor::OnActorIOEditorClosed);
 	SpawnedTab->SetOnTabClosed(TabClosedDelegate);
 
+	UpdateActorIOPanel();
+
 	return SpawnedTab;
 }
 

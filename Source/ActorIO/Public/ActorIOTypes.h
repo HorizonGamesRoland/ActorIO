@@ -61,13 +61,13 @@ struct ACTORIO_API FActorIOAction
 {
 	GENERATED_BODY()
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere)
 	FName SourceEvent;
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere)
 	TObjectPtr<AActor> TargetActor;
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere)
 	FName TargetFunction;
 
 	FActorIOAction() :
