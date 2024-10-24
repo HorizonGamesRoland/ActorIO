@@ -20,7 +20,7 @@ public:
 
 protected:
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere) // <--- #TEMP: edit anywhere for debugging
 	TArray<FActorIOAction> Actions;
 
 	UPROPERTY()

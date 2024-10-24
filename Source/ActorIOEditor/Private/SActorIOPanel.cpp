@@ -5,6 +5,7 @@
 #include "ActorIOEditorSubsystem.h"
 #include "ActorIOComponent.h"
 #include "GameFramework/Actor.h"
+#include "LevelEditor.h"
 
 #define LOCTEXT_NAMESPACE "ActorIOPanel"
 
@@ -156,11 +157,27 @@ FReply SActorIOPanel::OnClick_NewAction()
     AActor* SelectedActor = ActorIOEditorSubsystem->GetSelectedActor();
     if (SelectedActor)
     {
-        // #TODO: Add ActorIO component to actor if missing
+        const FScopedTransaction Transaction(LOCTEXT("AddActorIOAction", "Add ActorIO Action"));
 
-        UActorIOComponent* ActorIOComponent = SelectedActor ? SelectedActor->GetComponentByClass<UActorIOComponent>() : nullptr;
+        UActorIOComponent* ActorIOComponent = SelectedActor->GetComponentByClass<UActorIOComponent>();
+        if (!ActorIOComponent)
+        {
+            SelectedActor->Modify();
+
+            ActorIOComponent = NewObject<UActorIOComponent>(SelectedActor, TEXT("ActorIOComponent"), RF_Transactional);
+            ActorIOComponent->OnComponentCreated();
+            ActorIOComponent->RegisterComponent();
+
+            SelectedActor->AddInstanceComponent(ActorIOComponent);
+
+            FLevelEditorModule& LevelEditor = FModuleManager::LoadModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
+            LevelEditor.BroadcastComponentsEdited();
+        }
+
         if (ActorIOComponent)
         {
+            ActorIOComponent->Modify();
+
             TArray<FActorIOAction>& Actions = ActorIOComponent->GetActions();
             Actions.Emplace();
         }

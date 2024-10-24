@@ -23,6 +23,7 @@ public class ActorIOEditor : ModuleRules
         PrivateDependencyModuleNames.AddRange(new string[]
         {
             "UnrealEd",
+            "LevelEditor",
             "EditorSubsystem",
             "Projects",
             "Slate",
