@@ -8,7 +8,7 @@
 #include "ActorIOEditorSubsystem.generated.h"
 
 UCLASS()
-class ACTORIOEDITOR_API UActorIOEditorSubsystem : public UEditorSubsystem, public FTickableGameObject
+class ACTORIOEDITOR_API UActorIOEditorSubsystem : public UEditorSubsystem
 {
 	GENERATED_BODY()
 
@@ -21,13 +21,12 @@ public:
 
 	AActor* GetSelectedActor() const { return SelectedActor.Get(); }
 
+protected:
+
+	void OnSelectionChanged(UObject* NewSelection);
+
 public:
 
-	//~ Begin FTickableGameObject Interface
-	virtual void Tick(float DeltaTime) override;
-	virtual ETickableTickType GetTickableTickType() const override { return ETickableTickType::Always; }
-	virtual bool IsTickableWhenPaused() const { return true; }
-	virtual bool IsTickableInEditor() const { return true; }
-	virtual TStatId GetStatId() const override;
-	//~ End FTickableGameObject Interface
+	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
+	virtual void Deinitialize() override;
 };
