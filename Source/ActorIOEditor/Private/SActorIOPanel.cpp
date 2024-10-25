@@ -13,100 +13,103 @@ BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 void SActorIOPanel::Construct(const FArguments& InArgs)
 {
-    // By default display the outputs tab.
+    // Display output actions by default.
     bViewOutputs = true;
 
     ChildSlot
     [
         SNew(SBox)
-        .Padding(5.0f)
+        .Padding(0.0f)
         [
             SNew(SHorizontalBox)
             + SHorizontalBox::Slot()
             .HAlign(HAlign_Left)
             .AutoWidth()
             [
+                // ---------------------------------
+                // Menu panel with buttons
+                // ---------------------------------
                 SNew(SBox)
                 .WidthOverride(250)
                 .Padding(0.0f, 0.0f, 5.0f, 0.0f)
                 [
-                    ConstructMenuPanel(InArgs)
+                    SNew(SBorder)
+                    .BorderBackgroundColor(FColor(192, 192, 192, 255))
+                    .Padding(5.0f)
+                    [
+                        SNew(SVerticalBox)
+                        + SVerticalBox::Slot()
+                        .AutoHeight()
+                        .Padding(5.0f, 2.0f, 5.0f, 5.0f)
+                        [
+                            SAssignNew(ActorNameText, STextBlock)
+                        ]
+                        + SVerticalBox::Slot()
+                        .AutoHeight()
+                        .Padding(0.0f, 0.0f, 0.0f, 2.0f)
+                        [
+                            SNew(SButton)
+                            .HAlign(HAlign_Center)
+                            .VAlign(VAlign_Center)
+                            .ContentPadding(10.0f)
+                            .Text(LOCTEXT("Outputs", "Outputs (0)"))
+                            .OnClicked(this, &SActorIOPanel::OnClick_Outputs)
+                        ]
+                        + SVerticalBox::Slot()
+                        .AutoHeight()
+                        .Padding(0.0f, 0.0f, 0.0f, 2.0f)
+                        [
+                            SNew(SButton)
+                            .HAlign(HAlign_Center)
+                            .VAlign(VAlign_Center)
+                            .ContentPadding(10.0f)
+                            .Text(LOCTEXT("Inputs", "Inputs (0)"))
+                            .OnClicked(this, &SActorIOPanel::OnClick_Inputs)
+                        ]
+                        + SVerticalBox::Slot()
+                        .FillHeight(1.0)
+                        [
+                            SNew(SSpacer)
+                        ]
+                        + SVerticalBox::Slot()
+                        .AutoHeight()
+                        [
+                            SNew(SButton)
+                            .HAlign(HAlign_Center)
+                            .VAlign(VAlign_Center)
+                            .ContentPadding(10.0f)
+                            .Text(LOCTEXT("NewAction", "+ New Action"))
+                            .OnClicked(this, &SActorIOPanel::OnClick_NewAction)
+                        ]
+                    ]
                 ]
             ]
             + SHorizontalBox::Slot()
             [
-                ConstructDetailsPanel(InArgs)
+                // ---------------------------------
+                // Actions panel
+                // ---------------------------------
+                SNew(SBorder)
+                .BorderBackgroundColor(FColor(192, 192, 192, 255))
+                .Padding(5.0f)
+                [
+                    SAssignNew(ActionsBox, SVerticalBox)
+                ]
             ]
         ]
     ];
 }
 
-const TSharedRef<SWidget> SActorIOPanel::ConstructMenuPanel(const FArguments& InArgs)
-{
-    return SNew(SBorder)
-        .BorderBackgroundColor(FColor(192, 192, 192, 255))
-        .Padding(5.0f)
-        [
-            SNew(SVerticalBox)
-            + SVerticalBox::Slot()
-            .AutoHeight()
-            .Padding(5.0f, 2.0f, 5.0f, 5.0f)
-            [
-                SAssignNew(ActorNameText, STextBlock)
-            ]
-            + SVerticalBox::Slot()
-            .AutoHeight()
-            .Padding(0.0f, 0.0f, 0.0f, 2.0f)
-            [
-                SNew(SButton)
-                .HAlign(HAlign_Center)
-                .VAlign(VAlign_Center)
-                .ContentPadding(10.0f)
-                .Text(LOCTEXT("Outputs", "Outputs (0)"))
-                .OnClicked(this, &SActorIOPanel::OnClick_Outputs)
-            ]
-            + SVerticalBox::Slot()
-            .AutoHeight()
-            .Padding(0.0f, 0.0f, 0.0f, 2.0f)
-            [
-                SNew(SButton)
-                .HAlign(HAlign_Center)
-                .VAlign(VAlign_Center)
-                .ContentPadding(10.0f)
-                .Text(LOCTEXT("Inputs", "Inputs (0)"))
-                .OnClicked(this, &SActorIOPanel::OnClick_Inputs)
-            ]
-            + SVerticalBox::Slot()
-            .FillHeight(1.0)
-            [
-                SNew(SSpacer)
-            ]
-            + SVerticalBox::Slot()
-            .AutoHeight()
-            [
-                SNew(SButton)
-                .HAlign(HAlign_Center)
-                .VAlign(VAlign_Center)
-                .ContentPadding(10.0f)
-                .Text(LOCTEXT("NewAction", "+ New Action"))
-                .OnClicked(this, &SActorIOPanel::OnClick_NewAction)
-            ]
-        ];
-}
-
-const TSharedRef<SWidget> SActorIOPanel::ConstructDetailsPanel(const FArguments& InArgs)
-{
-    return SNew(SBorder)
-        .BorderBackgroundColor(FColor(192, 192, 192, 255))
-        .Padding(5.0f)
-        [
-            SAssignNew(ActionsBox, SVerticalBox)
-        ];
-}
-
 void SActorIOPanel::RebuildWidget()
 {
     ActionsBox->ClearChildren();
+
+    ActionsBox->AddSlot()
+    .AutoHeight()
+    .Padding(0.0f, 0.0f, 0.0f, 5.0f)
+    [
+        ConstructHeaderRow()
+    ];
 
     UActorIOEditorSubsystem* ActorIOEditorSubsystem = GEditor->GetEditorSubsystem<UActorIOEditorSubsystem>();
     AActor* SelectedActor = ActorIOEditorSubsystem->GetSelectedActor();
@@ -128,6 +131,35 @@ void SActorIOPanel::RebuildWidget()
     }
 }
 
+const TSharedRef<SWidget> SActorIOPanel::ConstructHeaderRow()
+{
+    return SNew(SBox)
+    [
+        SNew(SHorizontalBox)
+        + SHorizontalBox::Slot()
+        .FillWidth(1.0f)
+        .HAlign(HAlign_Left)
+        [
+            SNew(STextBlock)
+            .Text(LOCTEXT("Event", "Event:"))
+        ]
+        + SHorizontalBox::Slot()
+        .FillWidth(1.0f)
+        .HAlign(HAlign_Left)
+        [
+            SNew(STextBlock)
+            .Text(LOCTEXT("Target", "Target:"))
+        ]
+        + SHorizontalBox::Slot()
+        .FillWidth(1.0f)
+        .HAlign(HAlign_Left)
+        [
+            SNew(STextBlock)
+            .Text(LOCTEXT("Action", "Action:"))
+        ]
+    ];
+}
+
 const TSharedRef<SWidget> SActorIOPanel::ConstructActionRow(UActorIOComponent* InActorIOComponent, int32 ActionIdx)
 {
     const FActorIOAction& Action = InActorIOComponent->GetActions()[ActionIdx];
@@ -146,11 +178,12 @@ const TSharedRef<SWidget> SActorIOPanel::ConstructActionRow(UActorIOComponent* I
     [
         SNew(SHorizontalBox)
         + SHorizontalBox::Slot()
-        .HAlign(HAlign_Left)
-        .AutoWidth()
+        .FillWidth(1.0f)
         [
+            // ---------------------------------
+            // Source Event
+            // ---------------------------------
             SNew(SBox)
-            .WidthOverride(200)
             .Padding(0.0f, 0.0f, 0.0f, 5.0f)
             [
                 SNew(SComboBox<FName>)
@@ -171,6 +204,54 @@ const TSharedRef<SWidget> SActorIOPanel::ConstructActionRow(UActorIOComponent* I
                 [
                     SNew(STextBlock)
                     .Text(FText::FromName(Action.SourceEvent))
+                ]
+            ]
+        ]
+        + SHorizontalBox::Slot()
+        .FillWidth(1.0f)
+        [
+            // ---------------------------------
+            // Target actor
+            // ---------------------------------
+
+            SNew(SBox)
+            .Padding(0.0f, 0.0f, 0.0f, 5.0f)
+            [
+                SNew(SComboBox<FName>)
+                .OptionsSource(&SelectableEvents)
+                .OnGenerateWidget_Lambda([](FName InName)
+                {
+                    return SNew(STextBlock)
+                    .Text(FText::FromName(InName));
+                })
+                .Content()
+                [
+                    SNew(STextBlock)
+                    .Text(FText::FromString(Action.TargetActor ? Action.TargetActor->GetActorNameOrLabel() : TEXT("")))
+                ]
+            ]
+        ]
+        + SHorizontalBox::Slot()
+        .FillWidth(1.0f)
+        [
+            // ---------------------------------
+            // Target function
+            // ---------------------------------
+
+            SNew(SBox)
+            .Padding(0.0f, 0.0f, 0.0f, 5.0f)
+            [
+                SNew(SComboBox<FName>)
+                .OptionsSource(&SelectableEvents)
+                .OnGenerateWidget_Lambda([](FName InName)
+                {
+                    return SNew(STextBlock)
+                    .Text(FText::FromName(InName));
+                })
+                .Content()
+                [
+                    SNew(STextBlock)
+                    .Text(FText::FromName(Action.TargetFunction))
                 ]
             ]
         ]

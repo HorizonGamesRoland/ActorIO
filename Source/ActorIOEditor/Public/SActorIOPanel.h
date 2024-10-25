@@ -32,9 +32,7 @@ protected:
 
 protected:
 
-    const TSharedRef<SWidget> ConstructMenuPanel(const FArguments& InArgs);
-
-    const TSharedRef<SWidget> ConstructDetailsPanel(const FArguments& InArgs);
+    const TSharedRef<SWidget> ConstructHeaderRow();
 
     const TSharedRef<SWidget> ConstructActionRow(UActorIOComponent* InActorIOComponent, int32 ActionIdx);
 

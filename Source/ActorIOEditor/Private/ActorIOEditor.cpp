@@ -41,6 +41,7 @@ TSharedRef<SDockTab> FActorIOEditor::SpawnTab_ActorIO(const FSpawnTabArgs& TabSp
 {
 	TSharedRef<SDockTab> SpawnedTab = SNew(SDockTab)
 	.TabRole(ETabRole::NomadTab)
+	.ContentPadding(5.0f)
 	[
 		SAssignNew(ActorIOPanel, SActorIOPanel)
 	];
