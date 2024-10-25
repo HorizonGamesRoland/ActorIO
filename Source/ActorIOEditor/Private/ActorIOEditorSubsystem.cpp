@@ -22,5 +22,5 @@ void UActorIOEditorSubsystem::OnSelectionChanged(UObject* NewSelection)
 	SelectedActor = SelectedActors ? SelectedActors->GetBottom<AActor>() : nullptr;
 
 	FActorIOEditor& ActorIOEditorModule = FModuleManager::GetModuleChecked<FActorIOEditor>("ActorIOEditor");
-	ActorIOEditorModule.UpdateActorIOPanel();
+	ActorIOEditorModule.UpdateEditorWindow();
 }

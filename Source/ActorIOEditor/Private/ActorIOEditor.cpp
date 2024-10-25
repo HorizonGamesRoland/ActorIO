@@ -2,7 +2,7 @@
 
 #include "ActorIOEditor.h"
 #include "ActorIOEditorStyle.h"
-#include "SActorIOPanel.h"
+#include "SActorIOEditor.h"
 #include "Framework/Docking/TabManager.h"
 #include "Widgets/Docking/SDockTab.h"
 #include "WorkspaceMenuStructure.h"
@@ -29,39 +29,38 @@ void FActorIOEditor::ShutdownModule()
 	FActorIOEditorStyle::Shutdown();
 }
 
-void FActorIOEditor::UpdateActorIOPanel()
-{
-	if (ActorIOPanel.IsValid())
-	{
-		ActorIOPanel->RebuildWidget();
-	}
-}
-
 TSharedRef<SDockTab> FActorIOEditor::SpawnTab_ActorIO(const FSpawnTabArgs& TabSpawnArgs)
 {
 	TSharedRef<SDockTab> SpawnedTab = SNew(SDockTab)
 	.TabRole(ETabRole::NomadTab)
-	.ContentPadding(5.0f)
 	[
-		SAssignNew(ActorIOPanel, SActorIOPanel)
+		SAssignNew(EditorWindow, SActorIOEditor)
 	];
 
 	const SDockTab::FOnTabClosedCallback TabClosedDelegate = SDockTab::FOnTabClosedCallback::CreateRaw(this, &FActorIOEditor::OnActorIOEditorClosed);
 	SpawnedTab->SetOnTabClosed(TabClosedDelegate);
 
-	UpdateActorIOPanel();
+	UpdateEditorWindow();
 
 	return SpawnedTab;
 }
 
 void FActorIOEditor::OnActorIOEditorClosed(TSharedRef<SDockTab> DockTab)
 {
-	ActorIOPanel.Reset();
+	EditorWindow.Reset();
 }
 
-SActorIOPanel* FActorIOEditor::GetActorIOPanel() const
+void FActorIOEditor::UpdateEditorWindow()
 {
-	return ActorIOPanel.Get();
+	if (EditorWindow.IsValid())
+	{
+		EditorWindow->RebuildWidget();
+	}
+}
+
+SActorIOEditor* FActorIOEditor::GetEditorWindow() const
+{
+	return EditorWindow.Get();
 }
 
 #undef LOCTEXT_NAMESPACE
