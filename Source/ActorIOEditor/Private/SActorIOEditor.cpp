@@ -134,49 +134,45 @@ const TSharedRef<SWidget> SActorIOEditor::ConstructOutputsTab()
             SNew(SBox)
             .HeightOverride(30.0f)
             [
-                SNew(SBorder)
-                .BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
+                SAssignNew(ActionSplitter, SSplitter)
+                + SSplitter::Slot()
                 [
-                    SAssignNew(ActionSplitter, SSplitter)
-                    + SSplitter::Slot()
+                    SNew(SBox)
+                    .VAlign(VAlign_Center)
+                    .Padding(5.0f, 0.0f)
                     [
-                        SNew(SBox)
-                        .VAlign(VAlign_Center)
-                        .Padding(5.0f, 0.0f)
-                        [
-                            SNew(STextBlock)
-                            .Text(LOCTEXT("Event", "Event:"))
-                        ]
+                        SNew(STextBlock)
+                        .Text(LOCTEXT("Event", "Event:"))
+                    ]
                         
-                    ]
-                    + SSplitter::Slot()
+                ]
+                + SSplitter::Slot()
+                [
+                    SNew(SBox)
+                    .VAlign(VAlign_Center)
+                    .Padding(5.0f, 0.0f)
                     [
-                        SNew(SBox)
-                        .VAlign(VAlign_Center)
-                        .Padding(5.0f, 0.0f)
-                        [
-                            SNew(STextBlock)
-                            .Text(LOCTEXT("Target", "Target:"))
-                        ]
+                        SNew(STextBlock)
+                        .Text(LOCTEXT("Target", "Target:"))
                     ]
-                    + SSplitter::Slot()
+                ]
+                + SSplitter::Slot()
+                [
+                    SNew(SBox)
+                    .VAlign(VAlign_Center)
+                    .Padding(5.0f, 0.0f)
                     [
-                        SNew(SBox)
-                        .VAlign(VAlign_Center)
-                        .Padding(5.0f, 0.0f)
-                        [
-                            SNew(STextBlock)
-                            .Text(LOCTEXT("Action", "Action:"))
-                        ]
+                        SNew(STextBlock)
+                        .Text(LOCTEXT("Action", "Action:"))
                     ]
                 ]
             ]
         ]
         + SVerticalBox::Slot()
+        .Padding(3.0f)
         [
             SNew(SBorder)
-            .BorderImage(FAppStyle::GetBrush("Menu.Background"))
-            .Padding(3.0f)
+            .BorderImage(FAppStyle::Get().GetBrush("PlacementBrowser.Asset.Background"))
             [
                 SAssignNew(ActionList, SVerticalBox)
             ]

@@ -65,19 +65,24 @@ struct ACTORIO_API FActorIOAction
 	FName SourceEvent;
 
 	UPROPERTY(EditAnywhere)
-	TObjectPtr<AActor> TargetActor;
+	FString TargetActorPath;
 
 	UPROPERTY(EditAnywhere)
 	FName TargetFunction;
 
 	FActorIOAction() :
 		SourceEvent(FName()),
-		TargetActor(nullptr),
+		TargetActorPath(FString()),
 		TargetFunction(FName())
 	{}
 
 	bool IsValid() const
 	{
-		return !SourceEvent.IsNone() && TargetActor && !TargetFunction.IsNone();
+		return !SourceEvent.IsNone() && !TargetActorPath.IsEmpty() && !TargetFunction.IsNone();
+	}
+
+	AActor* ResolveTargetActorReference(UWorld* InWorld) const
+	{
+		return Cast<AActor>(StaticFindObject(AActor::StaticClass(), InWorld, *TargetActorPath, false));
 	}
 };

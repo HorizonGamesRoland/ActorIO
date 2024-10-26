@@ -33,8 +33,6 @@ protected:
 
     TSharedPtr<class STextBlock> EventText;
 
-    TSharedPtr<class STextBlock> TargetActorText;
-
     TSharedPtr<class STextBlock> FunctionText;
 
     TArray<FName> SelectableEvents;
@@ -45,9 +43,13 @@ protected:
 
     TSharedRef<SWidget> OnGenerateComboBoxWidget(FName InName);
 
-    void OnSelectedEventChanged(FName InName, ESelectInfo::Type InSelectType);
+    void OnEventChanged(FName InName, ESelectInfo::Type InSelectType);
 
-    void OnSelectedFunctionChanged(FName InName, ESelectInfo::Type InSelectType);
+    void OnTargetFunctionChanged(FName InName, ESelectInfo::Type InSelectType);
+
+    void OnTargetActorChanged(const FAssetData& InAsset);
+
+    FString GetTargetActorPath() const;
 
 protected:
 

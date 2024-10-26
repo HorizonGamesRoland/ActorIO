@@ -24,6 +24,7 @@ public class ActorIOEditor : ModuleRules
         {
             "UnrealEd",
             "LevelEditor",
+            "PropertyEditor",
             "EditorSubsystem",
             "Projects",
             "Slate",

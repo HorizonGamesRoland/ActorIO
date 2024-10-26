@@ -3,6 +3,7 @@
 #include "SActorIOAction.h"
 #include "ActorIOComponent.h"
 #include "ActorIOTypes.h"
+#include "PropertyCustomizationHelpers.h"
 
 #define LOCTEXT_NAMESPACE "FActorIOEditor"
 
@@ -29,7 +30,7 @@ void SActorIOAction::Construct(const FArguments& InArgs)
 				SNew(SComboBox<FName>)
 				.OptionsSource(&SelectableEvents)
 				.OnGenerateWidget(this, &SActorIOAction::OnGenerateComboBoxWidget)
-				.OnSelectionChanged(this, &SActorIOAction::OnSelectedEventChanged)
+				.OnSelectionChanged(this, &SActorIOAction::OnEventChanged)
 				[
 					SAssignNew(EventText, STextBlock)
 					.Text(FText::FromName(Action.SourceEvent))
@@ -37,21 +38,20 @@ void SActorIOAction::Construct(const FArguments& InArgs)
 			]
 			+ SSplitter::Slot()
 			[
-				SNew(SComboBox<FName>)
-				.OptionsSource(&SelectableEvents)
-				.OnGenerateWidget(this, &SActorIOAction::OnGenerateComboBoxWidget)
-				.OnSelectionChanged(this, &SActorIOAction::OnSelectedEventChanged)
-				[
-					SAssignNew(TargetActorText, STextBlock)
-					.Text(FText::FromString(Action.TargetActor ? Action.TargetActor->GetActorNameOrLabel() : TEXT("")))
-				]
+				SNew(SObjectPropertyEntryBox)
+				.AllowedClass(AActor::StaticClass())
+				.AllowClear(true)
+				.DisplayBrowse(true)
+				.DisplayUseSelected(false)
+				.ObjectPath(this, &SActorIOAction::GetTargetActorPath)
+				.OnObjectChanged(this, &SActorIOAction::OnTargetActorChanged)
 			]
 			+ SSplitter::Slot()
 			[
 				SNew(SComboBox<FName>)
 				.OptionsSource(&SelectableFunctions)
 				.OnGenerateWidget(this, &SActorIOAction::OnGenerateComboBoxWidget)
-				.OnSelectionChanged(this, &SActorIOAction::OnSelectedFunctionChanged)
+				.OnSelectionChanged(this, &SActorIOAction::OnTargetFunctionChanged)
 				[
 					SAssignNew(FunctionText, STextBlock)
 					.Text(FText::FromName(Action.TargetFunction))
@@ -66,9 +66,8 @@ void SActorIOAction::RebuildWidget()
 	UpdateSelectableEvents();
 	UpdateSelectableFunctions();
 
-	const FActorIOAction& Action = IOComponent->GetActions()[ActionIdx];
+	const FActorIOAction& Action = GetAction();
 	EventText->SetText(FText::FromName(Action.SourceEvent));
-	TargetActorText->SetText(FText::FromString(Action.TargetActor ? Action.TargetActor->GetActorNameOrLabel() : TEXT("")));
 	FunctionText->SetText(FText::FromName(Action.TargetFunction));
 }
 
@@ -78,12 +77,17 @@ TSharedRef<SWidget> SActorIOAction::OnGenerateComboBoxWidget(FName InName)
 		.Text(FText::FromName(InName));
 }
 
-void SActorIOAction::OnSelectedEventChanged(FName InName, ESelectInfo::Type InSelectType)
+void SActorIOAction::OnEventChanged(FName InName, ESelectInfo::Type InSelectType)
 {
 	if (InSelectType != ESelectInfo::Direct)
 	{
 		const FScopedTransaction Transaction(LOCTEXT("ModifyActorIOAction", "Modify ActorIO Action"));
 		IOComponent->Modify();
+
+		if (InName == FName(TEXT("<Clear>")))
+		{
+			InName = NAME_None;
+		}
 
 		FActorIOAction& TargetAction = GetAction();
 		TargetAction.SourceEvent = InName;
@@ -92,18 +96,38 @@ void SActorIOAction::OnSelectedEventChanged(FName InName, ESelectInfo::Type InSe
 	}
 }
 
-void SActorIOAction::OnSelectedFunctionChanged(FName InName, ESelectInfo::Type InSelectType)
+void SActorIOAction::OnTargetFunctionChanged(FName InName, ESelectInfo::Type InSelectType)
 {
 	if (InSelectType != ESelectInfo::Direct)
 	{
 		const FScopedTransaction Transaction(LOCTEXT("ModifyActorIOAction", "Modify ActorIO Action"));
 		IOComponent->Modify();
 
-		FActorIOAction& TargetAction = GetAction();
-		TargetAction.TargetFunction = InName;
+		if (InName == FName(TEXT("<Clear>")))
+		{
+			InName = NAME_None;
+		}
+
+		FActorIOAction& Action = GetAction();
+		Action.TargetFunction = InName;
 
 		RebuildWidget();
 	}
+}
+
+FString SActorIOAction::GetTargetActorPath() const
+{
+	const FActorIOAction& TargetAction = GetAction();
+	return TargetAction.TargetActorPath;
+}
+
+void SActorIOAction::OnTargetActorChanged(const FAssetData& InAsset)
+{
+	const FScopedTransaction Transaction(LOCTEXT("ModifyActorIOAction", "Modify ActorIO Action"));
+	IOComponent->Modify();
+
+	FActorIOAction& TargetAction = GetAction();
+	TargetAction.TargetActorPath = InAsset.GetObjectPathString();
 }
 
 void SActorIOAction::UpdateSelectableEvents()

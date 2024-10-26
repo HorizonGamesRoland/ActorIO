@@ -65,21 +65,22 @@ void UActorIOLink::ClearAction()
 
 void UActorIOLink::ExecuteAction()
 {
-	if (!IsValid(LinkedAction.TargetActor))
+	AActor* TargetActor = LinkedAction.ResolveTargetActorReference(GetWorld());
+	if (!IsValid(TargetActor))
 	{
 		// The target actor was invalid.
 		// Actor was most likely destroyed.
 		return;
 	}
 
-	UFunction* TargetFunction = LinkedAction.TargetActor->FindFunction(LinkedAction.TargetFunction);
+	UFunction* TargetFunction = TargetActor->FindFunction(LinkedAction.TargetFunction);
 	if (!TargetFunction)
 	{
 		return;
 	}
 
 	// #TODO: Handle function params.
-	LinkedAction.TargetActor->ProcessEvent(TargetFunction, nullptr);
+	TargetActor->ProcessEvent(TargetFunction, nullptr);
 
 	bWasExecuted = true;
 }
