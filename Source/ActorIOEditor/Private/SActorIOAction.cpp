@@ -3,6 +3,7 @@
 #include "SActorIOAction.h"
 #include "ActorIOComponent.h"
 #include "ActorIOTypes.h"
+#include "ActorIOEditorStyle.h"
 #include "PropertyCustomizationHelpers.h"
 
 #define LOCTEXT_NAMESPACE "FActorIOEditor"
@@ -22,19 +23,42 @@ void SActorIOAction::Construct(const FArguments& InArgs)
 	ChildSlot
 	[
 		SNew(SBox)
-		.HeightOverride(30.0f)
+		.HeightOverride(26.0f) // PropertyEditorConstants::PropertyRowHeight
+		.Padding(0.0f, 0.0f, 0.0f, 2.0f)
 		[
 			SNew(SSplitter)
 			+ SSplitter::Slot()
 			[
-				SNew(SComboBox<FName>)
-				.OptionsSource(&SelectableEvents)
-				.OnGenerateWidget(this, &SActorIOAction::OnGenerateComboBoxWidget)
-				.OnSelectionChanged(this, &SActorIOAction::OnEventChanged)
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.VAlign(VAlign_Center)
+				.AutoWidth()
+				.Padding(5.0f, 0.0f)
 				[
-					SAssignNew(EventText, STextBlock)
-					.Text(FText::FromName(Action.SourceEvent))
+					SNew(SImage)
+					.Image(FActorIOEditorStyle::Get().GetBrush("OutputActionIcon"))
 				]
+				+ SHorizontalBox::Slot()
+				[
+					SNew(SComboBox<FName>)
+					.OptionsSource(&SelectableEvents)
+					.OnGenerateWidget(this, &SActorIOAction::OnGenerateComboBoxWidget)
+					.OnSelectionChanged(this, &SActorIOAction::OnEventChanged)
+					[
+						SAssignNew(EventText, STextBlock)
+						.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont")) // PropertyEditorConstants::PropertyFontStyle
+						.Text(FText::FromName(Action.SourceEvent))
+					]
+				]
+				+ SHorizontalBox::Slot()
+				.VAlign(VAlign_Center)
+				.AutoWidth()
+				.Padding(5.0f, 0.0f)
+				[
+					SNew(SImage)
+					.Image(FActorIOEditorStyle::Get().GetBrush("ActionArrowIcon"))
+				]
+				
 			]
 			+ SSplitter::Slot()
 			[
@@ -54,6 +78,7 @@ void SActorIOAction::Construct(const FArguments& InArgs)
 				.OnSelectionChanged(this, &SActorIOAction::OnTargetFunctionChanged)
 				[
 					SAssignNew(FunctionText, STextBlock)
+					.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont"))
 					.Text(FText::FromName(Action.TargetFunction))
 				]
 			]
@@ -74,6 +99,7 @@ void SActorIOAction::RebuildWidget()
 TSharedRef<SWidget> SActorIOAction::OnGenerateComboBoxWidget(FName InName)
 {
 	return SNew(STextBlock)
+		.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont")) // PropertyEditorConstants::PropertyRowHeight
 		.Text(FText::FromName(InName));
 }
 

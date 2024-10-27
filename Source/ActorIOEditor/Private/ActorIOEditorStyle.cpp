@@ -2,47 +2,53 @@
 
 #include "ActorIOEditorStyle.h"
 #include "Styling/SlateStyleRegistry.h"
+#include "Styling/SlateStyleMacros.h"
 #include "Styling/SlateTypes.h"
 #include "Interfaces/IPluginManager.h"
 
-TSharedPtr<FSlateStyleSet> FActorIOEditorStyle::Style = nullptr;
+#define RootToContentDir StyleSet->RootToContentDir
+
+TUniquePtr<FSlateStyleSet> FActorIOEditorStyle::StyleSet;
 
 void FActorIOEditorStyle::Initialize()
 {
-	if (Style.IsValid())
+	if (StyleSet.IsValid())
 	{
 		return;
 	}
 
+	const FString PluginResources = IPluginManager::Get().FindPlugin(TEXT("ActorIO"))->GetBaseDir() / TEXT("Resources");
+	const FString EditorResources = FPaths::EngineContentDir() / TEXT("Slate");
+
+	StyleSet = MakeUnique<FSlateStyleSet>(GetStyleSetName());
+	StyleSet->SetContentRoot(PluginResources);
+	StyleSet->SetCoreContentRoot(EditorResources);
+	
 	const FVector2D Icon16x16 = FVector2D(16.0f, 16.0f);
 
-	const FString PluginResources = IPluginManager::Get().FindPlugin(TEXT("ActorIO"))->GetBaseDir() / TEXT("Resources");
-	const FString EditorResources = FPaths::EngineContentDir() / TEXT("Editor/Slate");
+	StyleSet->Set("OutputActionIcon", new IMAGE_BRUSH_SVG("icon_action_output", Icon16x16, FLinearColor(0, 160, 250)));
+	StyleSet->Set("InputActionIcon", new IMAGE_BRUSH_SVG("icon_action_input", Icon16x16, FLinearColor(250, 80, 0)));
+	StyleSet->Set("ActionArrowIcon", new IMAGE_BRUSH_SVG("icon_action_target", Icon16x16));
 
-	Style = MakeShareable(new FSlateStyleSet("ActorIOEditorStyle"));
-	Style->SetContentRoot(PluginResources);
-	Style->SetCoreContentRoot(EditorResources);
-	
-	//Style->Set("ActorIO.TabIcon", new IMAGE_BRUSH_SVG("Starship/Common/Event", Icon16x16));
-
-	FSlateStyleRegistry::RegisterSlateStyle(*Style.Get());
+	FSlateStyleRegistry::RegisterSlateStyle(*StyleSet.Get());
 }
 
 void FActorIOEditorStyle::Shutdown()
 {
-	if (Style.IsValid())
+	if (StyleSet.IsValid())
 	{
-		FSlateStyleRegistry::UnRegisterSlateStyle(*Style.Get());
-		Style.Reset();
+		FSlateStyleRegistry::UnRegisterSlateStyle(*StyleSet.Get());
+		StyleSet.Reset();
 	}
 }
 
 const ISlateStyle& FActorIOEditorStyle::Get()
 {
-	return *(Style.Get());
+	return *(StyleSet.Get());
 }
 
 const FName& FActorIOEditorStyle::GetStyleSetName()
 {
-	return Style->GetStyleSetName();
+	static const FName StyleSetName(TEXT("ActorIOEditorStyle"));
+	return StyleSetName;
 }

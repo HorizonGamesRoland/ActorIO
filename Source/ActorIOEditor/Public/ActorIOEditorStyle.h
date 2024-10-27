@@ -13,7 +13,7 @@ class ACTORIOEDITOR_API FActorIOEditorStyle
 private:
 
 	/** Style set used by the plugin. */
-	static TSharedPtr<class FSlateStyleSet> Style;
+	static TUniquePtr<FSlateStyleSet> StyleSet;
 
 public:
 

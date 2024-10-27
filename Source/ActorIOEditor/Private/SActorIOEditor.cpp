@@ -21,7 +21,7 @@ void SActorIOEditor::Construct(const FArguments& InArgs)
     [
         SNew(SSplitter)
         + SSplitter::Slot()
-        .Value(0.4f)
+        .Value(0.33f)
         [
             // ---------------------------------
             //~ Menu panel with buttons
@@ -139,7 +139,7 @@ const TSharedRef<SWidget> SActorIOEditor::ConstructOutputsTab()
                 [
                     SNew(SBox)
                     .VAlign(VAlign_Center)
-                    .Padding(5.0f, 0.0f)
+                    .Padding(30.0f, 0.0f, 5.0f, 0.0f)
                     [
                         SNew(STextBlock)
                         .Text(LOCTEXT("Event", "Event:"))
@@ -169,10 +169,9 @@ const TSharedRef<SWidget> SActorIOEditor::ConstructOutputsTab()
             ]
         ]
         + SVerticalBox::Slot()
-        .Padding(3.0f)
         [
             SNew(SBorder)
-            .BorderImage(FAppStyle::Get().GetBrush("PlacementBrowser.Asset.Background"))
+            .BorderImage(FAppStyle::Get().GetBrush("Brushes.Recessed"))
             [
                 SAssignNew(ActionList, SVerticalBox)
             ]
