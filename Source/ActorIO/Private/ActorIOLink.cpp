@@ -35,6 +35,10 @@ void UActorIOLink::BindAction(const FActorIOAction& Action)
 
 		TargetDelegate->Add(ActionDelegate);
 	}
+	else
+	{
+		AttemptBindNativeAction();
+	}
 }
 
 void UActorIOLink::ClearAction()
@@ -60,6 +64,25 @@ void UActorIOLink::ClearAction()
 			TargetDelegate->Remove(ActionDelegate);
 			ActionDelegate.Unbind();
 		}
+	}
+}
+
+void UActorIOLink::AttemptBindNativeAction()
+{
+	ActionDelegate = FScriptDelegate();
+	ActionDelegate.BindUFunction(this, TEXT("ExecuteAction"));
+
+	if (LinkedAction.SourceEvent == ToName(EActorIONativeEvents::ActorBeginOverlap))
+	{
+		AActor* AsActor = GetOwnerIOComponent()->GetOwner();
+		AsActor->OnActorBeginOverlap.Add(ActionDelegate);
+		return;
+	}
+	if (LinkedAction.SourceEvent == ToName(EActorIONativeEvents::ActorEndOverlap))
+	{
+		AActor* AsActor = GetOwnerIOComponent()->GetOwner();
+		AsActor->OnActorEndOverlap.Add(ActionDelegate);
+		return;
 	}
 }
 

@@ -27,6 +27,8 @@ void UActorIOComponent::OnRegister()
 const TArray<FActorIOEvent> UActorIOComponent::GetEvents() const
 {
 	TArray<FActorIOEvent> OutEvents = TArray<FActorIOEvent>();
+	OutEvents.Append(GetNativeEventsForObject(GetOwner()));
+
 	IActorIOInterface* OwnerIO = Cast<IActorIOInterface>(GetOwner());
 	if (OwnerIO)
 	{
@@ -88,6 +90,20 @@ void UActorIOComponent::RemoveActionBindings()
 void UActorIOComponent::TestHelloWorld()
 {
 	UE_LOG(LogTemp, Warning, TEXT("Hello World!"));
+}
+
+TArray<FActorIOEvent> UActorIOComponent::GetNativeEventsForObject(UObject* InObject)
+{
+	check(InObject);
+	TArray<FActorIOEvent> OutEvents = TArray<FActorIOEvent>();
+
+	if (InObject->IsA<AActor>())
+	{
+		OutEvents.Emplace(ToName(EActorIONativeEvents::ActorBeginOverlap), nullptr);
+		OutEvents.Emplace(ToName(EActorIONativeEvents::ActorEndOverlap), nullptr);
+	}
+
+	return OutEvents;
 }
 
 void UActorIOComponent::OnUnregister()

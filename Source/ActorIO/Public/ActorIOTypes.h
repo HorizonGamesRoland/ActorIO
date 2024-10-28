@@ -31,6 +31,26 @@ struct ACTORIO_API FActorIOEvent
 	}
 };
 
+
+
+
+UENUM()
+enum class EActorIONativeEvents : uint32
+{
+	ActorBeginOverlap,
+
+	ActorEndOverlap
+};
+
+static FName ToName(EActorIONativeEvents InEnumValue)
+{
+	return UEnum::GetValueAsName(InEnumValue);
+}
+
+
+
+
+
 USTRUCT()
 struct ACTORIO_API FActorIOFunction
 {

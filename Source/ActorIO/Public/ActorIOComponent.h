@@ -49,6 +49,10 @@ protected:
 
 public:
 
+	static TArray<FActorIOEvent> GetNativeEventsForObject(UObject* InObject);
+
+public:
+
 	virtual void OnRegister() override;
 	virtual void OnUnregister() override;
 };

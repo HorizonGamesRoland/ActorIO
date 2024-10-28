@@ -37,6 +37,8 @@ public:
 
 protected:
 
+	void AttemptBindNativeAction();
+
 	UFUNCTION()
 	void ExecuteAction();
 
