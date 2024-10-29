@@ -76,6 +76,22 @@ struct ACTORIO_API FActorIOFunction
 	}
 };
 
+
+
+UENUM()
+enum class EActorIONativeFunctions : uint32
+{
+	SetActorHiddenInGame
+};
+
+static FName ToName(EActorIONativeFunctions InEnumValue)
+{
+	return UEnum::GetValueAsName(InEnumValue);
+}
+
+
+
+
 USTRUCT(BlueprintType)
 struct ACTORIO_API FActorIOAction
 {
@@ -85,24 +101,19 @@ struct ACTORIO_API FActorIOAction
 	FName SourceEvent;
 
 	UPROPERTY(EditAnywhere)
-	FString TargetActorPath;
+	TObjectPtr<AActor> TargetActor;
 
 	UPROPERTY(EditAnywhere)
 	FName TargetFunction;
 
 	FActorIOAction() :
 		SourceEvent(FName()),
-		TargetActorPath(FString()),
+		TargetActor(nullptr),
 		TargetFunction(FName())
 	{}
 
 	bool IsValid() const
 	{
-		return !SourceEvent.IsNone() && !TargetActorPath.IsEmpty() && !TargetFunction.IsNone();
-	}
-
-	AActor* ResolveTargetActorReference(UWorld* InWorld) const
-	{
-		return Cast<AActor>(StaticFindObject(AActor::StaticClass(), InWorld, *TargetActorPath, false));
+		return !SourceEvent.IsNone() && TargetActor && !TargetFunction.IsNone();
 	}
 };

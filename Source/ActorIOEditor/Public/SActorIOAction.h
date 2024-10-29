@@ -47,7 +47,7 @@ protected:
 
     void OnTargetFunctionChanged(FName InName, ESelectInfo::Type InSelectType);
 
-    void OnTargetActorChanged(const FAssetData& InAsset);
+    void OnTargetActorChanged(const FAssetData& InAssetData);
 
     FString GetTargetActorPath() const;
 

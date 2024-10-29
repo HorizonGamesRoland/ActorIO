@@ -42,14 +42,11 @@ protected:
 
 	void RemoveActionBindings();
 
-
-
-	UFUNCTION()
-	void TestHelloWorld();
-
 public:
 
 	static TArray<FActorIOEvent> GetNativeEventsForObject(UObject* InObject);
+
+	static TArray<FActorIOFunction> GetNativeFunctionsForObject(UObject* InObject);
 
 public:
 

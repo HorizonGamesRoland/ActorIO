@@ -2,6 +2,7 @@
 
 #include "ActorIOLink.h"
 #include "ActorIOComponent.h"
+#include "Misc/OutputDeviceNull.h"
 
 UActorIOLink::UActorIOLink()
 {
@@ -88,24 +89,24 @@ void UActorIOLink::AttemptBindNativeAction()
 
 void UActorIOLink::ExecuteAction()
 {
-	AActor* TargetActor = LinkedAction.ResolveTargetActorReference(GetWorld());
-	if (!IsValid(TargetActor))
+	AActor* TargetActor = LinkedAction.TargetActor.Get();
+ 	if (!IsValid(TargetActor))
 	{
 		// The target actor was invalid.
 		// Actor was most likely destroyed.
 		return;
 	}
 
-	UFunction* TargetFunction = TargetActor->FindFunction(LinkedAction.TargetFunction);
-	if (!TargetFunction)
-	{
-		return;
-	}
-
 	// #TODO: Handle function params.
-	TargetActor->ProcessEvent(TargetFunction, nullptr);
 
-	bWasExecuted = true;
+	FString Command = LinkedAction.TargetFunction.ToString();
+	Command.Append(TEXT(" true"));
+
+	FOutputDeviceNull Ar;
+	if (TargetActor->CallFunctionByNameWithArguments(*Command, Ar, nullptr, true))
+	{
+		bWasExecuted = true;
+	}
 }
 
 UActorIOComponent* UActorIOLink::GetOwnerIOComponent() const

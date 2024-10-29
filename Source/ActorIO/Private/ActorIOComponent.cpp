@@ -41,17 +41,13 @@ const TArray<FActorIOEvent> UActorIOComponent::GetEvents() const
 const TArray<FActorIOFunction> UActorIOComponent::GetFunctions() const
 {
 	TArray<FActorIOFunction> OutFunctions = TArray<FActorIOFunction>();
+	OutFunctions.Append(GetNativeFunctionsForObject(GetOwner()));
+
 	IActorIOInterface* OwnerIO = Cast<IActorIOInterface>(GetOwner());
 	if (OwnerIO)
 	{
 		OwnerIO->GetActorIOFunctions(OutFunctions);
 	}
-
-
-
-	// #TEMP: Inject test function.
-	OutFunctions.Emplace(TEXT("TestHelloWorld"), TEXT("TestHelloWorld"));
-
 
 	return OutFunctions;
 }
@@ -87,11 +83,6 @@ void UActorIOComponent::RemoveActionBindings()
 	}
 }
 
-void UActorIOComponent::TestHelloWorld()
-{
-	UE_LOG(LogTemp, Warning, TEXT("Hello World!"));
-}
-
 TArray<FActorIOEvent> UActorIOComponent::GetNativeEventsForObject(UObject* InObject)
 {
 	check(InObject);
@@ -104,6 +95,19 @@ TArray<FActorIOEvent> UActorIOComponent::GetNativeEventsForObject(UObject* InObj
 	}
 
 	return OutEvents;
+}
+
+TArray<FActorIOFunction> UActorIOComponent::GetNativeFunctionsForObject(UObject* InObject)
+{
+	check(InObject);
+	TArray<FActorIOFunction> OutFunctions = TArray<FActorIOFunction>();
+
+	if (InObject->IsA<AActor>())
+	{
+		OutFunctions.Emplace(ToName(EActorIONativeFunctions::SetActorHiddenInGame), TEXT("SetActorHiddenInGame"));
+	}
+
+	return OutFunctions;
 }
 
 void UActorIOComponent::OnUnregister()

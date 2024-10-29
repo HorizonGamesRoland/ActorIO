@@ -144,16 +144,16 @@ void SActorIOAction::OnTargetFunctionChanged(FName InName, ESelectInfo::Type InS
 FString SActorIOAction::GetTargetActorPath() const
 {
 	const FActorIOAction& TargetAction = GetAction();
-	return TargetAction.TargetActorPath;
+	return TargetAction.TargetActor.GetPathName();
 }
 
-void SActorIOAction::OnTargetActorChanged(const FAssetData& InAsset)
+void SActorIOAction::OnTargetActorChanged(const FAssetData& InAssetData)
 {
 	const FScopedTransaction Transaction(LOCTEXT("ModifyActorIOAction", "Modify ActorIO Action"));
 	IOComponent->Modify();
 
 	FActorIOAction& TargetAction = GetAction();
-	TargetAction.TargetActorPath = InAsset.GetObjectPathString();
+	TargetAction.TargetActor = Cast<AActor>(InAssetData.GetAsset());
 }
 
 void SActorIOAction::UpdateSelectableEvents()
