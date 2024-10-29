@@ -3,6 +3,7 @@
 #include "SActorIOAction.h"
 #include "ActorIOComponent.h"
 #include "ActorIOTypes.h"
+#include "ActorIOEditor.h"
 #include "ActorIOEditorStyle.h"
 #include "PropertyCustomizationHelpers.h"
 
@@ -72,14 +73,29 @@ void SActorIOAction::Construct(const FArguments& InArgs)
 			]
 			+ SSplitter::Slot()
 			[
-				SNew(SComboBox<FName>)
-				.OptionsSource(&SelectableFunctions)
-				.OnGenerateWidget(this, &SActorIOAction::OnGenerateComboBoxWidget)
-				.OnSelectionChanged(this, &SActorIOAction::OnTargetFunctionChanged)
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.Padding(0.0f, 0.0f, 3.0f, 0.0f)
 				[
-					SAssignNew(FunctionText, STextBlock)
-					.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont"))
-					.Text(FText::FromName(Action.TargetFunction))
+					SNew(SComboBox<FName>)
+					.OptionsSource(&SelectableFunctions)
+					.OnGenerateWidget(this, &SActorIOAction::OnGenerateComboBoxWidget)
+					.OnSelectionChanged(this, &SActorIOAction::OnTargetFunctionChanged)
+					[
+						SAssignNew(FunctionText, STextBlock)
+						.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont"))
+						.Text(FText::FromName(Action.TargetFunction))
+					]
+				]
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				[
+					SNew(SButton)
+					.HAlign(HAlign_Center)
+					.VAlign(VAlign_Center)
+					.ContentPadding(0.0f)
+					.Text(LOCTEXT("RemoveAction", "X"))
+					.OnClicked(this, &SActorIOAction::OnClick_RemoveAction)
 				]
 			]
 		]
@@ -99,7 +115,7 @@ void SActorIOAction::RebuildWidget()
 TSharedRef<SWidget> SActorIOAction::OnGenerateComboBoxWidget(FName InName)
 {
 	return SNew(STextBlock)
-		.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont")) // PropertyEditorConstants::PropertyRowHeight
+		.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont")) // PropertyEditorConstants::PropertyFontStyle
 		.Text(FText::FromName(InName));
 }
 
@@ -145,6 +161,19 @@ FString SActorIOAction::GetTargetActorPath() const
 {
 	const FActorIOAction& TargetAction = GetAction();
 	return TargetAction.TargetActor.GetPathName();
+}
+
+FReply SActorIOAction::OnClick_RemoveAction()
+{
+	const FScopedTransaction Transaction(LOCTEXT("ModifyActorIOAction", "Remove ActorIO Action"));
+	IOComponent->Modify();
+
+	IOComponent->GetActions().RemoveAt(ActionIdx);
+
+	FActorIOEditor& ActorIOEditorModule = FModuleManager::GetModuleChecked<FActorIOEditor>("ActorIOEditor");
+	ActorIOEditorModule.UpdateEditorWindow();
+
+	return FReply::Handled();
 }
 
 void SActorIOAction::OnTargetActorChanged(const FAssetData& InAssetData)

@@ -6,7 +6,6 @@
 #include "Widgets/SCompoundWidget.h"
 
 class UActorIOComponent;
-class SActorIOEditor;
 struct FActorIOAction;
 
 class SActorIOAction : public SCompoundWidget
@@ -50,6 +49,8 @@ protected:
     void OnTargetActorChanged(const FAssetData& InAssetData);
 
     FString GetTargetActorPath() const;
+
+    FReply OnClick_RemoveAction();
 
 protected:
 
