@@ -74,19 +74,26 @@ void SActorIOAction::Construct(const FArguments& InArgs)
 			]
 			+ SSplitter::Slot()
 			[
+				SNew(SComboBox<FName>)
+				.OptionsSource(&SelectableFunctions)
+				.OnGenerateWidget(this, &SActorIOAction::OnGenerateComboBoxWidget)
+				.OnSelectionChanged(this, &SActorIOAction::OnTargetFunctionChanged)
+				[
+					SAssignNew(FunctionText, STextBlock)
+					.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont"))
+					.Text(FText::FromName(Action.TargetFunction))
+				]
+			]
+			+ SSplitter::Slot()
+			[
 				SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
 				.Padding(0.0f, 0.0f, 3.0f, 0.0f)
 				[
-					SNew(SComboBox<FName>)
-					.OptionsSource(&SelectableFunctions)
-					.OnGenerateWidget(this, &SActorIOAction::OnGenerateComboBoxWidget)
-					.OnSelectionChanged(this, &SActorIOAction::OnTargetFunctionChanged)
-					[
-						SAssignNew(FunctionText, STextBlock)
-						.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont"))
-						.Text(FText::FromName(Action.TargetFunction))
-					]
+					SNew(SEditableTextBox)
+					.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont"))
+					.Text(FText::FromString(Action.FunctionArguments))
+					.OnTextCommitted(this, &SActorIOAction::OnFunctionArgumentsChanged)
 				]
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
@@ -139,6 +146,26 @@ void SActorIOAction::OnEventChanged(FName InName, ESelectInfo::Type InSelectType
 	}
 }
 
+void SActorIOAction::OnTargetActorChanged(const FAssetData& InAssetData)
+{
+	const FScopedTransaction Transaction(LOCTEXT("ModifyActorIOAction", "Modify ActorIO Action"));
+	IOComponent->Modify();
+
+	FActorIOAction& TargetAction = GetAction();
+	TargetAction.TargetActor = Cast<AActor>(InAssetData.GetAsset());
+
+	TargetAction.TargetFunction = NAME_None;
+	TargetAction.FunctionArguments = FString();
+
+	UpdateSelectableFunctions();
+}
+
+FString SActorIOAction::GetTargetActorPath() const
+{
+	const FActorIOAction& TargetAction = GetAction();
+	return TargetAction.TargetActor.GetPathName();
+}
+
 void SActorIOAction::OnTargetFunctionChanged(FName InName, ESelectInfo::Type InSelectType)
 {
 	if (InSelectType != ESelectInfo::Direct)
@@ -153,20 +180,24 @@ void SActorIOAction::OnTargetFunctionChanged(FName InName, ESelectInfo::Type InS
 
 		FActorIOAction& Action = GetAction();
 		Action.TargetFunction = InName;
+		Action.FunctionArguments = FString();
 
 		RebuildWidget();
 	}
 }
 
-FString SActorIOAction::GetTargetActorPath() const
+void SActorIOAction::OnFunctionArgumentsChanged(const FText& InText, ETextCommit::Type InCommitType)
 {
-	const FActorIOAction& TargetAction = GetAction();
-	return TargetAction.TargetActor.GetPathName();
+	const FScopedTransaction Transaction(LOCTEXT("ModifyActorIOAction", "Modify ActorIO Action"));
+	IOComponent->Modify();
+
+	FActorIOAction& TargetAction = GetAction();
+	TargetAction.FunctionArguments = InText.ToString();
 }
 
 FReply SActorIOAction::OnClick_RemoveAction()
 {
-	const FScopedTransaction Transaction(LOCTEXT("ModifyActorIOAction", "Remove ActorIO Action"));
+	const FScopedTransaction Transaction(LOCTEXT("RemoveActorIOAction", "Remove ActorIO Action"));
 	IOComponent->Modify();
 
 	IOComponent->GetActions().RemoveAt(ActionIdx);
@@ -175,17 +206,6 @@ FReply SActorIOAction::OnClick_RemoveAction()
 	ActorIOEditorModule.UpdateEditorWindow();
 
 	return FReply::Handled();
-}
-
-void SActorIOAction::OnTargetActorChanged(const FAssetData& InAssetData)
-{
-	const FScopedTransaction Transaction(LOCTEXT("ModifyActorIOAction", "Modify ActorIO Action"));
-	IOComponent->Modify();
-
-	FActorIOAction& TargetAction = GetAction();
-	TargetAction.TargetActor = Cast<AActor>(InAssetData.GetAsset());
-
-	UpdateSelectableFunctions();
 }
 
 void SActorIOAction::UpdateSelectableEvents()

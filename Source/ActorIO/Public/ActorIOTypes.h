@@ -58,14 +58,14 @@ struct ACTORIO_API FActorIOFunction
 
 	FName FunctionName;
 
-	FName FunctionToExec;
+	FString FunctionToExec;
 
 	FActorIOFunction() :
 		FunctionName(FName()),
-		FunctionToExec(FName())
+		FunctionToExec(FString())
 	{}
 
-	FActorIOFunction(FName InFunctionName, FName InFunctionToExec) :
+	FActorIOFunction(FName InFunctionName, FString InFunctionToExec) :
 		FunctionName(InFunctionName),
 		FunctionToExec(InFunctionToExec)
 	{}
@@ -106,10 +106,14 @@ struct ACTORIO_API FActorIOAction
 	UPROPERTY(EditAnywhere)
 	FName TargetFunction;
 
+	UPROPERTY(EditAnywhere)
+	FString FunctionArguments;
+
 	FActorIOAction() :
 		SourceEvent(FName()),
 		TargetActor(nullptr),
-		TargetFunction(FName())
+		TargetFunction(FName()),
+		FunctionArguments(FString())
 	{}
 
 	bool IsValid() const

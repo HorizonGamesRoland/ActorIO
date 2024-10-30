@@ -143,8 +143,7 @@ const TSharedRef<SWidget> SActorIOEditor::ConstructOutputsTab()
                     [
                         SNew(STextBlock)
                         .Text(LOCTEXT("Event", "Event:"))
-                    ]
-                        
+                    ]     
                 ]
                 + SSplitter::Slot()
                 [
@@ -164,6 +163,16 @@ const TSharedRef<SWidget> SActorIOEditor::ConstructOutputsTab()
                     [
                         SNew(STextBlock)
                         .Text(LOCTEXT("Action", "Action:"))
+                    ]
+                ]
+                + SSplitter::Slot()
+                [
+                    SNew(SBox)
+                    .VAlign(VAlign_Center)
+                    .Padding(5.0f, 0.0f)
+                    [
+                        SNew(STextBlock)
+                        .Text(LOCTEXT("Parameters", "Parameters:"))
                     ]
                 ]
             ]

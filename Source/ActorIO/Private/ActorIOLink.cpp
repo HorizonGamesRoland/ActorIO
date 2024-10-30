@@ -108,15 +108,19 @@ void UActorIOLink::ExecuteAction()
 	FActorIOFunction* TargetFunction = ValidFunctions.FindByKey(LinkedAction.TargetFunction);
 	if (!TargetFunction)
 	{
-		// Could not find Actor IO function on target actor.
+		UE_LOG(LogTemp, Error, TEXT("ActorIOLink: Function '%s' was not found on target actor '%s'"), *LinkedAction.TargetFunction.ToString(), *TargetActor->GetActorNameOrLabel());
 		return;
 	}
 
-	FString Command = TargetFunction->FunctionToExec.ToString();
-	Command.Append(TEXT(" true"));
+	FString Command = TargetFunction->FunctionToExec;
+	Command.Append(TEXT(" "));
+	Command.Append(LinkedAction.FunctionArguments);
+
+	// This is required to call UFUNCTIONs without the 'Exec' keyword.
+	constexpr bool bForceCallWithNonExec = true;
 
 	FOutputDeviceNull Ar;
-	if (TargetActor->CallFunctionByNameWithArguments(*Command, Ar, this, true))
+	if (TargetActor->CallFunctionByNameWithArguments(*Command, Ar, this, bForceCallWithNonExec))
 	{
 		bWasExecuted = true;
 	}

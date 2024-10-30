@@ -50,6 +50,8 @@ protected:
 
     FString GetTargetActorPath() const;
 
+    void OnFunctionArgumentsChanged(const FText& InText, ETextCommit::Type InCommitType);
+
     FReply OnClick_RemoveAction();
 
 protected:
