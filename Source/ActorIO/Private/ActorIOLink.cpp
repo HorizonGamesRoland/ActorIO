@@ -2,6 +2,7 @@
 
 #include "ActorIOLink.h"
 #include "ActorIOComponent.h"
+#include "ActorIOInterface.h"
 #include "Misc/OutputDeviceNull.h"
 
 UActorIOLink::UActorIOLink()
@@ -97,13 +98,25 @@ void UActorIOLink::ExecuteAction()
 		return;
 	}
 
-	// #TODO: Handle function params.
+	TArray<FActorIOFunction> ValidFunctions = UActorIOComponent::GetNativeFunctionsForObject(TargetActor);
+	IActorIOInterface* TargetIO = Cast<IActorIOInterface>(TargetActor);
+	if (TargetIO)
+	{
+		TargetIO->GetActorIOFunctions(ValidFunctions);
+	}
 
-	FString Command = LinkedAction.TargetFunction.ToString();
+	FActorIOFunction* TargetFunction = ValidFunctions.FindByKey(LinkedAction.TargetFunction);
+	if (!TargetFunction)
+	{
+		// Could not find Actor IO function on target actor.
+		return;
+	}
+
+	FString Command = TargetFunction->FunctionToExec.ToString();
 	Command.Append(TEXT(" true"));
 
 	FOutputDeviceNull Ar;
-	if (TargetActor->CallFunctionByNameWithArguments(*Command, Ar, nullptr, true))
+	if (TargetActor->CallFunctionByNameWithArguments(*Command, Ar, this, true))
 	{
 		bWasExecuted = true;
 	}

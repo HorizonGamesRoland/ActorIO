@@ -2,6 +2,7 @@
 
 #include "SActorIOAction.h"
 #include "ActorIOComponent.h"
+#include "ActorIOInterface.h"
 #include "ActorIOTypes.h"
 #include "ActorIOEditor.h"
 #include "ActorIOEditorStyle.h"
@@ -183,6 +184,8 @@ void SActorIOAction::OnTargetActorChanged(const FAssetData& InAssetData)
 
 	FActorIOAction& TargetAction = GetAction();
 	TargetAction.TargetActor = Cast<AActor>(InAssetData.GetAsset());
+
+	UpdateSelectableFunctions();
 }
 
 void SActorIOAction::UpdateSelectableEvents()
@@ -202,10 +205,20 @@ void SActorIOAction::UpdateSelectableFunctions()
 	SelectableFunctions.Reset();
 	SelectableFunctions.Add(TEXT("<Clear>"));
 
-	TArray<FActorIOFunction> ValidFunctions = IOComponent->GetFunctions();
-	for (const FActorIOFunction& IOFunction : ValidFunctions)
+	FActorIOAction& TargetAction = GetAction();
+	if (TargetAction.TargetActor)
 	{
-		SelectableFunctions.Emplace(IOFunction.FunctionName);
+		TArray<FActorIOFunction> ValidFunctions = UActorIOComponent::GetNativeFunctionsForObject(TargetAction.TargetActor);
+		IActorIOInterface* TargetIO = Cast<IActorIOInterface>(TargetAction.TargetActor);
+		if (TargetIO)
+		{
+			TargetIO->GetActorIOFunctions(ValidFunctions);
+		}
+
+		for (const FActorIOFunction& IOFunction : ValidFunctions)
+		{
+			SelectableFunctions.Emplace(IOFunction.FunctionName);
+		}
 	}
 }
 
