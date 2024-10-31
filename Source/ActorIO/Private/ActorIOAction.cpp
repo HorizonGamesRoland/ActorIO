@@ -1,6 +1,6 @@
 // Copyright 2024 Horizon Games. All Rights Reserved.
 
-#include "ActorIOLink.h"
+#include "ActorIOAction.h"
 #include "ActorIOComponent.h"
 #include "ActorIOInterface.h"
 #include "Misc/OutputDeviceNull.h"
@@ -22,14 +22,14 @@ void UActorIOLink::BindAction(const FActorIOAction& Action)
 		return;
 	}
 
-	const TArray<FActorIOEvent> ValidEvents = OwnerIOComponent->GetEvents();
+	const TArray<FActorIOEvent> ValidEvents = UActorIOComponent::GetEventsForObject(OwnerIOComponent->GetOwner());
 	const FActorIOEvent* TargetEvent = ValidEvents.FindByKey(LinkedAction.SourceEvent);
 	if (!TargetEvent)
 	{
 		return;
 	}
 
-	FMulticastScriptDelegate* TargetDelegate = TargetEvent->EventDelegate;
+	FMulticastScriptDelegate* TargetDelegate = TargetEvent->MulticastDelegateRef;
 	if (TargetDelegate)
 	{
 		ActionDelegate = FScriptDelegate();
@@ -51,14 +51,14 @@ void UActorIOLink::ClearAction()
 		return;
 	}
 
-	const TArray<FActorIOEvent> ValidEvents = OwnerIOComponent->GetEvents();
+	const TArray<FActorIOEvent> ValidEvents = UActorIOComponent::GetEventsForObject(OwnerIOComponent->GetOwner());
 	const FActorIOEvent* TargetEvent = ValidEvents.FindByKey(LinkedAction.SourceEvent);
 	if (!TargetEvent)
 	{
 		return;
 	}
 
-	FMulticastScriptDelegate* TargetDelegate = TargetEvent->EventDelegate;
+	FMulticastScriptDelegate* TargetDelegate = TargetEvent->MulticastDelegateRef;
 	if (TargetDelegate)
 	{
 		if (TargetDelegate->Contains(ActionDelegate))
@@ -98,13 +98,7 @@ void UActorIOLink::ExecuteAction()
 		return;
 	}
 
-	TArray<FActorIOFunction> ValidFunctions = UActorIOComponent::GetNativeFunctionsForObject(TargetActor);
-	IActorIOInterface* TargetIO = Cast<IActorIOInterface>(TargetActor);
-	if (TargetIO)
-	{
-		TargetIO->GetActorIOFunctions(ValidFunctions);
-	}
-
+	TArray<FActorIOFunction> ValidFunctions = UActorIOComponent::GetFunctionsForObject(TargetActor);
 	FActorIOFunction* TargetFunction = ValidFunctions.FindByKey(LinkedAction.TargetFunction);
 	if (!TargetFunction)
 	{

@@ -1,9 +1,9 @@
 // Copyright 2024 Horizon Games. All Rights Reserved.
 
 #include "SActorIOAction.h"
+#include "ActorIOAction.h"
 #include "ActorIOComponent.h"
 #include "ActorIOInterface.h"
-#include "ActorIOTypes.h"
 #include "ActorIOEditor.h"
 #include "ActorIOEditorStyle.h"
 #include "PropertyCustomizationHelpers.h"
@@ -213,10 +213,10 @@ void SActorIOAction::UpdateSelectableEvents()
 	SelectableEvents.Reset();
 	SelectableEvents.Add(TEXT("<Clear>"));
 
-	TArray<FActorIOEvent> ValidEvents = IOComponent->GetEvents();
+	TArray<FActorIOEvent> ValidEvents = UActorIOComponent::GetEventsForObject(IOComponent->GetOwner());
 	for (const FActorIOEvent& IOEvent : ValidEvents)
 	{
-		SelectableEvents.Emplace(IOEvent.EventName);
+		SelectableEvents.Emplace(IOEvent.EventId);
 	}
 }
 
@@ -225,20 +225,10 @@ void SActorIOAction::UpdateSelectableFunctions()
 	SelectableFunctions.Reset();
 	SelectableFunctions.Add(TEXT("<Clear>"));
 
-	FActorIOAction& TargetAction = GetAction();
-	if (TargetAction.TargetActor)
+	TArray<FActorIOFunction> ValidFunctions = UActorIOComponent::GetFunctionsForObject(GetAction().TargetActor);
+	for (const FActorIOFunction& IOFunction : ValidFunctions)
 	{
-		TArray<FActorIOFunction> ValidFunctions = UActorIOComponent::GetNativeFunctionsForObject(TargetAction.TargetActor);
-		IActorIOInterface* TargetIO = Cast<IActorIOInterface>(TargetAction.TargetActor);
-		if (TargetIO)
-		{
-			TargetIO->GetActorIOFunctions(ValidFunctions);
-		}
-
-		for (const FActorIOFunction& IOFunction : ValidFunctions)
-		{
-			SelectableFunctions.Emplace(IOFunction.FunctionName);
-		}
+		SelectableFunctions.Emplace(IOFunction.FunctionId);
 	}
 }
 

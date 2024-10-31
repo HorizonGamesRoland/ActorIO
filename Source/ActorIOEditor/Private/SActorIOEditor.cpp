@@ -5,6 +5,7 @@
 #include "ActorIOEditor.h"
 #include "ActorIOEditorSubsystem.h"
 #include "ActorIOComponent.h"
+#include "ActorIOAction.h"
 #include "GameFramework/Actor.h"
 #include "LevelEditor.h"
 

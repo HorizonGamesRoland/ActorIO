@@ -3,10 +3,12 @@
 #pragma once
 
 #include "ActorIO.h"
-#include "ActorIOTypes.h"
+#include "ActorIOEvent.h"
+#include "ActorIOFunction.h"
 #include "Components/ActorComponent.h"
 #include "ActorIOComponent.generated.h"
 
+struct FActorIOAction;
 class UActorIOLink;
 
 UCLASS(Blueprintable, ClassGroup = ActorIO, meta = (BlueprintSpawnableComponent))
@@ -32,10 +34,6 @@ public:
 
 	const TArray<FActorIOAction>& GetActions() const { return Actions; }
 
-	const TArray<FActorIOEvent> GetEvents() const;
-
-	const TArray<FActorIOFunction> GetFunctions() const;
-
 protected:
 
 	void CreateActionBindings();
@@ -44,9 +42,15 @@ protected:
 
 public:
 
-	static TArray<FActorIOEvent> GetNativeEventsForObject(UObject* InObject);
+	static TArray<FActorIOEvent> GetEventsForObject(AActor* InObject);
 
-	static TArray<FActorIOFunction> GetNativeFunctionsForObject(UObject* InObject);
+	static TArray<FActorIOFunction> GetFunctionsForObject(AActor* InObject);
+
+protected:
+
+	static TArray<FActorIOEvent> GetNativeEventsForObject(AActor* InObject);
+
+	static TArray<FActorIOFunction> GetNativeFunctionsForObject(AActor* InObject);
 
 public:
 

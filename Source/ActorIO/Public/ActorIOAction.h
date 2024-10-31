@@ -3,11 +3,42 @@
 #pragma once
 
 #include "ActorIO.h"
-#include "ActorIOTypes.h"
+#include "ActorIOEvent.h"
+#include "ActorIOFunction.h"
 #include "UObject/NoExportTypes.h"
-#include "ActorIOLink.generated.h"
+#include "ActorIOAction.generated.h"
 
 class UActorIOComponent;
+
+USTRUCT(BlueprintType)
+struct ACTORIO_API FActorIOAction
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere)
+	FName SourceEvent;
+
+	UPROPERTY(EditAnywhere)
+	TObjectPtr<AActor> TargetActor;
+
+	UPROPERTY(EditAnywhere)
+	FName TargetFunction;
+
+	UPROPERTY(EditAnywhere)
+	FString FunctionArguments;
+
+	FActorIOAction() :
+		SourceEvent(FName()),
+		TargetActor(nullptr),
+		TargetFunction(FName()),
+		FunctionArguments(FString())
+	{}
+
+	bool IsValid() const
+	{
+		return !SourceEvent.IsNone() && TargetActor && !TargetFunction.IsNone();
+	}
+};
 
 UCLASS()
 class ACTORIO_API UActorIOLink : public UObject

@@ -1,7 +1,7 @@
 // Copyright 2024 Horizon Games. All Rights Reserved.
 
 #include "ActorIOComponent.h"
-#include "ActorIOLink.h"
+#include "ActorIOAction.h"
 #include "ActorIOInterface.h"
 
 UActorIOComponent::UActorIOComponent()
@@ -24,34 +24,6 @@ void UActorIOComponent::OnRegister()
 	CreateActionBindings();
 }
 
-const TArray<FActorIOEvent> UActorIOComponent::GetEvents() const
-{
-	TArray<FActorIOEvent> OutEvents = TArray<FActorIOEvent>();
-	OutEvents.Append(GetNativeEventsForObject(GetOwner()));
-
-	IActorIOInterface* OwnerIO = Cast<IActorIOInterface>(GetOwner());
-	if (OwnerIO)
-	{
-		OwnerIO->GetActorIOEvents(OutEvents);
-	}
-
-	return OutEvents;
-}
-
-const TArray<FActorIOFunction> UActorIOComponent::GetFunctions() const
-{
-	TArray<FActorIOFunction> OutFunctions = TArray<FActorIOFunction>();
-	OutFunctions.Append(GetNativeFunctionsForObject(GetOwner()));
-
-	IActorIOInterface* OwnerIO = Cast<IActorIOInterface>(GetOwner());
-	if (OwnerIO)
-	{
-		OwnerIO->GetActorIOFunctions(OutFunctions);
-	}
-
-	return OutFunctions;
-}
-
 void UActorIOComponent::CreateActionBindings()
 {
 	const int32 NumActions = Actions.Num();
@@ -60,8 +32,8 @@ void UActorIOComponent::CreateActionBindings()
 		return;
 	}
 
-	TArray<FActorIOEvent> ValidEvents = GetEvents();
-	TArray<FActorIOFunction> ValidFunctions = GetFunctions();
+	TArray<FActorIOEvent> ValidEvents = UActorIOComponent::GetEventsForObject(GetOwner());
+	TArray<FActorIOFunction> ValidFunctions = UActorIOComponent::GetFunctionsForObject(GetOwner());
 
 	ActionBindings.Init(nullptr, NumActions);
 	for (int32 ActionIdx = 0; ActionIdx != NumActions; ++ActionIdx)
@@ -83,28 +55,71 @@ void UActorIOComponent::RemoveActionBindings()
 	}
 }
 
-TArray<FActorIOEvent> UActorIOComponent::GetNativeEventsForObject(UObject* InObject)
+TArray<FActorIOEvent> UActorIOComponent::GetEventsForObject(AActor* InObject)
 {
-	check(InObject);
-	TArray<FActorIOEvent> OutEvents = TArray<FActorIOEvent>();
-
-	if (InObject->IsA<AActor>())
+	TArray<FActorIOEvent> OutEvents = UActorIOComponent::GetNativeEventsForObject(InObject);
+	IActorIOInterface* TargetIO = Cast<IActorIOInterface>(InObject);
+	if (TargetIO)
 	{
-		OutEvents.Emplace(ToName(EActorIONativeEvents::ActorBeginOverlap), nullptr);
-		OutEvents.Emplace(ToName(EActorIONativeEvents::ActorEndOverlap), nullptr);
+		TargetIO->GetActorIOEvents(OutEvents);
 	}
 
 	return OutEvents;
 }
 
-TArray<FActorIOFunction> UActorIOComponent::GetNativeFunctionsForObject(UObject* InObject)
+TArray<FActorIOFunction> UActorIOComponent::GetFunctionsForObject(AActor* InObject)
 {
-	check(InObject);
-	TArray<FActorIOFunction> OutFunctions = TArray<FActorIOFunction>();
+	TArray<FActorIOFunction> OutFunctions = UActorIOComponent::GetNativeFunctionsForObject(InObject);
+	IActorIOInterface* TargetIO = Cast<IActorIOInterface>(InObject);
+	if (TargetIO)
+	{
+		TargetIO->GetActorIOFunctions(OutFunctions);
+	}
+
+	return OutFunctions;
+}
+
+TArray<FActorIOEvent> UActorIOComponent::GetNativeEventsForObject(AActor* InObject)
+{
+	TArray<FActorIOEvent> OutEvents = TArray<FActorIOEvent>();
+	if (!IsValid(InObject))
+	{
+		return OutEvents;
+	}
 
 	if (InObject->IsA<AActor>())
 	{
-		OutFunctions.Emplace(ToName(EActorIONativeFunctions::SetActorHiddenInGame), TEXT("SetActorHiddenInGame"));
+		OutEvents.Add(FActorIOEvent()
+			.SetId(ToName(EActorIONativeEvents::ActorBeginOverlap))
+			.SetDisplayName(FText::FromString(TEXT("Actor Begin Overlap")))
+			.SetTooltipText(FText::FromString(TEXT("Event when something overalps with the actor.")))
+			.SetSparseDelegateName(TEXT("ActorBeginOverlap")));
+
+		OutEvents.Add(FActorIOEvent()
+			.SetId(ToName(EActorIONativeEvents::ActorEndOverlap))
+			.SetDisplayName(FText::FromString(TEXT("Actor End Overlap")))
+			.SetTooltipText(FText::FromString(TEXT("Event when something no longer overalps with the actor.")))
+			.SetSparseDelegateName(TEXT("ActorEndOverlap")));
+	}
+
+	return OutEvents;
+}
+
+TArray<FActorIOFunction> UActorIOComponent::GetNativeFunctionsForObject(AActor* InObject)
+{
+	TArray<FActorIOFunction> OutFunctions = TArray<FActorIOFunction>();
+	if (!IsValid(InObject))
+	{
+		return OutFunctions;
+	}
+
+	if (InObject->IsA<AActor>())
+	{
+		OutFunctions.Add(FActorIOFunction()
+			.SetId(ToName(EActorIONativeFunctions::SetActorHiddenInGame))
+			.SetDisplayName(FText::FromString(TEXT("Set Actor Hidden In Game")))
+			.SetTooltipText(FText::FromString(TEXT("Changes actor hidden state.")))
+			.SetFunction(TEXT("SetActorHiddenInGame")));
 	}
 
 	return OutFunctions;

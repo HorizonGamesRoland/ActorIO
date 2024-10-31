@@ -5,9 +5,6 @@
 #include "CoreMinimal.h"
 #include "Widgets/SCompoundWidget.h"
 
-class UActorIOComponent;
-struct FActorIOAction;
-
 class SActorIOEditor : public SCompoundWidget
 {
 public:
