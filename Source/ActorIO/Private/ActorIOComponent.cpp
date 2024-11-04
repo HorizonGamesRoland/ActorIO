@@ -91,14 +91,14 @@ TArray<FActorIOEvent> UActorIOComponent::GetNativeEventsForObject(AActor* InObje
 	if (InObject->IsA<AActor>())
 	{
 		OutEvents.Add(FActorIOEvent()
-			.SetId(TEXT("ActorBeginOverlap"))
-			.SetDisplayName(FText::FromString(TEXT("Actor Begin Overlap")))
+			.SetId(TEXT("OnActorBeginOverlap"))
+			.SetDisplayName(FText::FromString(TEXT("OnActorBeginOverlap")))
 			.SetTooltipText(FText::FromString(TEXT("Event when something overalps with the actor.")))
 			.SetSparseDelegate(InObject, TEXT("OnActorBeginOverlap")));
 
 		OutEvents.Add(FActorIOEvent()
-			.SetId(TEXT("ActorEndOverlap"))
-			.SetDisplayName(FText::FromString(TEXT("Actor End Overlap")))
+			.SetId(TEXT("OnActorEndOverlap"))
+			.SetDisplayName(FText::FromString(TEXT("OnActorEndOverlap")))
 			.SetTooltipText(FText::FromString(TEXT("Event when something no longer overalps with the actor.")))
 			.SetSparseDelegate(InObject, TEXT("OnActorEndOverlap")));
 	}
@@ -118,7 +118,7 @@ TArray<FActorIOFunction> UActorIOComponent::GetNativeFunctionsForObject(AActor* 
 	{
 		OutFunctions.Add(FActorIOFunction()
 			.SetId(TEXT("SetActorHiddenInGame"))
-			.SetDisplayName(FText::FromString(TEXT("Set Actor Hidden In Game")))
+			.SetDisplayName(FText::FromString(TEXT("SetActorHiddenInGame")))
 			.SetTooltipText(FText::FromString(TEXT("Changes actor hidden state.")))
 			.SetFunction(TEXT("SetActorHiddenInGame")));
 	}

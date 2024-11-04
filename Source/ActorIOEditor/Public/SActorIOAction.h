@@ -6,6 +6,8 @@
 #include "Widgets/SCompoundWidget.h"
 
 class UActorIOComponent;
+struct FActorIOEvent;
+struct FActorIOFunction;
 struct FActorIOAction;
 
 class SActorIOAction : public SCompoundWidget
@@ -34,15 +36,21 @@ protected:
 
     TSharedPtr<class STextBlock> FunctionText;
 
-    TArray<FName> SelectableEvents;
+    TArray<FActorIOEvent> ValidEvents;
 
-    TArray<FName> SelectableFunctions;
+    TArray<FActorIOFunction> ValidFunctions;
+
+    TArray<FName> SelectableEventIds;
+
+    TArray<FName> SelectableFunctionIds;
 
 protected:
 
-    TSharedRef<SWidget> OnGenerateComboBoxWidget(FName InName);
+    TSharedRef<SWidget> OnGenerateEventComboBoxWidget(FName InName);
 
     void OnEventChanged(FName InName, ESelectInfo::Type InSelectType);
+
+    TSharedRef<SWidget> OnGenerateFunctionComboBoxWidget(FName InName);
 
     void OnTargetFunctionChanged(FName InName, ESelectInfo::Type InSelectType);
 
@@ -61,4 +69,16 @@ protected:
     void UpdateSelectableFunctions();
 
     FActorIOAction& GetAction() const;
+
+    FText GetEventDisplayName(FName InEventId) const;
+
+    FText GetEventTooltipText(FName InEventId) const;
+
+    FText GetFunctionDisplayName(FName InFunctionId) const;
+
+    FText GetFunctionTooltipText(FName InFunctionId) const;
+
+    bool DoesEventExist(FName InEventId) const;
+
+    bool DoesFunctionExist(FName InFunctionId) const;
 };

@@ -43,13 +43,14 @@ void SActorIOAction::Construct(const FArguments& InArgs)
 				+ SHorizontalBox::Slot()
 				[
 					SNew(SComboBox<FName>)
-					.OptionsSource(&SelectableEvents)
-					.OnGenerateWidget(this, &SActorIOAction::OnGenerateComboBoxWidget)
+					.OptionsSource(&SelectableEventIds)
+					.OnGenerateWidget(this, &SActorIOAction::OnGenerateEventComboBoxWidget)
 					.OnSelectionChanged(this, &SActorIOAction::OnEventChanged)
 					[
 						SAssignNew(EventText, STextBlock)
 						.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont")) // PropertyEditorConstants::PropertyFontStyle
-						.Text(FText::FromName(Action.SourceEvent))
+						.Text(GetEventDisplayName(Action.SourceEvent))
+						.ColorAndOpacity(DoesEventExist(Action.SourceEvent) ? FColor::White : FColor::Red)
 					]
 				]
 				+ SHorizontalBox::Slot()
@@ -75,13 +76,14 @@ void SActorIOAction::Construct(const FArguments& InArgs)
 			+ SSplitter::Slot()
 			[
 				SNew(SComboBox<FName>)
-				.OptionsSource(&SelectableFunctions)
-				.OnGenerateWidget(this, &SActorIOAction::OnGenerateComboBoxWidget)
+				.OptionsSource(&SelectableFunctionIds)
+				.OnGenerateWidget(this, &SActorIOAction::OnGenerateFunctionComboBoxWidget)
 				.OnSelectionChanged(this, &SActorIOAction::OnTargetFunctionChanged)
 				[
 					SAssignNew(FunctionText, STextBlock)
 					.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont"))
-					.Text(FText::FromName(Action.TargetFunction))
+					.Text(GetFunctionDisplayName(Action.TargetFunction))
+					.ColorAndOpacity(DoesFunctionExist(Action.TargetFunction) ? FColor::White : FColor::Red)
 				]
 			]
 			+ SSplitter::Slot()
@@ -116,15 +118,19 @@ void SActorIOAction::RebuildWidget()
 	UpdateSelectableFunctions();
 
 	const FActorIOAction& Action = GetAction();
-	EventText->SetText(FText::FromName(Action.SourceEvent));
-	FunctionText->SetText(FText::FromName(Action.TargetFunction));
+	EventText->SetText(GetEventDisplayName(Action.SourceEvent));
+	EventText->SetColorAndOpacity(DoesEventExist(Action.SourceEvent) ? FColor::White : FColor::Red);
+
+	FunctionText->SetText(GetFunctionDisplayName(Action.TargetFunction));
+	FunctionText->SetColorAndOpacity(DoesFunctionExist(Action.TargetFunction) ? FColor::White : FColor::Red);
 }
 
-TSharedRef<SWidget> SActorIOAction::OnGenerateComboBoxWidget(FName InName)
+TSharedRef<SWidget> SActorIOAction::OnGenerateEventComboBoxWidget(FName InName)
 {
 	return SNew(STextBlock)
 		.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont")) // PropertyEditorConstants::PropertyFontStyle
-		.Text(FText::FromName(InName));
+		.Text(GetEventDisplayName(InName))
+		.ToolTipText(GetEventTooltipText(InName));
 }
 
 void SActorIOAction::OnEventChanged(FName InName, ESelectInfo::Type InSelectType)
@@ -144,6 +150,14 @@ void SActorIOAction::OnEventChanged(FName InName, ESelectInfo::Type InSelectType
 
 		RebuildWidget();
 	}
+}
+
+TSharedRef<SWidget> SActorIOAction::OnGenerateFunctionComboBoxWidget(FName InName)
+{
+	return SNew(STextBlock)
+		.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont")) // PropertyEditorConstants::PropertyFontStyle
+		.Text(GetFunctionDisplayName(InName))
+		.ToolTipText(GetFunctionTooltipText(InName));
 }
 
 void SActorIOAction::OnTargetActorChanged(const FAssetData& InAssetData)
@@ -210,25 +224,25 @@ FReply SActorIOAction::OnClick_RemoveAction()
 
 void SActorIOAction::UpdateSelectableEvents()
 {
-	SelectableEvents.Reset();
-	SelectableEvents.Add(TEXT("<Clear>"));
+	SelectableEventIds.Reset();
+	SelectableEventIds.Add(TEXT("<Clear>"));
 
-	TArray<FActorIOEvent> ValidEvents = UActorIOComponent::GetEventsForObject(IOComponent->GetOwner());
+	ValidEvents = UActorIOComponent::GetEventsForObject(IOComponent->GetOwner());
 	for (const FActorIOEvent& IOEvent : ValidEvents)
 	{
-		SelectableEvents.Emplace(IOEvent.EventId);
+		SelectableEventIds.Emplace(IOEvent.EventId);
 	}
 }
 
 void SActorIOAction::UpdateSelectableFunctions()
 {
-	SelectableFunctions.Reset();
-	SelectableFunctions.Add(TEXT("<Clear>"));
+	SelectableFunctionIds.Reset();
+	SelectableFunctionIds.Add(TEXT("<Clear>"));
 
-	TArray<FActorIOFunction> ValidFunctions = UActorIOComponent::GetFunctionsForObject(GetAction().TargetActor);
+	ValidFunctions = UActorIOComponent::GetFunctionsForObject(GetAction().TargetActor);
 	for (const FActorIOFunction& IOFunction : ValidFunctions)
 	{
-		SelectableFunctions.Emplace(IOFunction.FunctionId);
+		SelectableFunctionIds.Emplace(IOFunction.FunctionId);
 	}
 }
 
@@ -236,6 +250,74 @@ FActorIOAction& SActorIOAction::GetAction() const
 {
 	check(IOComponent && IOComponent->GetActions().IsValidIndex(ActionIdx));
 	return IOComponent->GetActions()[ActionIdx];
+}
+
+FText SActorIOAction::GetEventDisplayName(FName InEventId) const
+{
+	const FActorIOEvent* TargetEvent = ValidEvents.FindByKey(InEventId);
+	if (TargetEvent && !TargetEvent->DisplayName.IsEmpty())
+	{
+		return TargetEvent->DisplayName;
+	}
+
+	return FText::FromName(InEventId);
+}
+
+FText SActorIOAction::GetEventTooltipText(FName InEventId) const
+{
+	const FActorIOEvent* TargetEvent = ValidEvents.FindByKey(InEventId);
+	if (TargetEvent)
+	{
+		return TargetEvent->TooltipText;
+	}
+
+	return FText::GetEmpty();
+}
+
+FText SActorIOAction::GetFunctionDisplayName(FName InFunctionId) const
+{
+	const FActorIOFunction* TargetFunction = ValidFunctions.FindByKey(InFunctionId);
+	if (TargetFunction && !TargetFunction->DisplayName.IsEmpty())
+	{
+		return TargetFunction->DisplayName;
+	}
+
+	return FText::FromName(InFunctionId);
+}
+
+FText SActorIOAction::GetFunctionTooltipText(FName InFunctionId) const
+{
+	const FActorIOFunction* TargetFunction = ValidFunctions.FindByKey(InFunctionId);
+	if (TargetFunction)
+	{
+		return TargetFunction->TooltipText;
+	}
+
+	return FText::GetEmpty();
+}
+
+bool SActorIOAction::DoesEventExist(FName InEventId) const
+{
+	if (InEventId == NAME_None)
+	{
+		// Also accept 'None' as valid because we only want to highlight outdated events/functions.
+		return true;
+	}
+
+	const FActorIOEvent* TargetEvent = ValidEvents.FindByKey(InEventId);
+	return TargetEvent != nullptr;
+}
+
+bool SActorIOAction::DoesFunctionExist(FName InFunctionId) const
+{
+	if (InFunctionId == NAME_None)
+	{
+		// Also accept 'None' as valid because we only want to highlight outdated events/functions.
+		return true;
+	}
+
+	const FActorIOFunction* TargetFunction = ValidFunctions.FindByKey(InFunctionId);
+	return TargetFunction != nullptr;
 }
 
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
