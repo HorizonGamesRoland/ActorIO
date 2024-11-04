@@ -3,12 +3,14 @@
 #include "ActorIOAction.h"
 #include "ActorIOComponent.h"
 #include "ActorIOInterface.h"
+#include "UObject/SparseDelegate.h"
 #include "Misc/OutputDeviceNull.h"
 
 UActorIOLink::UActorIOLink()
 {
 	LinkedAction = FActorIOAction();
 	bWasExecuted = false;
+	bIsBound = false;
 	ActionDelegate = FScriptDelegate();
 }
 
@@ -29,17 +31,30 @@ void UActorIOLink::BindAction(const FActorIOAction& Action)
 		return;
 	}
 
-	FMulticastScriptDelegate* TargetDelegate = TargetEvent->MulticastDelegateRef;
-	if (TargetDelegate)
+	if (!IsValid(TargetEvent->DelegateOwner))
+	{
+		return;
+	}
+
+	if (!bIsBound)
 	{
 		ActionDelegate = FScriptDelegate();
 		ActionDelegate.BindUFunction(this, TEXT("ExecuteAction"));
 
-		TargetDelegate->Add(ActionDelegate);
-	}
-	else
-	{
-		AttemptBindNativeAction();
+		if (TargetEvent->MulticastDelegateRef)
+		{
+			TargetEvent->MulticastDelegateRef->Add(ActionDelegate);
+			bIsBound = true;
+		}
+		else
+		{
+			FSparseDelegate* SparseDelegate = FSparseDelegateStorage::ResolveSparseDelegate(TargetEvent->DelegateOwner, TargetEvent->SparseDelegateName);
+			if (SparseDelegate)
+			{
+				SparseDelegate->__Internal_AddUnique(TargetEvent->DelegateOwner, TargetEvent->SparseDelegateName, ActionDelegate);
+				bIsBound = true;
+			}
+		}
 	}
 }
 
@@ -58,37 +73,27 @@ void UActorIOLink::ClearAction()
 		return;
 	}
 
-	FMulticastScriptDelegate* TargetDelegate = TargetEvent->MulticastDelegateRef;
-	if (TargetDelegate)
+	if (bIsBound)
 	{
-		if (TargetDelegate->Contains(ActionDelegate))
+		FMulticastScriptDelegate* TargetDelegate = TargetEvent->MulticastDelegateRef;
+		if (TargetDelegate)
 		{
 			TargetDelegate->Remove(ActionDelegate);
-			ActionDelegate.Unbind();
+			bIsBound = false;
+		}
+		else
+		{
+			FSparseDelegate* SparseDelegate = FSparseDelegateStorage::ResolveSparseDelegate(TargetEvent->DelegateOwner, TargetEvent->SparseDelegateName);
+			if (SparseDelegate)
+			{
+				SparseDelegate->__Internal_Remove(TargetEvent->DelegateOwner, TargetEvent->SparseDelegateName, ActionDelegate);
+				bIsBound = false;
+			}
 		}
 	}
 }
 
-void UActorIOLink::AttemptBindNativeAction()
-{
-	ActionDelegate = FScriptDelegate();
-	ActionDelegate.BindUFunction(this, TEXT("ExecuteAction"));
-
-	if (LinkedAction.SourceEvent == ToName(EActorIONativeEvents::ActorBeginOverlap))
-	{
-		AActor* AsActor = GetOwnerIOComponent()->GetOwner();
-		AsActor->OnActorBeginOverlap.Add(ActionDelegate);
-		return;
-	}
-	if (LinkedAction.SourceEvent == ToName(EActorIONativeEvents::ActorEndOverlap))
-	{
-		AActor* AsActor = GetOwnerIOComponent()->GetOwner();
-		AsActor->OnActorEndOverlap.Add(ActionDelegate);
-		return;
-	}
-}
-
-void UActorIOLink::ExecuteAction()
+void UActorIOLink::ExecuteAction(AActor* OverlappedActor, AActor* OtherActor)
 {
 	AActor* TargetActor = LinkedAction.TargetActor.Get();
  	if (!IsValid(TargetActor))
@@ -124,11 +129,4 @@ UActorIOComponent* UActorIOLink::GetOwnerIOComponent() const
 {
 	// ActorIO links are owned by ActorIO components.
 	return Cast<UActorIOComponent>(GetOuter());
-}
-
-void UActorIOLink::BeginDestroy()
-{
-	ClearAction();
-
-	Super::BeginDestroy();
 }

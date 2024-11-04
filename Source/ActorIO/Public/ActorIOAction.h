@@ -56,6 +56,8 @@ protected:
 
 	bool bWasExecuted;
 
+	bool bIsBound;
+
 	FScriptDelegate ActionDelegate;
 
 public:
@@ -68,12 +70,6 @@ public:
 
 protected:
 
-	void AttemptBindNativeAction();
-
 	UFUNCTION()
-	void ExecuteAction();
-
-public:
-
-	virtual void BeginDestroy() override;
+	void ExecuteAction(AActor* OverlappedActor, AActor* OtherActor);
 };

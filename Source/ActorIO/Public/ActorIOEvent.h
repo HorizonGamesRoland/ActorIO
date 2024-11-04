@@ -4,6 +4,7 @@
 
 #include "ActorIO.h"
 #include "Delegates/Delegate.h"
+#include "UObject/SparseDelegate.h"
 #include "ActorIOEvent.generated.h"
 
 USTRUCT()
@@ -17,6 +18,9 @@ struct ACTORIO_API FActorIOEvent
 
 	FText TooltipText;
 
+	UPROPERTY()
+	TObjectPtr<UObject> DelegateOwner;
+
 	FMulticastScriptDelegate* MulticastDelegateRef;
 
 	FName SparseDelegateName;
@@ -25,6 +29,7 @@ struct ACTORIO_API FActorIOEvent
 		EventId(NAME_None),
 		DisplayName(FText::GetEmpty()),
 		TooltipText(FText::GetEmpty()),
+		DelegateOwner(nullptr),
 		MulticastDelegateRef(nullptr),
 		SparseDelegateName(NAME_None)
 	{}
@@ -47,15 +52,17 @@ struct ACTORIO_API FActorIOEvent
 		return *this;
 	}
 
-	FActorIOEvent& SetMulticastDelegate(FMulticastScriptDelegate* InDelegate)
+	FActorIOEvent& SetMulticastDelegate(TObjectPtr<UObject> InDelegateOwner, FMulticastScriptDelegate* InMulticastDelegate)
 	{
-		MulticastDelegateRef = InDelegate;
+		DelegateOwner = InDelegateOwner;
+		MulticastDelegateRef = InMulticastDelegate;
 		return *this;
 	}
 
-	FActorIOEvent& SetSparseDelegateName(FName InDelegateName)
+	FActorIOEvent& SetSparseDelegate(TObjectPtr<UObject> InDelegateOwner, FName InSparseDelegateName)
 	{
-		SparseDelegateName = InDelegateName;
+		DelegateOwner = InDelegateOwner;
+		SparseDelegateName = InSparseDelegateName;
 		return *this;
 	}
 
@@ -64,19 +71,3 @@ struct ACTORIO_API FActorIOEvent
 		return EventId == InEventName;
 	}
 };
-
-
-
-
-UENUM()
-enum class EActorIONativeEvents : uint32
-{
-	ActorBeginOverlap,
-
-	ActorEndOverlap
-};
-
-static FName ToName(EActorIONativeEvents InEnumValue)
-{
-	return UEnum::GetValueAsName(InEnumValue);
-}

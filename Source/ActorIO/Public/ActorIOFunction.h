@@ -54,16 +54,3 @@ struct ACTORIO_API FActorIOFunction
 		return FunctionId == InFunctionName;
 	}
 };
-
-
-
-UENUM()
-enum class EActorIONativeFunctions : uint32
-{
-	SetActorHiddenInGame
-};
-
-static FName ToName(EActorIONativeFunctions InEnumValue)
-{
-	return UEnum::GetValueAsName(InEnumValue);
-}
