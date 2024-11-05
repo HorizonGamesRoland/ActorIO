@@ -50,8 +50,11 @@ void SActorIOEditor::Construct(const FArguments& InArgs)
                     .HAlign(HAlign_Center)
                     .VAlign(VAlign_Center)
                     .ContentPadding(10.0f)
-                    .Text(LOCTEXT("Outputs", "Outputs (0)"))
                     .OnClicked(this, &SActorIOEditor::OnClick_Outputs)
+                    [
+                        SAssignNew(OutputsButtonText, STextBlock)
+                        .Visibility(EVisibility::HitTestInvisible)
+                    ]
                 ]
                 + SVerticalBox::Slot()
                 .AutoHeight()
@@ -61,8 +64,11 @@ void SActorIOEditor::Construct(const FArguments& InArgs)
                     .HAlign(HAlign_Center)
                     .VAlign(VAlign_Center)
                     .ContentPadding(10.0f)
-                    .Text(LOCTEXT("Inputs", "Inputs (0)"))
                     .OnClicked(this, &SActorIOEditor::OnClick_Inputs)
+                    [
+                        SAssignNew(InputsButtonText, STextBlock)
+                        .Visibility(EVisibility::HitTestInvisible)
+                    ]
                 ]
                 + SVerticalBox::Slot()
                 .FillHeight(1.0)
@@ -95,6 +101,22 @@ void SActorIOEditor::Construct(const FArguments& InArgs)
 
 void SActorIOEditor::RebuildWidget()
 {
+    UActorIOEditorSubsystem* ActorIOEditorSubsystem = GEditor->GetEditorSubsystem<UActorIOEditorSubsystem>();
+    AActor* SelectedActor = ActorIOEditorSubsystem ? ActorIOEditorSubsystem->GetSelectedActor() : nullptr;
+    UActorIOComponent* ActorIOComponent = SelectedActor ? SelectedActor->GetComponentByClass<UActorIOComponent>() : nullptr;
+
+    const FString ActorName = SelectedActor ? SelectedActor->GetActorNameOrLabel() : TEXT("None");
+    ActorNameText->SetText(FText::FormatNamed(LOCTEXT("SelectedActorName", "Actor: {Name}"),
+        TEXT("Name"), FText::FromString(ActorName)));
+
+    const int32 NumOutputActions = ActorIOComponent ? ActorIOComponent->GetNumActions() : 0;
+    OutputsButtonText->SetText(FText::FormatNamed(LOCTEXT("OutputsButton", "Outputs ({Count})"),
+        TEXT("Count"), NumOutputActions));
+
+    const int32 NumInputActions = 0;
+    InputsButtonText->SetText(FText::FormatNamed(LOCTEXT("InputsButton", "Inputs ({Count})"),
+        TEXT("Count"), NumInputActions));
+
     if (bViewOutputs)
     {
         ActionPanel->SetContent(ConstructOutputsTab());
@@ -104,13 +126,6 @@ void SActorIOEditor::RebuildWidget()
         ActionPanel->SetContent(SNew(SBox));
     }
 
-    UActorIOEditorSubsystem* ActorIOEditorSubsystem = GEditor->GetEditorSubsystem<UActorIOEditorSubsystem>();
-    AActor* SelectedActor = ActorIOEditorSubsystem->GetSelectedActor();
-
-    FString ActorName = SelectedActor ? SelectedActor->GetActorNameOrLabel() : TEXT("None");
-    ActorNameText->SetText(FText::Format(LOCTEXT("SelectedActorName", "Actor: {0}"), FText::FromString(ActorName)));
-
-    UActorIOComponent* ActorIOComponent = SelectedActor ? SelectedActor->GetComponentByClass<UActorIOComponent>() : nullptr;
     if (ActorIOComponent)
     {
         for (int32 ActionIdx = 0; ActionIdx != ActorIOComponent->GetActions().Num(); ++ActionIdx)

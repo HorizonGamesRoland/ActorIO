@@ -34,6 +34,8 @@ public:
 
 	const TArray<FActorIOAction>& GetActions() const { return Actions; }
 
+	int32 GetNumActions() const { return Actions.Num(); }
+
 protected:
 
 	void CreateActionBindings();

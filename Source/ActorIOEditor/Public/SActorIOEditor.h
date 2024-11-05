@@ -21,6 +21,10 @@ protected:
 
     TSharedPtr<class STextBlock> ActorNameText;
 
+    TSharedPtr<class STextBlock> OutputsButtonText;
+
+    TSharedPtr<class STextBlock> InputsButtonText;
+
     TSharedPtr<class SBox> ActionPanel;
 
     TSharedPtr<class SSplitter> ActionSplitter;
