@@ -121,6 +121,12 @@ TArray<FActorIOFunction> UActorIOComponent::GetNativeFunctionsForObject(AActor* 
 			.SetDisplayName(FText::FromString(TEXT("SetActorHiddenInGame")))
 			.SetTooltipText(FText::FromString(TEXT("Changes actor hidden state.")))
 			.SetFunction(TEXT("SetActorHiddenInGame")));
+
+		OutFunctions.Add(FActorIOFunction()
+			.SetId(TEXT("DestroyActor"))
+			.SetDisplayName(FText::FromString(TEXT("DestroyActor")))
+			.SetTooltipText(FText::FromString(TEXT("Destroy the actor.")))
+			.SetFunction(TEXT("K2_DestroyActor")));
 	}
 
 	return OutFunctions;
