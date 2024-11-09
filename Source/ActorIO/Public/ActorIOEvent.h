@@ -7,15 +7,18 @@
 #include "UObject/SparseDelegate.h"
 #include "ActorIOEvent.generated.h"
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct ACTORIO_API FActorIOEvent
 {
 	GENERATED_BODY()
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Default")
 	FName EventId;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Default")
 	FText DisplayName;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Default")
 	FText TooltipText;
 
 	UPROPERTY()

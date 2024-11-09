@@ -5,17 +5,21 @@
 #include "ActorIO.h"
 #include "ActorIOFunction.generated.h"
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct ACTORIO_API FActorIOFunction
 {
 	GENERATED_BODY()
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Default")
 	FName FunctionId;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Default")
 	FText DisplayName;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Default")
 	FText TooltipText;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Default")
 	FString FunctionToExec;
 
 	FActorIOFunction() :
