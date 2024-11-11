@@ -20,7 +20,19 @@ class IActorIOInterface
 
 public:
 
-	virtual void GetActorIOEvents(TArray<FActorIOEvent>& OutEvents) {}
+	void GetActorIOEvents(TArray<FActorIOEvent>& OutEvents) const;
 
-	virtual void GetActorIOFunctions(TArray<FActorIOFunction>& OutFunctions) {}
+	void GetActorIOFunctions(TArray<FActorIOFunction>& OutFunctions) const;
+
+protected:
+
+	virtual void RegisterIOEvents(TArray<FActorIOEvent>& RegisteredEvents) const {}
+
+	virtual void RegisterIOFunctions(TArray<FActorIOFunction>& RegisteredFunctions) const {}
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Actor IO", DisplayName = "Register IO Events")
+	void K2_RegisterIOEvents(UPARAM(Ref) TArray<FActorIOEvent>& RegisteredEvents) const;
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Actor IO", DisplayName = "Register IO Functions")
+	void K2_RegisterIOFunctions(UPARAM(Ref) TArray<FActorIOFunction>& RegisteredFunctions) const;
 };
