@@ -39,7 +39,7 @@ void SActorIOEditor::Construct(const FArguments& InArgs)
                     .HeightOverride(30.0f)
                     .VAlign(VAlign_Center)
                     [
-                        SAssignNew(ActorNameText, STextBlock)
+                        SAssignNew(SelectedActorText, STextBlock)
                     ]
                 ]
                 + SVerticalBox::Slot()
@@ -106,7 +106,7 @@ void SActorIOEditor::RebuildWidget()
     UActorIOComponent* ActorIOComponent = SelectedActor ? SelectedActor->GetComponentByClass<UActorIOComponent>() : nullptr;
 
     const FString ActorName = SelectedActor ? SelectedActor->GetActorNameOrLabel() : TEXT("None");
-    ActorNameText->SetText(FText::FormatNamed(LOCTEXT("SelectedActorName", "Actor: {Name}"),
+    SelectedActorText->SetText(FText::FormatNamed(LOCTEXT("SelectedActorName", "Actor: {Name}"),
         TEXT("Name"), FText::FromString(ActorName)));
 
     const int32 NumOutputActions = ActorIOComponent ? ActorIOComponent->GetNumActions() : 0;
@@ -120,24 +120,42 @@ void SActorIOEditor::RebuildWidget()
     if (bViewOutputs)
     {
         ActionPanel->SetContent(ConstructOutputsTab());
+
+        if (OutputActionPropertySizes.IsEmpty())
+        {
+            const int32 NumSlots = ActionPropertySplitter->GetChildren()->Num();
+            OutputActionPropertySizes.Init(1.0f, NumSlots);
+
+            for (int32 SlotIdx = 0; SlotIdx != NumSlots; ++SlotIdx)
+            {
+                const float TargetSize = ActionPropertySplitter->SlotAt(SlotIdx).GetSizeValue();
+                OutputActionPropertySizes[SlotIdx] = TargetSize;
+            }
+        }
+
+        for (int32 SlotIdx = 0; SlotIdx != OutputActionPropertySizes.Num(); ++SlotIdx)
+        {
+            OnActionPropertyResized(SlotIdx, OutputActionPropertySizes[SlotIdx]);
+        }
+
+        if (ActorIOComponent)
+        {
+            for (int32 ActionIdx = 0; ActionIdx != ActorIOComponent->GetActions().Num(); ++ActionIdx)
+            {
+                ActionList->AddSlot()
+                .AutoHeight()
+                [
+                    SNew(SActorIOAction)
+                    .IOComponent(ActorIOComponent)
+                    .ActionIdx(ActionIdx)
+                    .PropertySizes(OutputActionPropertySizes)
+                ];
+            }
+        }
     }
     else
     {
         ActionPanel->SetContent(SNew(SBox));
-    }
-
-    if (ActorIOComponent)
-    {
-        for (int32 ActionIdx = 0; ActionIdx != ActorIOComponent->GetActions().Num(); ++ActionIdx)
-        {
-            ActionList->AddSlot()
-            .AutoHeight()
-            [
-                SNew(SActorIOAction)
-                .IOComponent(ActorIOComponent)
-                .ActionIdx(ActionIdx)
-            ];
-        }
     }
 }
 
@@ -150,8 +168,9 @@ const TSharedRef<SWidget> SActorIOEditor::ConstructOutputsTab()
             SNew(SBox)
             .HeightOverride(30.0f)
             [
-                SAssignNew(ActionSplitter, SSplitter)
+                SAssignNew(ActionPropertySplitter, SSplitter)
                 + SSplitter::Slot()
+                .OnSlotResized_Lambda([this](float InSize) { OnActionPropertyResized(0, InSize); })
                 [
                     SNew(SBox)
                     .VAlign(VAlign_Center)
@@ -162,6 +181,7 @@ const TSharedRef<SWidget> SActorIOEditor::ConstructOutputsTab()
                     ]     
                 ]
                 + SSplitter::Slot()
+                .OnSlotResized_Lambda([this](float InSize) { OnActionPropertyResized(1, InSize); })
                 [
                     SNew(SBox)
                     .VAlign(VAlign_Center)
@@ -172,6 +192,7 @@ const TSharedRef<SWidget> SActorIOEditor::ConstructOutputsTab()
                     ]
                 ]
                 + SSplitter::Slot()
+                .OnSlotResized_Lambda([this](float InSize) { OnActionPropertyResized(2, InSize); })
                 [
                     SNew(SBox)
                     .VAlign(VAlign_Center)
@@ -182,6 +203,7 @@ const TSharedRef<SWidget> SActorIOEditor::ConstructOutputsTab()
                     ]
                 ]
                 + SSplitter::Slot()
+                .OnSlotResized_Lambda([this](float InSize) { OnActionPropertyResized(3, InSize); })
                 [
                     SNew(SBox)
                     .VAlign(VAlign_Center)
@@ -201,6 +223,21 @@ const TSharedRef<SWidget> SActorIOEditor::ConstructOutputsTab()
                 SAssignNew(ActionList, SVerticalBox)
             ]
         ];
+}
+
+void SActorIOEditor::OnActionPropertyResized(int32 InSlotIndex, float InSize)
+{
+    OutputActionPropertySizes[InSlotIndex] = InSize;
+    ActionPropertySplitter->SlotAt(InSlotIndex).SetSizeValue(InSize);
+
+    if (FChildren* ChildWidgets = ActionList->GetChildren())
+    {
+        ChildWidgets->ForEachWidget([InSlotIndex, InSize](SWidget& ChildWidget)
+        {
+            SActorIOAction& ActionWidget = static_cast<SActorIOAction&>(ChildWidget);
+            ActionWidget.SetPropertySize(InSlotIndex, InSize);
+        });
+    }
 }
 
 FReply SActorIOEditor::OnClick_Outputs()

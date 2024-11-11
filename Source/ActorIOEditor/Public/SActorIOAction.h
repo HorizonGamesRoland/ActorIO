@@ -19,6 +19,7 @@ public:
         
         SLATE_ARGUMENT(TObjectPtr<UActorIOComponent>, IOComponent)
         SLATE_ARGUMENT(int32, ActionIdx)
+        SLATE_ARGUMENT(TArray<float>, PropertySizes)
 
     SLATE_END_ARGS()
 
@@ -26,11 +27,15 @@ public:
 
     void RebuildWidget();
 
+    void SetPropertySize(int32 SlotIdx, float InSize);
+
 protected:
 
     TObjectPtr<UActorIOComponent> IOComponent;
 
     int32 ActionIdx;
+
+    TSharedPtr<class SSplitter> PropertySplitter;
 
     TSharedPtr<class STextBlock> EventText;
 
@@ -74,11 +79,11 @@ protected:
 
     FText GetEventTooltipText(FName InEventId) const;
 
+    FColor GetEventTextColor(FName InEventId) const;
+
     FText GetFunctionDisplayName(FName InFunctionId) const;
 
     FText GetFunctionTooltipText(FName InFunctionId) const;
 
-    bool DoesEventExist(FName InEventId) const;
-
-    bool DoesFunctionExist(FName InFunctionId) const;
+    FColor GetFunctionTextColor(FName InFunctionId) const;
 };

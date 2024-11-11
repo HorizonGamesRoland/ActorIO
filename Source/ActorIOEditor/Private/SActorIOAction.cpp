@@ -28,8 +28,10 @@ void SActorIOAction::Construct(const FArguments& InArgs)
 		.HeightOverride(26.0f) // PropertyEditorConstants::PropertyRowHeight
 		.Padding(0.0f, 0.0f, 0.0f, 2.0f)
 		[
-			SNew(SSplitter)
+			SAssignNew(PropertySplitter, SSplitter)
+			.PhysicalSplitterHandleSize(0.0f)
 			+ SSplitter::Slot()
+			.Resizable(false)
 			[
 				SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
@@ -50,7 +52,7 @@ void SActorIOAction::Construct(const FArguments& InArgs)
 						SAssignNew(EventText, STextBlock)
 						.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont")) // PropertyEditorConstants::PropertyFontStyle
 						.Text(GetEventDisplayName(Action.SourceEvent))
-						.ColorAndOpacity(DoesEventExist(Action.SourceEvent) ? FColor::White : FColor::Red)
+						.ColorAndOpacity(GetEventTextColor(Action.SourceEvent))
 					]
 				]
 				+ SHorizontalBox::Slot()
@@ -64,6 +66,7 @@ void SActorIOAction::Construct(const FArguments& InArgs)
 				
 			]
 			+ SSplitter::Slot()
+			.Resizable(false)
 			[
 				SNew(SObjectPropertyEntryBox)
 				.AllowedClass(AActor::StaticClass())
@@ -74,6 +77,7 @@ void SActorIOAction::Construct(const FArguments& InArgs)
 				.OnObjectChanged(this, &SActorIOAction::OnTargetActorChanged)
 			]
 			+ SSplitter::Slot()
+			.Resizable(false)
 			[
 				SNew(SComboBox<FName>)
 				.OptionsSource(&SelectableFunctionIds)
@@ -83,14 +87,15 @@ void SActorIOAction::Construct(const FArguments& InArgs)
 					SAssignNew(FunctionText, STextBlock)
 					.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont"))
 					.Text(GetFunctionDisplayName(Action.TargetFunction))
-					.ColorAndOpacity(DoesFunctionExist(Action.TargetFunction) ? FColor::White : FColor::Red)
+					.ColorAndOpacity(GetFunctionTextColor(Action.TargetFunction))
 				]
 			]
 			+ SSplitter::Slot()
+			.Resizable(false)
 			[
 				SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
-				.Padding(0.0f, 0.0f, 3.0f, 0.0f)
+				.Padding(3.0f, 0.0f, 3.0f, 0.0f)
 				[
 					SNew(SEditableTextBox)
 					.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont"))
@@ -110,6 +115,12 @@ void SActorIOAction::Construct(const FArguments& InArgs)
 			]
 		]
 	];
+
+	// Apply property sizes from the IO editor.
+	for (int32 SlotIdx = 0; SlotIdx != InArgs._PropertySizes.Num(); ++SlotIdx)
+	{
+		SetPropertySize(SlotIdx, InArgs._PropertySizes[SlotIdx]);
+	}
 }
 
 void SActorIOAction::RebuildWidget()
@@ -119,10 +130,16 @@ void SActorIOAction::RebuildWidget()
 
 	const FActorIOAction& Action = GetAction();
 	EventText->SetText(GetEventDisplayName(Action.SourceEvent));
-	EventText->SetColorAndOpacity(DoesEventExist(Action.SourceEvent) ? FColor::White : FColor::Red);
+	EventText->SetColorAndOpacity(GetEventTextColor(Action.SourceEvent));
 
 	FunctionText->SetText(GetFunctionDisplayName(Action.TargetFunction));
-	FunctionText->SetColorAndOpacity(DoesFunctionExist(Action.TargetFunction) ? FColor::White : FColor::Red);
+	FunctionText->SetColorAndOpacity(GetFunctionTextColor(Action.TargetFunction));
+}
+
+void SActorIOAction::SetPropertySize(int32 SlotIdx, float InSize)
+{
+	check(PropertySplitter->GetChildren()->Num() - 1 >= SlotIdx);
+	PropertySplitter->SlotAt(SlotIdx).SetSizeValue(InSize);
 }
 
 TSharedRef<SWidget> SActorIOAction::OnGenerateEventComboBoxWidget(FName InName)
@@ -274,6 +291,18 @@ FText SActorIOAction::GetEventTooltipText(FName InEventId) const
 	return FText::GetEmpty();
 }
 
+FColor SActorIOAction::GetEventTextColor(FName InEventId) const
+{
+	if (InEventId == NAME_None)
+	{
+		// Also accept 'None' as valid because we only want to highlight outdated events/functions.
+		return FColor::White;
+	}
+
+	const FActorIOEvent* TargetEvent = ValidEvents.FindByKey(InEventId);
+	return TargetEvent ? FColor::White : FColor::Red;
+}
+
 FText SActorIOAction::GetFunctionDisplayName(FName InFunctionId) const
 {
 	const FActorIOFunction* TargetFunction = ValidFunctions.FindByKey(InFunctionId);
@@ -296,28 +325,16 @@ FText SActorIOAction::GetFunctionTooltipText(FName InFunctionId) const
 	return FText::GetEmpty();
 }
 
-bool SActorIOAction::DoesEventExist(FName InEventId) const
-{
-	if (InEventId == NAME_None)
-	{
-		// Also accept 'None' as valid because we only want to highlight outdated events/functions.
-		return true;
-	}
-
-	const FActorIOEvent* TargetEvent = ValidEvents.FindByKey(InEventId);
-	return TargetEvent != nullptr;
-}
-
-bool SActorIOAction::DoesFunctionExist(FName InFunctionId) const
+FColor SActorIOAction::GetFunctionTextColor(FName InFunctionId) const
 {
 	if (InFunctionId == NAME_None)
 	{
 		// Also accept 'None' as valid because we only want to highlight outdated events/functions.
-		return true;
+		return FColor::White;
 	}
 
 	const FActorIOFunction* TargetFunction = ValidFunctions.FindByKey(InFunctionId);
-	return TargetFunction != nullptr;
+	return TargetFunction ? FColor::White : FColor::Red;
 }
 
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION

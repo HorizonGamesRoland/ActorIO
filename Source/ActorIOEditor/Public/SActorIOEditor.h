@@ -19,7 +19,7 @@ public:
 
 protected:
 
-    TSharedPtr<class STextBlock> ActorNameText;
+    TSharedPtr<class STextBlock> SelectedActorText;
 
     TSharedPtr<class STextBlock> OutputsButtonText;
 
@@ -27,17 +27,21 @@ protected:
 
     TSharedPtr<class SBox> ActionPanel;
 
-    TSharedPtr<class SSplitter> ActionSplitter;
+    TSharedPtr<class SSplitter> ActionPropertySplitter;
+
+    TArray<float> InputActionPropertySizes;
+
+    TArray<float> OutputActionPropertySizes;
 
     TSharedPtr<class SVerticalBox> ActionList;
-
-protected:
 
     bool bViewOutputs;
 
 protected:
 
     const TSharedRef<SWidget> ConstructOutputsTab();
+
+    void OnActionPropertyResized(int32 InSlotIndex, float InSize);
 
     FReply OnClick_Outputs();
 
