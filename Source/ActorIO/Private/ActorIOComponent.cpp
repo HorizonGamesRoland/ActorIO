@@ -4,6 +4,7 @@
 #include "ActorIOAction.h"
 #include "ActorIOInterface.h"
 #include "GameFramework/Actor.h"
+#include "Particles/Emitter.h"
 
 UActorIOComponent::UActorIOComponent()
 {
@@ -88,20 +89,17 @@ TArray<FActorIOEvent> UActorIOComponent::GetNativeEventsForObject(AActor* InObje
 		return OutEvents;
 	}
 
-	if (InObject->IsA<AActor>())
-	{
-		OutEvents.Add(FActorIOEvent()
-			.SetId(TEXT("OnActorBeginOverlap"))
-			.SetDisplayName(FText::FromString(TEXT("OnActorBeginOverlap")))
-			.SetTooltipText(FText::FromString(TEXT("Event when something overalps with the actor.")))
-			.SetSparseDelegate(InObject, TEXT("OnActorBeginOverlap")));
+	OutEvents.Add(FActorIOEvent()
+		.SetId(TEXT("OnActorBeginOverlap"))
+		.SetDisplayName(FText::FromString(TEXT("OnActorBeginOverlap")))
+		.SetTooltipText(FText::FromString(TEXT("Event when something overlaps with the actor.")))
+		.SetSparseDelegate(InObject, TEXT("OnActorBeginOverlap")));
 
-		OutEvents.Add(FActorIOEvent()
-			.SetId(TEXT("OnActorEndOverlap"))
-			.SetDisplayName(FText::FromString(TEXT("OnActorEndOverlap")))
-			.SetTooltipText(FText::FromString(TEXT("Event when something no longer overalps with the actor.")))
-			.SetSparseDelegate(InObject, TEXT("OnActorEndOverlap")));
-	}
+	OutEvents.Add(FActorIOEvent()
+		.SetId(TEXT("OnActorEndOverlap"))
+		.SetDisplayName(FText::FromString(TEXT("OnActorEndOverlap")))
+		.SetTooltipText(FText::FromString(TEXT("Event when something no longer overlaps with the actor.")))
+		.SetSparseDelegate(InObject, TEXT("OnActorEndOverlap")));
 
 	return OutEvents;
 }
@@ -114,20 +112,32 @@ TArray<FActorIOFunction> UActorIOComponent::GetNativeFunctionsForObject(AActor* 
 		return OutFunctions;
 	}
 
-	if (InObject->IsA<AActor>())
+	if (InObject->IsA<AEmitter>())
 	{
 		OutFunctions.Add(FActorIOFunction()
-			.SetId(TEXT("SetActorHiddenInGame"))
-			.SetDisplayName(FText::FromString(TEXT("SetActorHiddenInGame")))
-			.SetTooltipText(FText::FromString(TEXT("Changes actor hidden state.")))
-			.SetFunction(TEXT("SetActorHiddenInGame")));
+			.SetId(TEXT("AEmitter::Activate"))
+			.SetDisplayName(FText::FromString(TEXT("Activate")))
+			.SetTooltipText(FText::FromString(TEXT("Activate the particle system.")))
+			.SetFunction(TEXT("Activate")));
 
 		OutFunctions.Add(FActorIOFunction()
-			.SetId(TEXT("DestroyActor"))
-			.SetDisplayName(FText::FromString(TEXT("DestroyActor")))
-			.SetTooltipText(FText::FromString(TEXT("Destroy the actor.")))
-			.SetFunction(TEXT("K2_DestroyActor")));
+			.SetId(TEXT("AEmitter::Deactivate"))
+			.SetDisplayName(FText::FromString(TEXT("Deactivate")))
+			.SetTooltipText(FText::FromString(TEXT("Deactivate the particle system.")))
+			.SetFunction(TEXT("Deactivate")));
 	}
+
+	OutFunctions.Add(FActorIOFunction()
+		.SetId(TEXT("AActor::SetActorHiddenInGame"))
+		.SetDisplayName(FText::FromString(TEXT("SetActorHiddenInGame")))
+		.SetTooltipText(FText::FromString(TEXT("Changes actor hidden state.")))
+		.SetFunction(TEXT("SetActorHiddenInGame")));
+
+	OutFunctions.Add(FActorIOFunction()
+		.SetId(TEXT("AActor::DestroyActor"))
+		.SetDisplayName(FText::FromString(TEXT("DestroyActor")))
+		.SetTooltipText(FText::FromString(TEXT("Destroy the actor.")))
+		.SetFunction(TEXT("K2_DestroyActor")));
 
 	return OutFunctions;
 }

@@ -1,5 +1,6 @@
 // Copyright 2024 Horizon Games. All Rights Reserved.
 
+using System.IO;
 using UnrealBuildTool;
 
 public class ActorIO : ModuleRules
@@ -18,5 +19,8 @@ public class ActorIO : ModuleRules
 		{
 			"Engine"
 		});
-	}
+
+		// Required to have access to "Emitter.h" (Cascade effect actor)
+		PrivateIncludePaths.Add(Path.Combine(EngineDirectory, "Source/Runtime/Engine/Classes/"));
+    }
 }
