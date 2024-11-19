@@ -41,9 +41,9 @@ void UActorIOLink::BindAction(const FActorIOAction& Action)
 		ActionDelegate = FScriptDelegate();
 		ActionDelegate.BindUFunction(this, TEXT("ExecuteAction"));
 
-		if (TargetEvent->MulticastDelegateRef)
+		if (TargetEvent->MulticastDelegatePtr)
 		{
-			TargetEvent->MulticastDelegateRef->Add(ActionDelegate);
+			TargetEvent->MulticastDelegatePtr->Add(ActionDelegate);
 			bIsBound = true;
 		}
 		else
@@ -75,7 +75,7 @@ void UActorIOLink::ClearAction()
 
 	if (bIsBound)
 	{
-		FMulticastScriptDelegate* TargetDelegate = TargetEvent->MulticastDelegateRef;
+		FMulticastScriptDelegate* TargetDelegate = TargetEvent->MulticastDelegatePtr;
 		if (TargetDelegate)
 		{
 			TargetDelegate->Remove(ActionDelegate);

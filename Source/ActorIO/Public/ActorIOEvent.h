@@ -24,7 +24,7 @@ struct ACTORIO_API FActorIOEvent
 	UPROPERTY()
 	TObjectPtr<UObject> DelegateOwner;
 
-	FMulticastScriptDelegate* MulticastDelegateRef;
+	FMulticastScriptDelegate* MulticastDelegatePtr;
 
 	FName SparseDelegateName;
 
@@ -33,7 +33,7 @@ struct ACTORIO_API FActorIOEvent
 		DisplayName(FText::GetEmpty()),
 		TooltipText(FText::GetEmpty()),
 		DelegateOwner(nullptr),
-		MulticastDelegateRef(nullptr),
+		MulticastDelegatePtr(nullptr),
 		SparseDelegateName(NAME_None)
 	{}
 
@@ -58,7 +58,7 @@ struct ACTORIO_API FActorIOEvent
 	FActorIOEvent& SetMulticastDelegate(TObjectPtr<UObject> InDelegateOwner, FMulticastScriptDelegate* InMulticastDelegate)
 	{
 		DelegateOwner = InDelegateOwner;
-		MulticastDelegateRef = InMulticastDelegate;
+		MulticastDelegatePtr = InMulticastDelegate;
 		return *this;
 	}
 
