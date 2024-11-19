@@ -14,25 +14,17 @@ class UActorIOInterface : public UInterface
 	GENERATED_BODY()
 };
 
-class IActorIOInterface
+class ACTORIO_API IActorIOInterface
 {
 	GENERATED_BODY()
 
 public:
 
-	void GetActorIOEvents(TArray<FActorIOEvent>& OutEvents) const;
+	UFUNCTION(BlueprintNativeEvent, CallInEditor, Category = "Actor IO", DisplayName = "Register IO Events", meta = (ForceAsFunction))
+	void RegisterIOEvents(UPARAM(Ref) TArray<FActorIOEvent>& RegisteredEvents);
+	virtual void RegisterIOEvents_Implementation(TArray<FActorIOEvent>& RegisteredEvents) {}
 
-	void GetActorIOFunctions(TArray<FActorIOFunction>& OutFunctions) const;
-
-protected:
-
-	virtual void RegisterIOEvents(TArray<FActorIOEvent>& RegisteredEvents) const {}
-
-	virtual void RegisterIOFunctions(TArray<FActorIOFunction>& RegisteredFunctions) const {}
-
-	UFUNCTION(BlueprintImplementableEvent, Category = "Actor IO", DisplayName = "Register IO Events")
-	void K2_RegisterIOEvents(UPARAM(Ref) TArray<FActorIOEvent>& RegisteredEvents) const;
-
-	UFUNCTION(BlueprintImplementableEvent, Category = "Actor IO", DisplayName = "Register IO Functions")
-	void K2_RegisterIOFunctions(UPARAM(Ref) TArray<FActorIOFunction>& RegisteredFunctions) const;
+	UFUNCTION(BlueprintNativeEvent, CallInEditor, Category = "Actor IO", DisplayName = "Register IO Functions", meta = (ForceAsFunction))
+	void RegisterIOFunctions(UPARAM(Ref) TArray<FActorIOFunction>& RegisteredFunctions);
+	virtual void RegisterIOFunctions_Implementation(TArray<FActorIOFunction>& RegisteredFunctions) {}
 };

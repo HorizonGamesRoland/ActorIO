@@ -60,10 +60,9 @@ void UActorIOComponent::RemoveActionBindings()
 TArray<FActorIOEvent> UActorIOComponent::GetEventsForObject(AActor* InObject)
 {
 	TArray<FActorIOEvent> OutEvents = UActorIOComponent::GetNativeEventsForObject(InObject);
-	IActorIOInterface* TargetIO = Cast<IActorIOInterface>(InObject);
-	if (TargetIO)
+	if (InObject && InObject->Implements<UActorIOInterface>())
 	{
-		TargetIO->GetActorIOEvents(OutEvents);
+		IActorIOInterface::Execute_RegisterIOEvents(InObject, OutEvents);
 	}
 
 	return OutEvents;
@@ -72,10 +71,9 @@ TArray<FActorIOEvent> UActorIOComponent::GetEventsForObject(AActor* InObject)
 TArray<FActorIOFunction> UActorIOComponent::GetFunctionsForObject(AActor* InObject)
 {
 	TArray<FActorIOFunction> OutFunctions = UActorIOComponent::GetNativeFunctionsForObject(InObject);
-	IActorIOInterface* TargetIO = Cast<IActorIOInterface>(InObject);
-	if (TargetIO)
+	if (InObject && InObject->Implements<UActorIOInterface>())
 	{
-		TargetIO->GetActorIOFunctions(OutFunctions);
+		IActorIOInterface::Execute_RegisterIOFunctions(InObject, OutFunctions);
 	}
 
 	return OutFunctions;
