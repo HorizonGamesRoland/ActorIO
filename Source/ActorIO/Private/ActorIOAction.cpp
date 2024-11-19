@@ -115,11 +115,8 @@ void UActorIOLink::ExecuteAction(AActor* OverlappedActor, AActor* OtherActor)
 	Command.Append(TEXT(" "));
 	Command.Append(LinkedAction.FunctionArguments);
 
-	// This is required to call UFUNCTIONs without the 'Exec' keyword.
-	constexpr bool bForceCallWithNonExec = true;
-
 	FOutputDeviceNull Ar;
-	if (TargetActor->CallFunctionByNameWithArguments(*Command, Ar, this, bForceCallWithNonExec))
+	if (TargetActor->CallFunctionByNameWithArguments(*Command, Ar, this, true))
 	{
 		bWasExecuted = true;
 	}

@@ -48,6 +48,9 @@ public:
 
 	static TArray<FActorIOFunction> GetFunctionsForObject(AActor* InObject);
 
+	UFUNCTION(BlueprintCallable, Category = "Actor IO", meta = (DefaultToSelf = "ContextObject"))
+	static FActorIOEvent MakeIOEvent(UObject* ContextObject, FName EventId, FName EventDispatcherName);
+
 protected:
 
 	static TArray<FActorIOEvent> GetNativeEventsForObject(AActor* InObject);

@@ -79,6 +79,29 @@ TArray<FActorIOFunction> UActorIOComponent::GetFunctionsForObject(AActor* InObje
 	return OutFunctions;
 }
 
+FActorIOEvent UActorIOComponent::MakeIOEvent(UObject* ContextObject, FName EventId, FName EventDispatcherName)
+{
+	check(ContextObject);
+
+	FActorIOEvent OutEvent = FActorIOEvent();
+	OutEvent.SetId(EventId);
+
+	if (ContextObject->GetWorld() && ContextObject->GetWorld()->IsGameWorld())
+	{
+		for (TFieldIterator<FMulticastDelegateProperty> DelegateProp(ContextObject->GetClass()); DelegateProp; ++DelegateProp)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("%s"), *DelegateProp->GetName());
+			if (DelegateProp->GetFName() == EventDispatcherName)
+			{
+				FMulticastScriptDelegate* MulticastDelegatePtr = DelegateProp->ContainerPtrToValuePtr<FMulticastScriptDelegate>(ContextObject);
+				OutEvent.SetMulticastDelegate(ContextObject, MulticastDelegatePtr);
+			}
+		}
+	}
+
+	return OutEvent;
+}
+
 TArray<FActorIOEvent> UActorIOComponent::GetNativeEventsForObject(AActor* InObject)
 {
 	TArray<FActorIOEvent> OutEvents = TArray<FActorIOEvent>();
