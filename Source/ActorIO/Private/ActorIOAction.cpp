@@ -36,25 +36,44 @@ void UActorIOLink::BindAction(const FActorIOAction& Action)
 		return;
 	}
 
-	if (!bIsBound)
+	if (bIsBound)
 	{
-		ActionDelegate = FScriptDelegate();
-		ActionDelegate.BindUFunction(this, TEXT("ExecuteAction"));
+		return;
+	}
 
-		if (TargetEvent->MulticastDelegatePtr)
+	UE_LOG(LogTemp, Warning, TEXT("Binding an action to: %s"), *TargetEvent->EventId.ToString());
+
+	ActionDelegate = FScriptDelegate();
+	ActionDelegate.BindUFunction(this, TEXT("ExecuteAction"));
+
+	if (TargetEvent->MulticastDelegatePtr)
+	{
+		TargetEvent->MulticastDelegatePtr->Add(ActionDelegate);
+		bIsBound = true;
+	}
+	else if (!TargetEvent->SparseDelegateName.IsNone())
+	{
+		FSparseDelegate* SparseDelegate = FSparseDelegateStorage::ResolveSparseDelegate(TargetEvent->DelegateOwner, TargetEvent->SparseDelegateName);
+		if (SparseDelegate)
 		{
-			TargetEvent->MulticastDelegatePtr->Add(ActionDelegate);
+			SparseDelegate->__Internal_AddUnique(TargetEvent->DelegateOwner, TargetEvent->SparseDelegateName, ActionDelegate);
 			bIsBound = true;
 		}
-		else
+	}
+	else if (!TargetEvent->BlueprintDelegateName.IsNone())
+	{
+		UClass* DelegateOwnerClass = TargetEvent->DelegateOwner->GetClass();
+		FMulticastDelegateProperty* DelegateProp = CastField<FMulticastDelegateProperty>(DelegateOwnerClass->FindPropertyByName(TargetEvent->BlueprintDelegateName));
+		if (DelegateProp)
 		{
-			FSparseDelegate* SparseDelegate = FSparseDelegateStorage::ResolveSparseDelegate(TargetEvent->DelegateOwner, TargetEvent->SparseDelegateName);
-			if (SparseDelegate)
-			{
-				SparseDelegate->__Internal_AddUnique(TargetEvent->DelegateOwner, TargetEvent->SparseDelegateName, ActionDelegate);
-				bIsBound = true;
-			}
+			DelegateProp->AddDelegate(ActionDelegate, TargetEvent->DelegateOwner);
+			bIsBound = true;
 		}
+	}
+
+	if (!bIsBound)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Could not bind action to '%s'"), *TargetEvent->EventId.ToString());
 	}
 }
 
@@ -81,7 +100,7 @@ void UActorIOLink::ClearAction()
 			TargetDelegate->Remove(ActionDelegate);
 			bIsBound = false;
 		}
-		else
+		else if (!TargetEvent->SparseDelegateName.IsNone())
 		{
 			FSparseDelegate* SparseDelegate = FSparseDelegateStorage::ResolveSparseDelegate(TargetEvent->DelegateOwner, TargetEvent->SparseDelegateName);
 			if (SparseDelegate)
@@ -93,7 +112,7 @@ void UActorIOLink::ClearAction()
 	}
 }
 
-void UActorIOLink::ExecuteAction(AActor* OverlappedActor, AActor* OtherActor)
+void UActorIOLink::ExecuteAction()
 {
 	AActor* TargetActor = LinkedAction.TargetActor.Get();
  	if (!IsValid(TargetActor))
@@ -114,6 +133,8 @@ void UActorIOLink::ExecuteAction(AActor* OverlappedActor, AActor* OtherActor)
 	FString Command = TargetFunction->FunctionToExec;
 	Command.Append(TEXT(" "));
 	Command.Append(LinkedAction.FunctionArguments);
+
+	UE_LOG(LogTemp, Warning, TEXT("Executing action: %s"), *Command);
 
 	FOutputDeviceNull Ar;
 	if (TargetActor->CallFunctionByNameWithArguments(*Command, Ar, this, true))

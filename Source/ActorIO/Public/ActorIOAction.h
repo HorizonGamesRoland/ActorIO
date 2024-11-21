@@ -65,11 +65,11 @@ public:
 	void BindAction(const FActorIOAction& Action);
 
 	void ClearAction();
-		
+	
 	UActorIOComponent* GetOwnerIOComponent() const;
 
 protected:
 
 	UFUNCTION()
-	void ExecuteAction(AActor* OverlappedActor, AActor* OtherActor);
+	void ExecuteAction();
 };

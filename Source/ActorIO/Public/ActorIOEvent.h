@@ -28,13 +28,16 @@ struct ACTORIO_API FActorIOEvent
 
 	FName SparseDelegateName;
 
+	FName BlueprintDelegateName;
+
 	FActorIOEvent() :
 		EventId(NAME_None),
 		DisplayName(FText::GetEmpty()),
 		TooltipText(FText::GetEmpty()),
 		DelegateOwner(nullptr),
 		MulticastDelegatePtr(nullptr),
-		SparseDelegateName(NAME_None)
+		SparseDelegateName(NAME_None),
+		BlueprintDelegateName(NAME_None)
 	{}
 
 	FActorIOEvent& SetId(FName InEventId)
@@ -66,6 +69,13 @@ struct ACTORIO_API FActorIOEvent
 	{
 		DelegateOwner = InDelegateOwner;
 		SparseDelegateName = InSparseDelegateName;
+		return *this;
+	}
+
+	FActorIOEvent& SetBlueprintDelegate(TObjectPtr<UObject> InDelegateOwner, FName InBlueprintDelegateName)
+	{
+		DelegateOwner = InDelegateOwner;
+		BlueprintDelegateName = InBlueprintDelegateName;
 		return *this;
 	}
 
