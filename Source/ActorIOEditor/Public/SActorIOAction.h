@@ -5,10 +5,9 @@
 #include "CoreMinimal.h"
 #include "Widgets/SCompoundWidget.h"
 
-class UActorIOComponent;
+class UActorIOAction;
 struct FActorIOEvent;
 struct FActorIOFunction;
-struct FActorIOAction;
 
 class SActorIOAction : public SCompoundWidget
 {
@@ -17,8 +16,7 @@ public:
     SLATE_BEGIN_ARGS(SActorIOAction)
     {}
         
-        SLATE_ARGUMENT(TObjectPtr<UActorIOComponent>, IOComponent)
-        SLATE_ARGUMENT(int32, ActionIdx)
+        SLATE_ARGUMENT(UActorIOAction*, Action)
         SLATE_ARGUMENT(TArray<float>, PropertySizes)
 
     SLATE_END_ARGS()
@@ -31,9 +29,7 @@ public:
 
 protected:
 
-    TObjectPtr<UActorIOComponent> IOComponent;
-
-    int32 ActionIdx;
+    UActorIOAction* Action; // #TODO: Convert to WeakPtr
 
     TSharedPtr<class SSplitter> PropertySplitter;
 
@@ -72,8 +68,6 @@ protected:
     void UpdateSelectableEvents();
 
     void UpdateSelectableFunctions();
-
-    FActorIOAction& GetAction() const;
 
     FText GetEventDisplayName(FName InEventId) const;
 

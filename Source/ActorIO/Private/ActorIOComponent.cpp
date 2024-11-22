@@ -8,13 +8,14 @@
 
 UActorIOComponent::UActorIOComponent()
 {
-	Actions = TArray<FActorIOAction>();
-	ActionBindings = TArray<TObjectPtr<UActorIOLink>>();
+	Actions = TArray<TObjectPtr<UActorIOAction>>();
 }
 
 void UActorIOComponent::OnRegister()
 {
 	Super::OnRegister();
+
+	// #TODO: Ensure action list does not have nullptr
 
 	UWorld* MyWorld = GetWorld();
 	if (!MyWorld || !MyWorld->IsGameWorld())
@@ -23,36 +24,29 @@ void UActorIOComponent::OnRegister()
 		return;
 	}
 
-	CreateActionBindings();
+	BindActions();
 }
 
-void UActorIOComponent::CreateActionBindings()
+void UActorIOComponent::BindActions()
 {
-	const int32 NumActions = Actions.Num();
-	if (NumActions == 0)
+	for (int32 ActionIdx = 0; ActionIdx != Actions.Num(); ++ActionIdx)
 	{
-		return;
-	}
-
-	TArray<FActorIOEvent> ValidEvents = UActorIOComponent::GetEventsForObject(GetOwner());
-	TArray<FActorIOFunction> ValidFunctions = UActorIOComponent::GetFunctionsForObject(GetOwner());
-
-	ActionBindings.Init(nullptr, NumActions);
-	for (int32 ActionIdx = 0; ActionIdx != NumActions; ++ActionIdx)
-	{
-		ActionBindings[ActionIdx] = NewObject<UActorIOLink>(this);
-		ActionBindings[ActionIdx]->BindAction(Actions[ActionIdx]);
-	}
-}
-
-void UActorIOComponent::RemoveActionBindings()
-{
-	for (UActorIOLink* Link : ActionBindings)
-	{
-		if (IsValid(Link))
+		UActorIOAction* Action = Actions[ActionIdx].Get();
+		if (Action)
 		{
-			Link->ClearAction();
-			Link->MarkAsGarbage();
+			Action->BindAction();
+		}
+	}
+}
+
+void UActorIOComponent::UnbindActions()
+{
+	for (int32 ActionIdx = 0; ActionIdx != Actions.Num(); ++ActionIdx)
+	{
+		UActorIOAction* Action = Actions[ActionIdx].Get();
+		if (Action)
+		{
+			Action->UnbindAction();
 		}
 	}
 }
@@ -150,7 +144,7 @@ TArray<FActorIOFunction> UActorIOComponent::GetNativeFunctionsForObject(AActor* 
 
 void UActorIOComponent::OnUnregister()
 {
-	RemoveActionBindings();
+	UnbindActions();
 
 	Super::OnUnregister();
 }

@@ -6,18 +6,20 @@
 #include "UObject/SparseDelegate.h"
 #include "Misc/OutputDeviceNull.h"
 
-UActorIOLink::UActorIOLink()
+UActorIOAction::UActorIOAction()
 {
-	LinkedAction = FActorIOAction();
+	EventId = NAME_None;
+	TargetActor = nullptr;
+	FunctionId = NAME_None;
+	FunctionArguments = FString();
+
 	bWasExecuted = false;
 	bIsBound = false;
 	ActionDelegate = FScriptDelegate();
 }
 
-void UActorIOLink::BindAction(const FActorIOAction& Action)
+void UActorIOAction::BindAction()
 {
-	LinkedAction = Action;
-
 	UActorIOComponent* OwnerIOComponent = GetOwnerIOComponent();
 	if (!OwnerIOComponent)
 	{
@@ -25,7 +27,7 @@ void UActorIOLink::BindAction(const FActorIOAction& Action)
 	}
 
 	const TArray<FActorIOEvent> ValidEvents = UActorIOComponent::GetEventsForObject(OwnerIOComponent->GetOwner());
-	const FActorIOEvent* TargetEvent = ValidEvents.FindByKey(LinkedAction.SourceEvent);
+	const FActorIOEvent* TargetEvent = ValidEvents.FindByKey(EventId);
 	if (!TargetEvent)
 	{
 		return;
@@ -77,7 +79,7 @@ void UActorIOLink::BindAction(const FActorIOAction& Action)
 	}
 }
 
-void UActorIOLink::ClearAction()
+void UActorIOAction::UnbindAction()
 {
 	UActorIOComponent* OwnerIOComponent = GetOwnerIOComponent();
 	if (!OwnerIOComponent)
@@ -86,7 +88,7 @@ void UActorIOLink::ClearAction()
 	}
 
 	const TArray<FActorIOEvent> ValidEvents = UActorIOComponent::GetEventsForObject(OwnerIOComponent->GetOwner());
-	const FActorIOEvent* TargetEvent = ValidEvents.FindByKey(LinkedAction.SourceEvent);
+	const FActorIOEvent* TargetEvent = ValidEvents.FindByKey(EventId);
 	if (!TargetEvent)
 	{
 		return;
@@ -109,12 +111,21 @@ void UActorIOLink::ClearAction()
 				bIsBound = false;
 			}
 		}
+		else if (!TargetEvent->BlueprintDelegateName.IsNone())
+		{
+			UClass* DelegateOwnerClass = TargetEvent->DelegateOwner->GetClass();
+			FMulticastDelegateProperty* DelegateProp = CastField<FMulticastDelegateProperty>(DelegateOwnerClass->FindPropertyByName(TargetEvent->BlueprintDelegateName));
+			if (DelegateProp)
+			{
+				DelegateProp->RemoveDelegate(ActionDelegate, TargetEvent->DelegateOwner);
+				bIsBound = false;
+			}
+		}
 	}
 }
 
-void UActorIOLink::ExecuteAction()
+void UActorIOAction::ExecuteAction()
 {
-	AActor* TargetActor = LinkedAction.TargetActor.Get();
  	if (!IsValid(TargetActor))
 	{
 		// The target actor was invalid.
@@ -123,16 +134,16 @@ void UActorIOLink::ExecuteAction()
 	}
 
 	TArray<FActorIOFunction> ValidFunctions = UActorIOComponent::GetFunctionsForObject(TargetActor);
-	FActorIOFunction* TargetFunction = ValidFunctions.FindByKey(LinkedAction.TargetFunction);
+	FActorIOFunction* TargetFunction = ValidFunctions.FindByKey(FunctionId);
 	if (!TargetFunction)
 	{
-		UE_LOG(LogTemp, Error, TEXT("ActorIOLink: Function '%s' was not found on target actor '%s'"), *LinkedAction.TargetFunction.ToString(), *TargetActor->GetActorNameOrLabel());
+		UE_LOG(LogTemp, Error, TEXT("ActorIOLink: Function '%s' was not found on target actor '%s'"), *FunctionId.ToString(), *TargetActor->GetActorNameOrLabel());
 		return;
 	}
 
 	FString Command = TargetFunction->FunctionToExec;
 	Command.Append(TEXT(" "));
-	Command.Append(LinkedAction.FunctionArguments);
+	Command.Append(FunctionArguments);
 
 	UE_LOG(LogTemp, Warning, TEXT("Executing action: %s"), *Command);
 
@@ -143,8 +154,14 @@ void UActorIOLink::ExecuteAction()
 	}
 }
 
-UActorIOComponent* UActorIOLink::GetOwnerIOComponent() const
+UActorIOComponent* UActorIOAction::GetOwnerIOComponent() const
 {
-	// ActorIO links are owned by ActorIO components.
+	// Actions are owned by the actor's ActorIO component.
 	return Cast<UActorIOComponent>(GetOuter());
+}
+
+AActor* UActorIOAction::GetOwnerActor() const
+{
+	UActorIOComponent* OwnerComponent = GetOwnerIOComponent();
+	return OwnerComponent ? OwnerComponent->GetOwner() : nullptr;
 }

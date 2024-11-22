@@ -8,8 +8,7 @@
 #include "Components/ActorComponent.h"
 #include "ActorIOComponent.generated.h"
 
-struct FActorIOAction;
-class UActorIOLink;
+class UActorIOAction;
 
 UCLASS(Blueprintable, ClassGroup = ActorIO, meta = (BlueprintSpawnableComponent))
 class ACTORIO_API UActorIOComponent : public UActorComponent
@@ -22,25 +21,22 @@ public:
 
 protected:
 
-	UPROPERTY(EditAnywhere) // <--- #TEMP: edit anywhere for debugging
-	TArray<FActorIOAction> Actions;
-
-	UPROPERTY()
-	TArray<TObjectPtr<UActorIOLink>> ActionBindings;
+	UPROPERTY(Instanced, EditAnywhere) // <--- #TEMP: edit anywhere for debugging
+	TArray<TObjectPtr<UActorIOAction>> Actions;
 
 public:
 
-	TArray<FActorIOAction>& GetActions() { return Actions; }
+	TArray<TObjectPtr<UActorIOAction>>& GetActions() { return Actions; }
 
-	const TArray<FActorIOAction>& GetActions() const { return Actions; }
+	const TArray<TObjectPtr<UActorIOAction>>& GetActions() const { return Actions; }
 
 	int32 GetNumActions() const { return Actions.Num(); }
 
 protected:
 
-	void CreateActionBindings();
+	void BindActions();
 
-	void RemoveActionBindings();
+	void UnbindActions();
 
 public:
 

@@ -140,14 +140,13 @@ void SActorIOEditor::RebuildWidget()
 
         if (ActorIOComponent)
         {
-            for (int32 ActionIdx = 0; ActionIdx != ActorIOComponent->GetActions().Num(); ++ActionIdx)
+            for (UActorIOAction* Action : ActorIOComponent->GetActions())
             {
                 ActionList->AddSlot()
                 .AutoHeight()
                 [
                     SNew(SActorIOAction)
-                    .IOComponent(ActorIOComponent)
-                    .ActionIdx(ActionIdx)
+                    .Action(Action)
                     .PropertySizes(OutputActionPropertySizes)
                 ];
             }
@@ -289,8 +288,8 @@ FReply SActorIOEditor::OnClick_NewAction()
         {
             ActorIOComponent->Modify();
 
-            TArray<FActorIOAction>& Actions = ActorIOComponent->GetActions();
-            Actions.Emplace();
+            UActorIOAction* NewAction = NewObject<UActorIOAction>(ActorIOComponent);
+            ActorIOComponent->GetActions().Add(NewAction);
         }
     }
 

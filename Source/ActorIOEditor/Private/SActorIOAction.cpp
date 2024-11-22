@@ -14,10 +14,7 @@ BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 void SActorIOAction::Construct(const FArguments& InArgs)
 {
-	IOComponent = InArgs._IOComponent;
-	ActionIdx = InArgs._ActionIdx;
-
-	const FActorIOAction& Action = GetAction();
+	Action = InArgs._Action;
 
 	UpdateSelectableEvents();
 	UpdateSelectableFunctions();
@@ -51,8 +48,8 @@ void SActorIOAction::Construct(const FArguments& InArgs)
 					[
 						SAssignNew(EventText, STextBlock)
 						.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont")) // PropertyEditorConstants::PropertyFontStyle
-						.Text(GetEventDisplayName(Action.SourceEvent))
-						.ColorAndOpacity(GetEventTextColor(Action.SourceEvent))
+						.Text(GetEventDisplayName(Action->EventId))
+						.ColorAndOpacity(GetEventTextColor(Action->EventId))
 					]
 				]
 				+ SHorizontalBox::Slot()
@@ -86,8 +83,8 @@ void SActorIOAction::Construct(const FArguments& InArgs)
 				[
 					SAssignNew(FunctionText, STextBlock)
 					.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont"))
-					.Text(GetFunctionDisplayName(Action.TargetFunction))
-					.ColorAndOpacity(GetFunctionTextColor(Action.TargetFunction))
+					.Text(GetFunctionDisplayName(Action->FunctionId))
+					.ColorAndOpacity(GetFunctionTextColor(Action->FunctionId))
 				]
 			]
 			+ SSplitter::Slot()
@@ -99,7 +96,7 @@ void SActorIOAction::Construct(const FArguments& InArgs)
 				[
 					SNew(SEditableTextBox)
 					.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont"))
-					.Text(FText::FromString(Action.FunctionArguments))
+					.Text(FText::FromString(Action->FunctionArguments))
 					.OnTextCommitted(this, &SActorIOAction::OnFunctionArgumentsChanged)
 				]
 				+ SHorizontalBox::Slot()
@@ -128,12 +125,11 @@ void SActorIOAction::RebuildWidget()
 	UpdateSelectableEvents();
 	UpdateSelectableFunctions();
 
-	const FActorIOAction& Action = GetAction();
-	EventText->SetText(GetEventDisplayName(Action.SourceEvent));
-	EventText->SetColorAndOpacity(GetEventTextColor(Action.SourceEvent));
+	EventText->SetText(GetEventDisplayName(Action->EventId));
+	EventText->SetColorAndOpacity(GetEventTextColor(Action->EventId));
 
-	FunctionText->SetText(GetFunctionDisplayName(Action.TargetFunction));
-	FunctionText->SetColorAndOpacity(GetFunctionTextColor(Action.TargetFunction));
+	FunctionText->SetText(GetFunctionDisplayName(Action->FunctionId));
+	FunctionText->SetColorAndOpacity(GetFunctionTextColor(Action->FunctionId));
 }
 
 void SActorIOAction::SetPropertySize(int32 SlotIdx, float InSize)
@@ -155,15 +151,17 @@ void SActorIOAction::OnEventChanged(FName InName, ESelectInfo::Type InSelectType
 	if (InSelectType != ESelectInfo::Direct)
 	{
 		const FScopedTransaction Transaction(LOCTEXT("ModifyActorIOAction", "Modify ActorIO Action"));
-		IOComponent->Modify();
+		Action->Modify();
+
+		UActorIOComponent* ActionOwner = Action->GetOwnerIOComponent();
+		ActionOwner->Modify();
 
 		if (InName == FName(TEXT("<Clear>")))
 		{
 			InName = NAME_None;
 		}
 
-		FActorIOAction& TargetAction = GetAction();
-		TargetAction.SourceEvent = InName;
+		Action->EventId = InName;
 
 		RebuildWidget();
 	}
@@ -180,21 +178,21 @@ TSharedRef<SWidget> SActorIOAction::OnGenerateFunctionComboBoxWidget(FName InNam
 void SActorIOAction::OnTargetActorChanged(const FAssetData& InAssetData)
 {
 	const FScopedTransaction Transaction(LOCTEXT("ModifyActorIOAction", "Modify ActorIO Action"));
-	IOComponent->Modify();
+	Action->Modify();
 
-	FActorIOAction& TargetAction = GetAction();
-	TargetAction.TargetActor = Cast<AActor>(InAssetData.GetAsset());
+	UActorIOComponent* ActionOwner = Action->GetOwnerIOComponent();
+	ActionOwner->Modify();
 
-	TargetAction.TargetFunction = NAME_None;
-	TargetAction.FunctionArguments = FString();
+	Action->TargetActor = Cast<AActor>(InAssetData.GetAsset());
+	Action->FunctionId = NAME_None;
+	Action->FunctionArguments = FString();
 
 	UpdateSelectableFunctions();
 }
 
 FString SActorIOAction::GetTargetActorPath() const
 {
-	const FActorIOAction& TargetAction = GetAction();
-	return TargetAction.TargetActor.GetPathName();
+	return Action->TargetActor.GetPathName();
 }
 
 void SActorIOAction::OnTargetFunctionChanged(FName InName, ESelectInfo::Type InSelectType)
@@ -202,16 +200,18 @@ void SActorIOAction::OnTargetFunctionChanged(FName InName, ESelectInfo::Type InS
 	if (InSelectType != ESelectInfo::Direct)
 	{
 		const FScopedTransaction Transaction(LOCTEXT("ModifyActorIOAction", "Modify ActorIO Action"));
-		IOComponent->Modify();
+		Action->Modify();
+
+		UActorIOComponent* ActionOwner = Action->GetOwnerIOComponent();
+		ActionOwner->Modify();
 
 		if (InName == FName(TEXT("<Clear>")))
 		{
 			InName = NAME_None;
 		}
 
-		FActorIOAction& Action = GetAction();
-		Action.TargetFunction = InName;
-		Action.FunctionArguments = FString();
+		Action->FunctionId = InName;
+		Action->FunctionArguments = FString();
 
 		RebuildWidget();
 	}
@@ -220,18 +220,22 @@ void SActorIOAction::OnTargetFunctionChanged(FName InName, ESelectInfo::Type InS
 void SActorIOAction::OnFunctionArgumentsChanged(const FText& InText, ETextCommit::Type InCommitType)
 {
 	const FScopedTransaction Transaction(LOCTEXT("ModifyActorIOAction", "Modify ActorIO Action"));
-	IOComponent->Modify();
+	Action->Modify();
 
-	FActorIOAction& TargetAction = GetAction();
-	TargetAction.FunctionArguments = InText.ToString();
+	UActorIOComponent* ActionOwner = Action->GetOwnerIOComponent();
+	ActionOwner->Modify();
+
+	Action->FunctionArguments = InText.ToString();
 }
 
 FReply SActorIOAction::OnClick_RemoveAction()
 {
 	const FScopedTransaction Transaction(LOCTEXT("RemoveActorIOAction", "Remove ActorIO Action"));
-	IOComponent->Modify();
 
-	IOComponent->GetActions().RemoveAt(ActionIdx);
+	UActorIOComponent* ActionOwner = Action->GetOwnerIOComponent();
+	ActionOwner->Modify();
+
+	ActionOwner->GetActions().Remove(Action);
 
 	FActorIOEditor& ActorIOEditorModule = FModuleManager::GetModuleChecked<FActorIOEditor>("ActorIOEditor");
 	ActorIOEditorModule.UpdateEditorWindow();
@@ -244,7 +248,7 @@ void SActorIOAction::UpdateSelectableEvents()
 	SelectableEventIds.Reset();
 	SelectableEventIds.Add(TEXT("<Clear>"));
 
-	ValidEvents = UActorIOComponent::GetEventsForObject(IOComponent->GetOwner());
+	ValidEvents = UActorIOComponent::GetEventsForObject(Action->GetOwnerActor());
 	for (const FActorIOEvent& IOEvent : ValidEvents)
 	{
 		SelectableEventIds.Emplace(IOEvent.EventId);
@@ -256,17 +260,11 @@ void SActorIOAction::UpdateSelectableFunctions()
 	SelectableFunctionIds.Reset();
 	SelectableFunctionIds.Add(TEXT("<Clear>"));
 
-	ValidFunctions = UActorIOComponent::GetFunctionsForObject(GetAction().TargetActor);
+	ValidFunctions = UActorIOComponent::GetFunctionsForObject(Action->TargetActor);
 	for (const FActorIOFunction& IOFunction : ValidFunctions)
 	{
 		SelectableFunctionIds.Emplace(IOFunction.FunctionId);
 	}
-}
-
-FActorIOAction& SActorIOAction::GetAction() const
-{
-	check(IOComponent && IOComponent->GetActions().IsValidIndex(ActionIdx));
-	return IOComponent->GetActions()[ActionIdx];
 }
 
 FText SActorIOAction::GetEventDisplayName(FName InEventId) const

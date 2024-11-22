@@ -10,49 +10,30 @@
 
 class UActorIOComponent;
 
-USTRUCT(BlueprintType)
-struct ACTORIO_API FActorIOAction
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere)
-	FName SourceEvent;
-
-	UPROPERTY(EditAnywhere)
-	TObjectPtr<AActor> TargetActor;
-
-	UPROPERTY(EditAnywhere)
-	FName TargetFunction;
-
-	UPROPERTY(EditAnywhere)
-	FString FunctionArguments;
-
-	FActorIOAction() :
-		SourceEvent(FName()),
-		TargetActor(nullptr),
-		TargetFunction(FName()),
-		FunctionArguments(FString())
-	{}
-
-	bool IsValid() const
-	{
-		return !SourceEvent.IsNone() && TargetActor && !TargetFunction.IsNone();
-	}
-};
-
-UCLASS()
-class ACTORIO_API UActorIOLink : public UObject
+UCLASS(DefaultToInstanced, EditInlineNew)
+class ACTORIO_API UActorIOAction : public UObject
 {
 	GENERATED_BODY()
 
 public:
 
-	UActorIOLink();
+	UActorIOAction();
+
+public:
+
+	UPROPERTY(EditAnywhere)
+	FName EventId;
+
+	UPROPERTY(EditAnywhere)
+	TObjectPtr<AActor> TargetActor;
+
+	UPROPERTY(EditAnywhere)
+	FName FunctionId;
+
+	UPROPERTY(EditAnywhere)
+	FString FunctionArguments;
 
 protected:
-
-	UPROPERTY()
-	FActorIOAction LinkedAction;
 
 	bool bWasExecuted;
 
@@ -62,11 +43,13 @@ protected:
 
 public:
 
-	void BindAction(const FActorIOAction& Action);
+	void BindAction();
 
-	void ClearAction();
+	void UnbindAction();
 	
 	UActorIOComponent* GetOwnerIOComponent() const;
+
+	AActor* GetOwnerActor() const;
 
 protected:
 
