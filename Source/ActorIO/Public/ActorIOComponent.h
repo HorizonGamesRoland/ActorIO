@@ -10,7 +10,7 @@
 
 class UActorIOAction;
 
-UCLASS(Blueprintable, ClassGroup = ActorIO, meta = (BlueprintSpawnableComponent))
+UCLASS(Blueprintable, ClassGroup = "Actor IO")
 class ACTORIO_API UActorIOComponent : public UActorComponent
 {
 	GENERATED_BODY()
@@ -37,6 +37,8 @@ protected:
 	void BindActions();
 
 	void UnbindActions();
+
+	void RemoveInvalidActions();
 
 public:
 

@@ -19,7 +19,7 @@ void UActorIOEditorSubsystem::Deinitialize()
 void UActorIOEditorSubsystem::OnSelectionChanged(UObject* NewSelection)
 {
 	USelection* SelectedActors = GEditor->GetSelectedActors();
-	SelectedActor = SelectedActors ? SelectedActors->GetBottom<AActor>() : nullptr;
+	SelectedActor = SelectedActors->GetBottom<AActor>();
 
 	FActorIOEditor& ActorIOEditorModule = FModuleManager::GetModuleChecked<FActorIOEditor>("ActorIOEditor");
 	ActorIOEditorModule.UpdateEditorWindow();

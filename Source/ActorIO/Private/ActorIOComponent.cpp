@@ -15,16 +15,13 @@ void UActorIOComponent::OnRegister()
 {
 	Super::OnRegister();
 
-	// #TODO: Ensure action list does not have nullptr
+	RemoveInvalidActions();
 
 	UWorld* MyWorld = GetWorld();
-	if (!MyWorld || !MyWorld->IsGameWorld())
+	if (MyWorld || MyWorld->IsGameWorld())
 	{
-		// Do nothing in the editor (e.g level editor, blueprint).
-		return;
+		BindActions();
 	}
-
-	BindActions();
 }
 
 void UActorIOComponent::BindActions()
@@ -47,6 +44,17 @@ void UActorIOComponent::UnbindActions()
 		if (Action)
 		{
 			Action->UnbindAction();
+		}
+	}
+}
+
+void UActorIOComponent::RemoveInvalidActions()
+{
+	for (int32 ActionIdx = Actions.Num() - 1; ActionIdx >= 0; --ActionIdx)
+	{
+		if (!Actions[ActionIdx].Get())
+		{
+			Actions.RemoveAt(ActionIdx);
 		}
 	}
 }

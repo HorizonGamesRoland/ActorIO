@@ -3,8 +3,6 @@
 #pragma once
 
 #include "ActorIO.h"
-#include "ActorIOEvent.h"
-#include "ActorIOFunction.h"
 #include "UObject/NoExportTypes.h"
 #include "ActorIOAction.generated.h"
 
@@ -54,5 +52,5 @@ public:
 protected:
 
 	UFUNCTION()
-	void ExecuteAction();
+	void ExecuteAction(void* Parameters);
 };

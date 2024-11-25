@@ -1,6 +1,8 @@
 // Copyright 2024 Horizon Games. All Rights Reserved.
 
 #include "ActorIOAction.h"
+#include "ActorIOEvent.h"
+#include "ActorIOFunction.h"
 #include "ActorIOComponent.h"
 #include "ActorIOInterface.h"
 #include "UObject/SparseDelegate.h"
@@ -124,7 +126,7 @@ void UActorIOAction::UnbindAction()
 	}
 }
 
-void UActorIOAction::ExecuteAction()
+void UActorIOAction::ExecuteAction(void* Parameters)
 {
  	if (!IsValid(TargetActor))
 	{
