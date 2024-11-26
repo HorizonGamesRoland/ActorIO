@@ -126,7 +126,7 @@ void UActorIOAction::UnbindAction()
 	}
 }
 
-void UActorIOAction::ExecuteAction(void* Parameters)
+void UActorIOAction::ExecuteAction()
 {
  	if (!IsValid(TargetActor))
 	{

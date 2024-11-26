@@ -54,7 +54,7 @@ void FActorIOEditor::UpdateEditorWindow()
 {
 	if (EditorWindow.IsValid())
 	{
-		EditorWindow->RebuildWidget();
+		EditorWindow->Refresh();
 	}
 }
 

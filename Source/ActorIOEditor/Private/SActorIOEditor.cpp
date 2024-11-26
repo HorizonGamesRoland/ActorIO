@@ -1,6 +1,7 @@
 // Copyright 2024 Horizon Games. All Rights Reserved.
 
 #include "SActorIOEditor.h"
+#include "SActorIOTab.h"
 #include "SActorIOAction.h"
 #include "ActorIOEditor.h"
 #include "ActorIOEditorSubsystem.h"
@@ -15,6 +16,9 @@ BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 void SActorIOEditor::Construct(const FArguments& InArgs)
 {
+    OutputsTab = SNew(SActorOutputsTab);
+    InputsTab = SNew(SActorInputsTab);
+
     // Display output actions by default.
     bViewOutputs = true;
 
@@ -96,10 +100,10 @@ void SActorIOEditor::Construct(const FArguments& InArgs)
         ]
     ];
 
-    RebuildWidget();
+    Refresh();
 }
 
-void SActorIOEditor::RebuildWidget()
+void SActorIOEditor::Refresh()
 {
     UActorIOEditorSubsystem* ActorIOEditorSubsystem = GEditor->GetEditorSubsystem<UActorIOEditorSubsystem>();
     AActor* SelectedActor = ActorIOEditorSubsystem ? ActorIOEditorSubsystem->GetSelectedActor() : nullptr;
@@ -113,129 +117,19 @@ void SActorIOEditor::RebuildWidget()
     OutputsButtonText->SetText(FText::FormatNamed(LOCTEXT("OutputsButton", "Outputs ({Count})"),
         TEXT("Count"), NumOutputActions));
 
-    const int32 NumInputActions = 0;
+    const int32 NumInputActions = UActorIOComponent::GetNumInputActionsForObject(SelectedActor);
     InputsButtonText->SetText(FText::FormatNamed(LOCTEXT("InputsButton", "Inputs ({Count})"),
         TEXT("Count"), NumInputActions));
 
     if (bViewOutputs)
     {
-        ActionPanel->SetContent(ConstructOutputsTab());
-
-        if (OutputActionPropertySizes.IsEmpty())
-        {
-            const int32 NumSlots = ActionPropertySplitter->GetChildren()->Num();
-            OutputActionPropertySizes.Init(1.0f, NumSlots);
-
-            for (int32 SlotIdx = 0; SlotIdx != NumSlots; ++SlotIdx)
-            {
-                const float TargetSize = ActionPropertySplitter->SlotAt(SlotIdx).GetSizeValue();
-                OutputActionPropertySizes[SlotIdx] = TargetSize;
-            }
-        }
-
-        for (int32 SlotIdx = 0; SlotIdx != OutputActionPropertySizes.Num(); ++SlotIdx)
-        {
-            OnActionPropertyResized(SlotIdx, OutputActionPropertySizes[SlotIdx]);
-        }
-
-        if (ActorIOComponent)
-        {
-            for (UActorIOAction* Action : ActorIOComponent->GetActions())
-            {
-                ActionList->AddSlot()
-                .AutoHeight()
-                [
-                    SNew(SActorIOAction)
-                    .Action(Action)
-                    .PropertySizes(OutputActionPropertySizes)
-                ];
-            }
-        }
+        ActionPanel->SetContent(OutputsTab.ToSharedRef());
+        OutputsTab->Refresh();
     }
     else
     {
-        ActionPanel->SetContent(SNew(SBox));
-    }
-}
-
-const TSharedRef<SWidget> SActorIOEditor::ConstructOutputsTab()
-{
-    return SNew(SVerticalBox)
-        + SVerticalBox::Slot()
-        .AutoHeight()
-        [
-            SNew(SBox)
-            .HeightOverride(30.0f)
-            [
-                SAssignNew(ActionPropertySplitter, SSplitter)
-                + SSplitter::Slot()
-                .OnSlotResized_Lambda([this](float InSize) { OnActionPropertyResized(0, InSize); })
-                [
-                    SNew(SBox)
-                    .VAlign(VAlign_Center)
-                    .Padding(30.0f, 0.0f, 5.0f, 0.0f)
-                    [
-                        SNew(STextBlock)
-                        .Text(LOCTEXT("Event", "Event:"))
-                    ]     
-                ]
-                + SSplitter::Slot()
-                .OnSlotResized_Lambda([this](float InSize) { OnActionPropertyResized(1, InSize); })
-                [
-                    SNew(SBox)
-                    .VAlign(VAlign_Center)
-                    .Padding(5.0f, 0.0f)
-                    [
-                        SNew(STextBlock)
-                        .Text(LOCTEXT("Target", "Target:"))
-                    ]
-                ]
-                + SSplitter::Slot()
-                .OnSlotResized_Lambda([this](float InSize) { OnActionPropertyResized(2, InSize); })
-                [
-                    SNew(SBox)
-                    .VAlign(VAlign_Center)
-                    .Padding(5.0f, 0.0f)
-                    [
-                        SNew(STextBlock)
-                        .Text(LOCTEXT("Action", "Action:"))
-                    ]
-                ]
-                + SSplitter::Slot()
-                .OnSlotResized_Lambda([this](float InSize) { OnActionPropertyResized(3, InSize); })
-                [
-                    SNew(SBox)
-                    .VAlign(VAlign_Center)
-                    .Padding(5.0f, 0.0f)
-                    [
-                        SNew(STextBlock)
-                        .Text(LOCTEXT("Parameters", "Parameters:"))
-                    ]
-                ]
-            ]
-        ]
-        + SVerticalBox::Slot()
-        [
-            SNew(SBorder)
-            .BorderImage(FAppStyle::Get().GetBrush("Brushes.Recessed"))
-            [
-                SAssignNew(ActionList, SVerticalBox)
-            ]
-        ];
-}
-
-void SActorIOEditor::OnActionPropertyResized(int32 InSlotIndex, float InSize)
-{
-    OutputActionPropertySizes[InSlotIndex] = InSize;
-    ActionPropertySplitter->SlotAt(InSlotIndex).SetSizeValue(InSize);
-
-    if (FChildren* ChildWidgets = ActionList->GetChildren())
-    {
-        ChildWidgets->ForEachWidget([InSlotIndex, InSize](SWidget& ChildWidget)
-        {
-            SActorIOAction& ActionWidget = static_cast<SActorIOAction&>(ChildWidget);
-            ActionWidget.SetPropertySize(InSlotIndex, InSize);
-        });
+        ActionPanel->SetContent(InputsTab.ToSharedRef());
+        InputsTab->Refresh();
     }
 }
 
@@ -244,7 +138,7 @@ FReply SActorIOEditor::OnClick_Outputs()
     if (!bViewOutputs)
     {
         bViewOutputs = true;
-        RebuildWidget();
+        Refresh();
     }
     
     return FReply::Handled();
@@ -255,7 +149,7 @@ FReply SActorIOEditor::OnClick_Inputs()
     if (bViewOutputs)
     {
         bViewOutputs = false;
-        RebuildWidget();
+        Refresh();
     }
 
     return FReply::Handled();
@@ -293,7 +187,7 @@ FReply SActorIOEditor::OnClick_NewAction()
         }
     }
 
-    RebuildWidget();
+    Refresh();
     return FReply::Handled();
 }
 

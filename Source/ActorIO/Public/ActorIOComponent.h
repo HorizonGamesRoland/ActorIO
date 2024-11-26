@@ -57,6 +57,12 @@ protected:
 
 public:
 
+	static TArray<TObjectPtr<UActorIOAction>> GetInputActionsForObject(AActor* InObject);
+
+	static int32 GetNumInputActionsForObject(AActor* InObject);
+
+public:
+
 	virtual void OnRegister() override;
 	virtual void OnUnregister() override;
 };

@@ -23,7 +23,7 @@ public:
 
     void Construct(const FArguments& InArgs);
 
-    void RebuildWidget();
+    void Refresh();
 
     void SetPropertySize(int32 SlotIdx, float InSize);
 

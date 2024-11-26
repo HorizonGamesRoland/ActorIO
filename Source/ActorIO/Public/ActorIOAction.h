@@ -52,5 +52,5 @@ public:
 protected:
 
 	UFUNCTION()
-	void ExecuteAction(void* Parameters);
+	void ExecuteAction();
 };

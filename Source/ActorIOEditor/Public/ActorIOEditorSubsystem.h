@@ -7,6 +7,9 @@
 #include "Tickable.h"
 #include "ActorIOEditorSubsystem.generated.h"
 
+class AActor;
+class UActorIOAction;
+
 UCLASS()
 class ACTORIOEDITOR_API UActorIOEditorSubsystem : public UEditorSubsystem
 {

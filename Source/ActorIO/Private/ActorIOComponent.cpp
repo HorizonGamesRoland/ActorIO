@@ -150,6 +150,44 @@ TArray<FActorIOFunction> UActorIOComponent::GetNativeFunctionsForObject(AActor* 
 	return OutFunctions;
 }
 
+TArray<TObjectPtr<UActorIOAction>> UActorIOComponent::GetInputActionsForObject(AActor* InObject)
+{
+	TArray<TObjectPtr<UActorIOAction>> OutActions = TArray<TObjectPtr<UActorIOAction>>();
+
+	if (InObject)
+	{
+		for (TObjectIterator<UActorIOAction> ActionItr; ActionItr; ++ActionItr)
+		{
+			UActorIOAction* Action = *ActionItr;
+			if (Action && Action->TargetActor == InObject)
+			{
+				OutActions.Add(Action);
+			}
+		}
+	}
+
+	return OutActions;
+}
+
+int32 UActorIOComponent::GetNumInputActionsForObject(AActor* InObject)
+{
+	int32 OutNumActions = 0;
+
+	if (InObject)
+	{
+		for (TObjectIterator<UActorIOAction> ActionItr; ActionItr; ++ActionItr)
+		{
+			UActorIOAction* Action = *ActionItr;
+			if (Action && Action->TargetActor == InObject)
+			{
+				OutNumActions++;
+			}
+		}
+	}
+
+	return OutNumActions;
+}
+
 void UActorIOComponent::OnUnregister()
 {
 	UnbindActions();

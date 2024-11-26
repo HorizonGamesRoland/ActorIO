@@ -15,7 +15,7 @@ public:
 
     void Construct(const FArguments& InArgs);
 
-    void RebuildWidget();
+    void Refresh();
 
 protected:
 
@@ -27,21 +27,13 @@ protected:
 
     TSharedPtr<class SBox> ActionPanel;
 
-    TSharedPtr<class SSplitter> ActionPropertySplitter;
+    TSharedPtr<class SActorOutputsTab> OutputsTab;
 
-    TArray<float> InputActionPropertySizes;
-
-    TArray<float> OutputActionPropertySizes;
-
-    TSharedPtr<class SVerticalBox> ActionList;
+    TSharedPtr<class SActorInputsTab> InputsTab;
 
     bool bViewOutputs;
 
 protected:
-
-    const TSharedRef<SWidget> ConstructOutputsTab();
-
-    void OnActionPropertyResized(int32 InSlotIndex, float InSize);
 
     FReply OnClick_Outputs();
 

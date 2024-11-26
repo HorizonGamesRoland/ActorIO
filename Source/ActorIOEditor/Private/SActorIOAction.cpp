@@ -120,7 +120,7 @@ void SActorIOAction::Construct(const FArguments& InArgs)
 	}
 }
 
-void SActorIOAction::RebuildWidget()
+void SActorIOAction::Refresh()
 {
 	UpdateSelectableEvents();
 	UpdateSelectableFunctions();
@@ -163,7 +163,7 @@ void SActorIOAction::OnEventChanged(FName InName, ESelectInfo::Type InSelectType
 
 		Action->EventId = InName;
 
-		RebuildWidget();
+		Refresh();
 	}
 }
 
@@ -213,7 +213,7 @@ void SActorIOAction::OnTargetFunctionChanged(FName InName, ESelectInfo::Type InS
 		Action->FunctionId = InName;
 		Action->FunctionArguments = FString();
 
-		RebuildWidget();
+		Refresh();
 	}
 }
 
