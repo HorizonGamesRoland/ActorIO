@@ -10,6 +10,11 @@
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
+SLATE_IMPLEMENT_WIDGET(SActorIOTab)
+void SActorIOTab::PrivateRegisterAttributes(FSlateAttributeInitializer& AttributeInitializer)
+{
+}
+
 void SActorIOTab::Construct(const FArguments& InArgs)
 {
 	ChildSlot
@@ -87,9 +92,14 @@ void SActorIOTab::OnActionPropertyResized(int32 InSlotIndex, float InSize)
 }
 
 
+SLATE_IMPLEMENT_WIDGET(SActorOutputsTab)
+void SActorOutputsTab::PrivateRegisterAttributes(FSlateAttributeInitializer& AttributeInitializer)
+{
+}
+
 void SActorOutputsTab::Construct(const FArguments& InArgs)
 {
-    SActorIOTab::Construct(SActorIOTab::FArguments());
+    Super::Construct(SActorIOTab::FArguments());
 }
 
 void SActorOutputsTab::InitializeHeaderRow()
@@ -115,7 +125,7 @@ void SActorOutputsTab::Refresh()
             ActionList->AddSlot()
             .AutoHeight()
             [
-                SNew(SActorIOAction)
+                SNew(SActorOutputAction)
                 .Action(Action)
                 .PropertySizes(ActionPropertySizes)
             ];
@@ -124,9 +134,14 @@ void SActorOutputsTab::Refresh()
 }
 
 
+SLATE_IMPLEMENT_WIDGET(SActorInputsTab)
+void SActorInputsTab::PrivateRegisterAttributes(FSlateAttributeInitializer& AttributeInitializer)
+{
+}
+
 void SActorInputsTab::Construct(const FArguments& InArgs)
 {
-    SActorIOTab::Construct(SActorIOTab::FArguments());
+    Super::Construct(SActorIOTab::FArguments());
 }
 
 void SActorInputsTab::InitializeHeaderRow()
@@ -152,7 +167,7 @@ void SActorInputsTab::Refresh()
             ActionList->AddSlot()
             .AutoHeight()
             [
-                SNew(SActorIOAction)
+                SNew(SActorInputAction)
                 .Action(Action)
                 .PropertySizes(ActionPropertySizes)
             ];

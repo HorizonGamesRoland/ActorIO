@@ -7,6 +7,8 @@
 
 class SActorIOTab : public SCompoundWidget
 {
+    SLATE_DECLARE_WIDGET(SActorIOTab, SCompoundWidget)
+
 public:
 
     SLATE_BEGIN_ARGS(SActorIOTab)
@@ -37,9 +39,11 @@ protected:
 
 class SActorOutputsTab : public SActorIOTab
 {
+    SLATE_DECLARE_WIDGET(SActorOutputsTab, SActorIOTab)
+
 public:
 
-    SLATE_BEGIN_ARGS(SActorIOTab)
+    SLATE_BEGIN_ARGS(SActorOutputsTab)
     {}
     SLATE_END_ARGS()
 
@@ -52,9 +56,11 @@ public:
 
 class SActorInputsTab : public SActorIOTab
 {
+    SLATE_DECLARE_WIDGET(SActorInputsTab, SActorIOTab)
+
 public:
 
-    SLATE_BEGIN_ARGS(SActorIOTab)
+    SLATE_BEGIN_ARGS(SActorInputsTab)
     {}
     SLATE_END_ARGS()
 
