@@ -20,7 +20,7 @@ public:
         , _PropertySizes(TArray<float>())
     {}
         
-    SLATE_ARGUMENT(UActorIOAction*, Action)
+    SLATE_ARGUMENT(TWeakObjectPtr<UActorIOAction>, Action)
     SLATE_ARGUMENT(TArray<float>, PropertySizes)
 
     SLATE_END_ARGS()
@@ -33,7 +33,7 @@ public:
 
 protected:
 
-    UActorIOAction* Action; // #TODO: Convert to WeakPtr
+    TWeakObjectPtr<UActorIOAction> Action;
 
     TSharedPtr<class SSplitter> PropertySplitter;
 
@@ -78,7 +78,7 @@ public:
         , _PropertySizes(TArray<float>())
     {}
         
-    SLATE_ARGUMENT(UActorIOAction*, Action)
+    SLATE_ARGUMENT(TWeakObjectPtr<UActorIOAction>, Action)
     SLATE_ARGUMENT(TArray<float>, PropertySizes)
 
     SLATE_END_ARGS()
@@ -125,8 +125,8 @@ public:
         : _Action(nullptr)
         , _PropertySizes(TArray<float>())
     {}
-        
-    SLATE_ARGUMENT(UActorIOAction*, Action)
+    
+    SLATE_ARGUMENT(TWeakObjectPtr<UActorIOAction>, Action)
     SLATE_ARGUMENT(TArray<float>, PropertySizes)
 
     SLATE_END_ARGS()

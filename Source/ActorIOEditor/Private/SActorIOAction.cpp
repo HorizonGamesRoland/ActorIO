@@ -53,7 +53,7 @@ void SActorIOAction::Refresh()
 void SActorIOAction::SetPropertySize(int32 SlotIdx, float InSize)
 {
 	const int32 NumSlots = PropertySplitter->GetChildren()->Num();
-	if (ensureMsgf(NumSlots - 1 >= SlotIdx, TEXT("Action does not have same amount of slots as the header row in IO tab.")))
+	if (ensureMsgf(NumSlots - 1 >= SlotIdx, TEXT("Action does not have same amount of slots as the header row in the IO tab.")))
 	{
 		PropertySplitter->SlotAt(SlotIdx).SetSizeValue(InSize);
 	}
@@ -362,7 +362,7 @@ FReply SActorOutputAction::OnClick_RemoveAction()
 	UActorIOComponent* ActionOwner = Action->GetOwnerIOComponent();
 	ActionOwner->Modify();
 
-	ActionOwner->GetActions().Remove(Action);
+	ActionOwner->GetActions().Remove(Action.Get());
 
 	FActorIOEditor& ActorIOEditorModule = FModuleManager::GetModuleChecked<FActorIOEditor>("ActorIOEditor");
 	ActorIOEditorModule.UpdateEditorWindow();
