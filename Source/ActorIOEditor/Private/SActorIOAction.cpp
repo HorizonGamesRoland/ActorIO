@@ -234,7 +234,7 @@ void SActorOutputAction::InitializeAction()
 	[
 		SNew(SHorizontalBox)
 		+ SHorizontalBox::Slot()
-		.Padding(3.0f, 0.0f, 3.0f, 0.0f)
+		.Padding(3.0f, 0.0f)
 		[
 			SNew(SEditableTextBox)
 			.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont"))
@@ -399,9 +399,58 @@ void SActorInputAction::InitializeAction()
 		]
 		+ SHorizontalBox::Slot()
 		[
-			SAssignNew(EventText, STextBlock)
-			.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont")) // PropertyEditorConstants::PropertyFontStyle
-			.Text(FText::FromString(TEXT("Input action")))
+			SAssignNew(CallerTextBox, SEditableTextBox)
+			.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont"))
+			.Text(FText::FromString(Action->GetOwnerActor()->GetActorNameOrLabel()))
+			.IsEnabled(false)
+		]
+	];
+
+	PropertySplitter->AddSlot()
+	.Resizable(false)
+	[
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		[
+			SAssignNew(EventTextBox, SEditableTextBox)
+			.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont"))
+			.Text(GetEventDisplayName(Action->EventId))
+			.IsEnabled(false)
+		]
+		+ SHorizontalBox::Slot()
+		.VAlign(VAlign_Center)
+		.AutoWidth()
+		.Padding(5.0f, 0.0f)
+		[
+			SNew(SImage)
+			.Image(FActorIOEditorStyle::Get().GetBrush("ActionArrowIcon"))
+		]
+	];
+
+	PropertySplitter->AddSlot()
+	.Resizable(false)
+	[
+		SNew(SBox)
+		.Padding(3.0f, 0.0f)
+		[
+			SAssignNew(FunctionTextBox, SEditableTextBox)
+			.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont"))
+			.Text(GetFunctionDisplayName(Action->FunctionId))
+			.IsEnabled(false)
+		]
+		
+	];
+
+	PropertySplitter->AddSlot()
+	.Resizable(false)
+	[
+		SNew(SBox)
+		.Padding(0.0f, 0.0f)
+		[
+			SAssignNew(FunctionArgumentsTextBox, SEditableTextBox)
+			.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont"))
+			.Text(FText::FromString(Action->FunctionArguments))
+			.IsEnabled(false)
 		]
 	];
 }
@@ -409,12 +458,6 @@ void SActorInputAction::InitializeAction()
 void SActorInputAction::Refresh()
 {
 	Super::Refresh();
-
-	EventText->SetText(GetEventDisplayName(Action->EventId));
-	EventText->SetColorAndOpacity(GetEventTextColor(Action->EventId));
-
-	FunctionText->SetText(GetFunctionDisplayName(Action->FunctionId));
-	FunctionText->SetColorAndOpacity(GetFunctionTextColor(Action->FunctionId));
 }
 
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION

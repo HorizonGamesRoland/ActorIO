@@ -146,8 +146,8 @@ void SActorInputsTab::Construct(const FArguments& InArgs)
 
 void SActorInputsTab::InitializeHeaderRow()
 {
-    AddPropertyHeader(LOCTEXT("Event", "Event:"), FMargin(30.0f, 0.0f, 5.0f, 0.0f));
-    AddPropertyHeader(LOCTEXT("Target", "Target:"), FMargin(5.0f, 0.0f));
+    AddPropertyHeader(LOCTEXT("Caller", "Caller:"), FMargin(30.0f, 0.0f, 5.0f, 0.0f));
+    AddPropertyHeader(LOCTEXT("Event", "Target:"), FMargin(5.0f, 0.0f));
     AddPropertyHeader(LOCTEXT("Action", "Action:"), FMargin(5.0f, 0.0f));
     AddPropertyHeader(LOCTEXT("Parameters", "Parameters:"), FMargin(5.0f, 0.0f));
 }

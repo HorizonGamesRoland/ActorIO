@@ -138,11 +138,11 @@ public:
 
 protected:
 
-    TSharedPtr<class STextBlock> EventText;
+    TSharedPtr<class SEditableTextBox> CallerTextBox;
 
-    TSharedPtr<class STextBlock> TargetActorText;
+    TSharedPtr<class SEditableTextBox> EventTextBox;
 
-    TSharedPtr<class STextBlock> FunctionText;
+    TSharedPtr<class SEditableTextBox> FunctionTextBox;
 
-    TSharedPtr<class STextBlock> FunctionArgumentsText;
+    TSharedPtr<class SEditableTextBox> FunctionArgumentsTextBox;
 };
