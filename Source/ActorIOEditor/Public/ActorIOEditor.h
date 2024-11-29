@@ -16,10 +16,10 @@ private:
 
 public:
 
-	/** Register the ActorIO editor module with the engine. */
+	/** Register the Actor IO editor module with the engine. */
 	virtual void StartupModule() override;
 
-	/** Unregister the ActorIO editor module. */
+	/** Unregister the Actor IO editor module. */
 	virtual void ShutdownModule() override;
 
 	/** Request an update with the editor widget. */
@@ -30,7 +30,7 @@ public:
 
 private:
 
-	TSharedRef<SDockTab> SpawnTab_ActorIO(const FSpawnTabArgs& TabSpawnArgs);
+	TSharedRef<SDockTab> SpawnActorIOEditor(const FSpawnTabArgs& TabSpawnArgs);
 
 	void OnActorIOEditorClosed(TSharedRef<SDockTab> DockTab);
 };

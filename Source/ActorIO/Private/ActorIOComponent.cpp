@@ -150,7 +150,7 @@ TArray<FActorIOFunction> UActorIOComponent::GetNativeFunctionsForObject(AActor* 
 	return OutFunctions;
 }
 
-TArray<TObjectPtr<UActorIOAction>> UActorIOComponent::GetInputActionsForObject(AActor* InObject)
+TArray<TObjectPtr<UActorIOAction>> UActorIOComponent::GetInputActionsForObject(const AActor* InObject)
 {
 	TArray<TObjectPtr<UActorIOAction>> OutActions = TArray<TObjectPtr<UActorIOAction>>();
 
@@ -169,7 +169,7 @@ TArray<TObjectPtr<UActorIOAction>> UActorIOComponent::GetInputActionsForObject(A
 	return OutActions;
 }
 
-int32 UActorIOComponent::GetNumInputActionsForObject(AActor* InObject)
+int32 UActorIOComponent::GetNumInputActionsForObject(const AActor* InObject)
 {
 	int32 OutNumActions = 0;
 
