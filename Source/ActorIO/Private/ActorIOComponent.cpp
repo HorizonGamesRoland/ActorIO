@@ -150,9 +150,9 @@ TArray<FActorIOFunction> UActorIOComponent::GetNativeFunctionsForObject(AActor* 
 	return OutFunctions;
 }
 
-TArray<TObjectPtr<UActorIOAction>> UActorIOComponent::GetInputActionsForObject(const AActor* InObject)
+TArray<TWeakObjectPtr<UActorIOAction>> UActorIOComponent::GetInputActionsForObject(const AActor* InObject)
 {
-	TArray<TObjectPtr<UActorIOAction>> OutActions = TArray<TObjectPtr<UActorIOAction>>();
+	TArray<TWeakObjectPtr<UActorIOAction>> OutActions = TArray<TWeakObjectPtr<UActorIOAction>>();
 
 	if (InObject)
 	{

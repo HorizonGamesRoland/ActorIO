@@ -7,6 +7,8 @@
 
 class SActorIOEditor : public SCompoundWidget
 {
+    SLATE_DECLARE_WIDGET(SActorIOEditor, SCompoundWidget)
+
 public:
 
     SLATE_BEGIN_ARGS(SActorIOEditor)

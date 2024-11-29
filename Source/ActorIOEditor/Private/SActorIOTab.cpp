@@ -120,7 +120,8 @@ void SActorOutputsTab::Refresh()
 
     if (ActorIOComponent)
     {
-        for (UActorIOAction* Action : ActorIOComponent->GetActions())
+        TArray<TObjectPtr<UActorIOAction>>& Actions = ActorIOComponent->GetActions();
+        for (const TObjectPtr<UActorIOAction>& Action : Actions)
         {
             ActionList->AddSlot()
             .AutoHeight()
@@ -159,19 +160,15 @@ void SActorInputsTab::Refresh()
     UActorIOEditorSubsystem* ActorIOEditorSubsystem = GEditor->GetEditorSubsystem<UActorIOEditorSubsystem>();
     AActor* SelectedActor = ActorIOEditorSubsystem ? ActorIOEditorSubsystem->GetSelectedActor() : nullptr;
 
-    TArray<TObjectPtr<UActorIOAction>> InputActions = UActorIOComponent::GetInputActionsForObject(SelectedActor);
-    if (!InputActions.IsEmpty())
+    for (const TWeakObjectPtr<UActorIOAction>& InputAction : UActorIOComponent::GetInputActionsForObject(SelectedActor))
     {
-        for (UActorIOAction* Action : InputActions)
-        {
-            ActionList->AddSlot()
-            .AutoHeight()
-            [
-                SNew(SActorInputAction)
-                .Action(Action)
-                .PropertySizes(ActionPropertySizes)
-            ];
-        }
+        ActionList->AddSlot()
+        .AutoHeight()
+        [
+            SNew(SActorInputAction)
+            .Action(InputAction)
+            .PropertySizes(ActionPropertySizes)
+        ];
     }
 }
 

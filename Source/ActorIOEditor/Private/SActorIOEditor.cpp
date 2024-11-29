@@ -14,6 +14,11 @@
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
+SLATE_IMPLEMENT_WIDGET(SActorIOEditor)
+void SActorIOEditor::PrivateRegisterAttributes(FSlateAttributeInitializer& AttributeInitializer)
+{
+}
+
 void SActorIOEditor::Construct(const FArguments& InArgs)
 {
     OutputsTab = SNew(SActorOutputsTab);

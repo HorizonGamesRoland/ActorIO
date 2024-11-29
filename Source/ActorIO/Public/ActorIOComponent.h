@@ -57,7 +57,7 @@ protected:
 
 public:
 
-	static TArray<TObjectPtr<UActorIOAction>> GetInputActionsForObject(const AActor* InObject);
+	static TArray<TWeakObjectPtr<UActorIOAction>> GetInputActionsForObject(const AActor* InObject);
 
 	static int32 GetNumInputActionsForObject(const AActor* InObject);
 

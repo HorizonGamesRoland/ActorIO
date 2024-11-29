@@ -15,24 +15,27 @@ void FActorIOComponentVisualizer::DrawVisualization(const UActorComponent* Compo
 	const AActor* IOComponentOwner = IOComponent->GetOwner();
 	const float LineThickness = 3.0f;
 
-	for (const TObjectPtr<UActorIOAction>& Action : IOComponent->GetActions())
+	for (const TObjectPtr<UActorIOAction>& OutputAction : IOComponent->GetActions())
 	{
-		if (Action->TargetActor)
+		if (OutputAction->TargetActor)
 		{
 			const FVector Start = IOComponentOwner->GetActorLocation();
-			const FVector End = Action->TargetActor->GetActorLocation();
+			const FVector End = OutputAction->TargetActor->GetActorLocation();
 			PDI->DrawLine(Start, End, FColor(215, 255, 135).ReinterpretAsLinear(), SDPG_Foreground, LineThickness, 0.01f);
 		}
 	}
 
-	for (const TObjectPtr<UActorIOAction>& Action : UActorIOComponent::GetInputActionsForObject(IOComponentOwner))
+	for (const TWeakObjectPtr<UActorIOAction>& InputAction : UActorIOComponent::GetInputActionsForObject(IOComponentOwner))
 	{
-		const AActor* ActionOwner = Action->GetOwnerActor();
-		if (ActionOwner)
+		if (InputAction.IsValid())
 		{
-			const FVector Start = IOComponentOwner->GetActorLocation();
-			const FVector End = ActionOwner->GetActorLocation();
-			PDI->DrawLine(Start, End, FColor(255, 210, 135).ReinterpretAsLinear(), SDPG_Foreground, LineThickness);
+			const AActor* ActionOwner = InputAction->GetOwnerActor();
+			if (ActionOwner)
+			{
+				const FVector Start = IOComponentOwner->GetActorLocation();
+				const FVector End = ActionOwner->GetActorLocation();
+				PDI->DrawLine(Start, End, FColor(255, 210, 135).ReinterpretAsLinear(), SDPG_Foreground, LineThickness);
+			}
 		}
 	}
 }
