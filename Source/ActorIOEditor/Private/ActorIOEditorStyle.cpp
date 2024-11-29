@@ -26,8 +26,8 @@ void FActorIOEditorStyle::Initialize()
 	
 	const FVector2D Icon16x16 = FVector2D(16.0f, 16.0f);
 
-	StyleSet->Set("OutputActionIcon", new IMAGE_BRUSH_SVG("icon_action_output", Icon16x16, FStyleColors::AccentBlue));
-	StyleSet->Set("InputActionIcon", new IMAGE_BRUSH_SVG("icon_action_input", Icon16x16, FStyleColors::AccentOrange));
+	StyleSet->Set("OutputActionIcon", new IMAGE_BRUSH_SVG("icon_action_output", Icon16x16, FColor(0, 215, 255).ReinterpretAsLinear()));
+	StyleSet->Set("InputActionIcon", new IMAGE_BRUSH_SVG("icon_action_input", Icon16x16, FColor(255, 25, 0).ReinterpretAsLinear()));
 	StyleSet->Set("ActionArrowIcon", new IMAGE_BRUSH_SVG("icon_action_target", Icon16x16));
 
 	FSlateStyleRegistry::RegisterSlateStyle(*StyleSet.Get());

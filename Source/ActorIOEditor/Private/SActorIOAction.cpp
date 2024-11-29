@@ -398,6 +398,7 @@ void SActorInputAction::InitializeAction()
 			.Image(FActorIOEditorStyle::Get().GetBrush("InputActionIcon"))
 		]
 		+ SHorizontalBox::Slot()
+		.Padding(0.0f, 0.0f, 3.0f, 0.0f)
 		[
 			SAssignNew(CallerTextBox, SEditableTextBox)
 			.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont"))
@@ -430,22 +431,17 @@ void SActorInputAction::InitializeAction()
 	PropertySplitter->AddSlot()
 	.Resizable(false)
 	[
-		SNew(SBox)
-		.Padding(3.0f, 0.0f)
-		[
-			SAssignNew(FunctionTextBox, SEditableTextBox)
-			.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont"))
-			.Text(GetFunctionDisplayName(Action->FunctionId))
-			.IsEnabled(false)
-		]
-		
+		SAssignNew(FunctionTextBox, SEditableTextBox)
+		.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont"))
+		.Text(GetFunctionDisplayName(Action->FunctionId))
+		.IsEnabled(false)
 	];
 
 	PropertySplitter->AddSlot()
 	.Resizable(false)
 	[
 		SNew(SBox)
-		.Padding(0.0f, 0.0f)
+		.Padding(3.0f, 0.0f, 0.0f, 0.0f)
 		[
 			SAssignNew(FunctionArgumentsTextBox, SEditableTextBox)
 			.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont"))
