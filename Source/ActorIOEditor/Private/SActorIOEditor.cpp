@@ -186,9 +186,7 @@ FReply SActorIOEditor::OnClick_NewAction()
         if (ActorIOComponent)
         {
             ActorIOComponent->Modify();
-
-            UActorIOAction* NewAction = NewObject<UActorIOAction>(ActorIOComponent);
-            ActorIOComponent->GetActions().Add(NewAction);
+            ActorIOComponent->CreateNewAction();
         }
     }
 

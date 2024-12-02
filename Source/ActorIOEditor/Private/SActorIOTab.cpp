@@ -120,8 +120,8 @@ void SActorOutputsTab::Refresh()
 
     if (ActorIOComponent)
     {
-        TArray<TObjectPtr<UActorIOAction>>& Actions = ActorIOComponent->GetActions();
-        for (const TObjectPtr<UActorIOAction>& Action : Actions)
+        ActorIOComponent->RemoveInvalidActions();
+        for (const TWeakObjectPtr<UActorIOAction>& Action : ActorIOComponent->GetActions())
         {
             ActionList->AddSlot()
             .AutoHeight()

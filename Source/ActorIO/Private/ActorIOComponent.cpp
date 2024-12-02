@@ -24,6 +24,36 @@ void UActorIOComponent::OnRegister()
 	}
 }
 
+UActorIOAction* UActorIOComponent::CreateNewAction()
+{
+	UActorIOAction* NewAction = NewObject<UActorIOAction>(this);
+	Actions.Add(NewAction);
+	return NewAction;
+}
+
+void UActorIOComponent::RemoveAction(UActorIOAction* InAction)
+{
+	check(InAction);
+	InAction->MarkAsGarbage();
+
+	const int32 ActionIdx = Actions.IndexOfByKey(InAction);
+	Actions.RemoveAt(ActionIdx);
+}
+
+TArray<TWeakObjectPtr<UActorIOAction>> UActorIOComponent::GetActions() const
+{
+	TArray<TWeakObjectPtr<UActorIOAction>> OutActions = TArray<TWeakObjectPtr<UActorIOAction>>();
+	for (UActorIOAction* Action : Actions)
+	{
+		if (IsValid(Action))
+		{
+			OutActions.Add(Action);
+		}
+	}
+
+	return OutActions;
+}
+
 void UActorIOComponent::BindActions()
 {
 	for (int32 ActionIdx = 0; ActionIdx != Actions.Num(); ++ActionIdx)
@@ -159,7 +189,7 @@ TArray<TWeakObjectPtr<UActorIOAction>> UActorIOComponent::GetInputActionsForObje
 		for (TObjectIterator<UActorIOAction> ActionItr; ActionItr; ++ActionItr)
 		{
 			UActorIOAction* Action = *ActionItr;
-			if (Action && Action->TargetActor == InObject)
+			if (IsValid(Action) && Action->TargetActor == InObject)
 			{
 				OutActions.Add(Action);
 			}
@@ -171,21 +201,21 @@ TArray<TWeakObjectPtr<UActorIOAction>> UActorIOComponent::GetInputActionsForObje
 
 int32 UActorIOComponent::GetNumInputActionsForObject(const AActor* InObject)
 {
-	int32 OutNumActions = 0;
+	int32 NumActions = 0;
 
 	if (InObject)
 	{
 		for (TObjectIterator<UActorIOAction> ActionItr; ActionItr; ++ActionItr)
 		{
 			UActorIOAction* Action = *ActionItr;
-			if (Action && Action->TargetActor == InObject)
+			if (IsValid(Action) && Action->TargetActor == InObject)
 			{
-				OutNumActions++;
+				NumActions++;
 			}
 		}
 	}
 
-	return OutNumActions;
+	return NumActions;
 }
 
 void UActorIOComponent::OnUnregister()

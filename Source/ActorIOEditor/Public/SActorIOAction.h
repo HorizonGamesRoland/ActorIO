@@ -110,6 +110,8 @@ protected:
 
     void OnFunctionArgumentsChanged(const FText& InText, ETextCommit::Type InCommitType);
 
+protected:
+
     FReply OnClick_RemoveAction();
 };
 

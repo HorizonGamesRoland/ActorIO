@@ -361,8 +361,7 @@ FReply SActorOutputAction::OnClick_RemoveAction()
 
 	UActorIOComponent* ActionOwner = Action->GetOwnerIOComponent();
 	ActionOwner->Modify();
-
-	ActionOwner->GetActions().Remove(Action.Get());
+	ActionOwner->RemoveAction(Action.Get());
 
 	FActorIOEditor& ActorIOEditorModule = FModuleManager::GetModuleChecked<FActorIOEditor>("ActorIOEditor");
 	ActorIOEditorModule.UpdateEditorWindow();

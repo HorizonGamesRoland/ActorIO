@@ -26,9 +26,13 @@ protected:
 
 public:
 
-	TArray<TObjectPtr<UActorIOAction>>& GetActions() { return Actions; }
+	UActorIOAction* CreateNewAction();
 
-	const TArray<TObjectPtr<UActorIOAction>>& GetActions() const { return Actions; }
+	void RemoveAction(UActorIOAction* InAction);
+
+	void RemoveInvalidActions();
+
+	TArray<TWeakObjectPtr<UActorIOAction>> GetActions() const;
 
 	int32 GetNumActions() const { return Actions.Num(); }
 
@@ -37,8 +41,6 @@ protected:
 	void BindActions();
 
 	void UnbindActions();
-
-	void RemoveInvalidActions();
 
 public:
 

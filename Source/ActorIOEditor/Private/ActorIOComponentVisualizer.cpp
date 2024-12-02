@@ -15,9 +15,9 @@ void FActorIOComponentVisualizer::DrawVisualization(const UActorComponent* Compo
 	const AActor* IOComponentOwner = IOComponent->GetOwner();
 	const float LineThickness = 3.0f;
 
-	for (const TObjectPtr<UActorIOAction>& OutputAction : IOComponent->GetActions())
+	for (const TWeakObjectPtr<UActorIOAction>& OutputAction : IOComponent->GetActions())
 	{
-		if (OutputAction->TargetActor)
+		if (OutputAction.IsValid() && OutputAction->TargetActor)
 		{
 			const FVector Start = IOComponentOwner->GetActorLocation();
 			const FVector End = OutputAction->TargetActor->GetActorLocation();
