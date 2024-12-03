@@ -42,11 +42,6 @@ protected:
 
 public:
 
-	UFUNCTION(BlueprintCallable, Category = "Actor IO", meta = (DefaultToSelf = "ContextObject"))
-	static FActorIOEvent MakeIOEvent(UObject* ContextObject, FName EventId, FName EventDispatcherName);
-
-public:
-
 	virtual void OnRegister() override;
 	virtual void OnUnregister() override;
 };

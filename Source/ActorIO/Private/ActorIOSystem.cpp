@@ -63,6 +63,24 @@ int32 UActorIOSystem::GetNumInputActionsForObject(const AActor* InObject)
     return InputActions.Num();
 }
 
+void UActorIOSystem::RegisterIOEvent(UObject* WorldContextObject, TArray<FActorIOEvent>& RegisterTo, FName EventId, FName EventDispatcherName, const FText& DisplayName, const FText& TooltipText)
+{
+    RegisterTo.Add(FActorIOEvent()
+        .SetId(EventId)
+        .SetDisplayName(DisplayName)
+        .SetTooltipText(TooltipText)
+        .SetBlueprintDelegate(WorldContextObject, EventDispatcherName));
+}
+
+void UActorIOSystem::RegisterIOFunction(UObject* WorldContextObject, TArray<FActorIOFunction>& RegisterTo, FName FunctionId, FString FunctionToExec, const FText& DisplayName, const FText& TooltipText)
+{
+    RegisterTo.Add(FActorIOFunction()
+        .SetId(FunctionId)
+        .SetDisplayName(DisplayName)
+        .SetTooltipText(TooltipText)
+        .SetFunction(FunctionToExec));
+}
+
 void UActorIOSystem::GetNativeEventsForObject(AActor* InObject, TArray<FActorIOEvent>& RegisteredEvents)
 {
     RegisteredEvents.Add(FActorIOEvent()

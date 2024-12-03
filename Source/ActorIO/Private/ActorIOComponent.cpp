@@ -89,14 +89,6 @@ void UActorIOComponent::RemoveInvalidActions()
 	}
 }
 
-FActorIOEvent UActorIOComponent::MakeIOEvent(UObject* ContextObject, FName EventId, FName EventDispatcherName)
-{
-	FActorIOEvent OutEvent = FActorIOEvent();
-	OutEvent.SetId(EventId);
-	OutEvent.SetBlueprintDelegate(ContextObject, EventDispatcherName);
-	return OutEvent;
-}
-
 void UActorIOComponent::OnUnregister()
 {
 	UnbindActions();

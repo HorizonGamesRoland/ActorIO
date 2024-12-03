@@ -25,6 +25,14 @@ public:
 
 	static int32 GetNumInputActionsForObject(const AActor* InObject);
 
+protected:
+
+	UFUNCTION(BlueprintCallable, Category = "Actor IO", meta = (WorldContext = "WorldContextObject", AutoCreateRefTerm = "DisplayName,TooltipText", AdvancedDisplay = "DisplayName,TooltipText"))
+	static void RegisterIOEvent(UObject* WorldContextObject, UPARAM(Ref) TArray<FActorIOEvent>& RegisterTo, FName EventId, FName EventDispatcherName, const FText& DisplayName, const FText & TooltipText);
+
+	UFUNCTION(BlueprintCallable, Category = "Actor IO", meta = (WorldContext = "WorldContextObject", AutoCreateRefTerm = "DisplayName,TooltipText", AdvancedDisplay = "DisplayName,TooltipText"))
+	static void RegisterIOFunction(UObject* WorldContextObject, UPARAM(Ref) TArray<FActorIOFunction>& RegisterTo, FName FunctionId, FString FunctionToExec, const FText& DisplayName, const FText& TooltipText);
+
 private:
 
 	static void GetNativeEventsForObject(AActor* InObject, TArray<FActorIOEvent>& RegisteredEvents);
