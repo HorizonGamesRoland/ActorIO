@@ -3,6 +3,7 @@
 #include "ActorIOAction.h"
 #include "ActorIOEvent.h"
 #include "ActorIOFunction.h"
+#include "ActorIOSystem.h"
 #include "ActorIOComponent.h"
 #include "ActorIOInterface.h"
 #include "UObject/SparseDelegate.h"
@@ -28,7 +29,7 @@ void UActorIOAction::BindAction()
 		return;
 	}
 
-	const TArray<FActorIOEvent> ValidEvents = UActorIOComponent::GetEventsForObject(OwnerIOComponent->GetOwner());
+	const TArray<FActorIOEvent> ValidEvents = UActorIOSystem::GetEventsForObject(OwnerIOComponent->GetOwner());
 	const FActorIOEvent* TargetEvent = ValidEvents.FindByKey(EventId);
 	if (!TargetEvent)
 	{
@@ -89,7 +90,7 @@ void UActorIOAction::UnbindAction()
 		return;
 	}
 
-	const TArray<FActorIOEvent> ValidEvents = UActorIOComponent::GetEventsForObject(OwnerIOComponent->GetOwner());
+	const TArray<FActorIOEvent> ValidEvents = UActorIOSystem::GetEventsForObject(OwnerIOComponent->GetOwner());
 	const FActorIOEvent* TargetEvent = ValidEvents.FindByKey(EventId);
 	if (!TargetEvent)
 	{
@@ -135,7 +136,7 @@ void UActorIOAction::ExecuteAction()
 		return;
 	}
 
-	TArray<FActorIOFunction> ValidFunctions = UActorIOComponent::GetFunctionsForObject(TargetActor);
+	TArray<FActorIOFunction> ValidFunctions = UActorIOSystem::GetFunctionsForObject(TargetActor);
 	FActorIOFunction* TargetFunction = ValidFunctions.FindByKey(FunctionId);
 	if (!TargetFunction)
 	{

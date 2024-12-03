@@ -2,6 +2,7 @@
 
 #include "SActorIOAction.h"
 #include "ActorIOAction.h"
+#include "ActorIOSystem.h"
 #include "ActorIOComponent.h"
 #include "ActorIOInterface.h"
 #include "ActorIOEditor.h"
@@ -64,7 +65,7 @@ void SActorIOAction::UpdateSelectableEvents()
 	SelectableEventIds.Reset();
 	SelectableEventIds.Add(TEXT("<Clear>"));
 
-	ValidEvents = UActorIOComponent::GetEventsForObject(Action->GetOwnerActor());
+	ValidEvents = UActorIOSystem::GetEventsForObject(Action->GetOwnerActor());
 	for (const FActorIOEvent& IOEvent : ValidEvents)
 	{
 		SelectableEventIds.Emplace(IOEvent.EventId);
@@ -76,7 +77,7 @@ void SActorIOAction::UpdateSelectableFunctions()
 	SelectableFunctionIds.Reset();
 	SelectableFunctionIds.Add(TEXT("<Clear>"));
 
-	ValidFunctions = UActorIOComponent::GetFunctionsForObject(Action->TargetActor);
+	ValidFunctions = UActorIOSystem::GetFunctionsForObject(Action->TargetActor);
 	for (const FActorIOFunction& IOFunction : ValidFunctions)
 	{
 		SelectableFunctionIds.Emplace(IOFunction.FunctionId);

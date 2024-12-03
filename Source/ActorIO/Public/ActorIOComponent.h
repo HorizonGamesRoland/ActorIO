@@ -3,8 +3,6 @@
 #pragma once
 
 #include "ActorIO.h"
-#include "ActorIOEvent.h"
-#include "ActorIOFunction.h"
 #include "Components/ActorComponent.h"
 #include "ActorIOComponent.generated.h"
 
@@ -44,24 +42,8 @@ protected:
 
 public:
 
-	static TArray<FActorIOEvent> GetEventsForObject(AActor* InObject);
-
-	static TArray<FActorIOFunction> GetFunctionsForObject(AActor* InObject);
-
 	UFUNCTION(BlueprintCallable, Category = "Actor IO", meta = (DefaultToSelf = "ContextObject"))
 	static FActorIOEvent MakeIOEvent(UObject* ContextObject, FName EventId, FName EventDispatcherName);
-
-protected:
-
-	static TArray<FActorIOEvent> GetNativeEventsForObject(AActor* InObject);
-
-	static TArray<FActorIOFunction> GetNativeFunctionsForObject(AActor* InObject);
-
-public:
-
-	static TArray<TWeakObjectPtr<UActorIOAction>> GetInputActionsForObject(const AActor* InObject);
-
-	static int32 GetNumInputActionsForObject(const AActor* InObject);
 
 public:
 

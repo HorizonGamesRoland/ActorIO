@@ -2,9 +2,10 @@
 
 #include "SActorIOTab.h"
 #include "SActorIOAction.h"
-#include "ActorIOEditorSubsystem.h"
+#include "ActorIOSystem.h"
 #include "ActorIOComponent.h"
 #include "ActorIOAction.h"
+#include "ActorIOEditorSubsystem.h"
 
 #define LOCTEXT_NAMESPACE "ActorIOEditor"
 
@@ -160,7 +161,7 @@ void SActorInputsTab::Refresh()
     UActorIOEditorSubsystem* ActorIOEditorSubsystem = GEditor->GetEditorSubsystem<UActorIOEditorSubsystem>();
     AActor* SelectedActor = ActorIOEditorSubsystem ? ActorIOEditorSubsystem->GetSelectedActor() : nullptr;
 
-    for (const TWeakObjectPtr<UActorIOAction>& InputAction : UActorIOComponent::GetInputActionsForObject(SelectedActor))
+    for (const TWeakObjectPtr<UActorIOAction>& InputAction : UActorIOSystem::GetInputActionsForObject(SelectedActor))
     {
         ActionList->AddSlot()
         .AutoHeight()

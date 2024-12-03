@@ -1,6 +1,7 @@
 // Copyright 2024 Horizon Games. All Rights Reserved.
 
 #include "ActorIOComponentVisualizer.h"
+#include "ActorIOSystem.h"
 #include "ActorIOComponent.h"
 #include "ActorIOAction.h"
 
@@ -25,7 +26,7 @@ void FActorIOComponentVisualizer::DrawVisualization(const UActorComponent* Compo
 		}
 	}
 
-	for (const TWeakObjectPtr<UActorIOAction>& InputAction : UActorIOComponent::GetInputActionsForObject(IOComponentOwner))
+	for (const TWeakObjectPtr<UActorIOAction>& InputAction : UActorIOSystem::GetInputActionsForObject(IOComponentOwner))
 	{
 		if (InputAction.IsValid())
 		{
