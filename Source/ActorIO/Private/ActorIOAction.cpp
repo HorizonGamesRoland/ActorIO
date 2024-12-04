@@ -15,6 +15,8 @@ UActorIOAction::UActorIOAction()
 	TargetActor = nullptr;
 	FunctionId = NAME_None;
 	FunctionArguments = FString();
+	Delay = 0.0f;
+	bExecuteOnlyOnce = false;
 
 	bWasExecuted = false;
 	bIsBound = false;
@@ -23,6 +25,11 @@ UActorIOAction::UActorIOAction()
 
 void UActorIOAction::BindAction()
 {
+	if (bIsBound)
+	{
+		return;
+	}
+
 	UActorIOComponent* OwnerIOComponent = GetOwnerIOComponent();
 	if (!OwnerIOComponent)
 	{
@@ -37,11 +44,6 @@ void UActorIOAction::BindAction()
 	}
 
 	if (!IsValid(TargetEvent->DelegateOwner))
-	{
-		return;
-	}
-
-	if (bIsBound)
 	{
 		return;
 	}
@@ -167,4 +169,15 @@ AActor* UActorIOAction::GetOwnerActor() const
 {
 	UActorIOComponent* OwnerComponent = GetOwnerIOComponent();
 	return OwnerComponent ? OwnerComponent->GetOwner() : nullptr;
+}
+
+bool FActorIOMessage::Invoke() const
+{
+	if (IsValid(TargetObject))
+	{
+		FOutputDeviceNull Ar;
+		return TargetObject->CallFunctionByNameWithArguments(*Command, Ar, OwningAction, true);
+	}
+
+	return false;
 }

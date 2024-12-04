@@ -3,11 +3,12 @@
 #include "ActorIOComponent.h"
 #include "ActorIOAction.h"
 
-
-#include "ActorIOEvent.h"
-
 UActorIOComponent::UActorIOComponent()
 {
+	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.bStartWithTickEnabled = false;
+	PrimaryComponentTick.TickGroup = TG_PostUpdateWork;
+
 	Actions = TArray<TObjectPtr<UActorIOAction>>();
 }
 
@@ -18,8 +19,14 @@ void UActorIOComponent::OnRegister()
 	RemoveInvalidActions();
 
 	UWorld* MyWorld = GetWorld();
-	if (MyWorld || MyWorld->IsGameWorld())
+	if (MyWorld && MyWorld->IsGameWorld())
 	{
+		AActor* MyOwner = GetOwner();
+		if (!MyOwner->IsActorTickEnabled())
+		{
+			MyOwner->SetActorTickEnabled(true);
+		}
+
 		BindActions();
 	}
 }

@@ -7,6 +7,7 @@
 #include "ActorIOComponent.generated.h"
 
 class UActorIOAction;
+struct FActorIOMessage;
 
 UCLASS(Blueprintable, ClassGroup = "Actor IO")
 class ACTORIO_API UActorIOComponent : public UActorComponent
@@ -21,6 +22,9 @@ protected:
 
 	UPROPERTY(Instanced, EditAnywhere) // <--- #TEMP: edit anywhere for debugging
 	TArray<TObjectPtr<UActorIOAction>> Actions;
+
+	UPROPERTY()
+	TSet<FActorIOMessage> MessageStack;
 
 public:
 
