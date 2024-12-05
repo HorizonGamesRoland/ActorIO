@@ -1,6 +1,6 @@
 // Copyright 2024 Horizon Games. All Rights Reserved.
 
-#include "SActorIOTab.h"
+#include "SActorIOActionList.h"
 #include "SActorIOAction.h"
 #include "ActorIOSystem.h"
 #include "ActorIOComponent.h"
@@ -11,12 +11,12 @@
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
-SLATE_IMPLEMENT_WIDGET(SActorIOTab)
-void SActorIOTab::PrivateRegisterAttributes(FSlateAttributeInitializer& AttributeInitializer)
+SLATE_IMPLEMENT_WIDGET(SActorIOActionList)
+void SActorIOActionList::PrivateRegisterAttributes(FSlateAttributeInitializer& AttributeInitializer)
 {
 }
 
-void SActorIOTab::Construct(const FArguments& InArgs)
+void SActorIOActionList::Construct(const FArguments& InArgs)
 {
 	ChildSlot
 	[
@@ -24,10 +24,15 @@ void SActorIOTab::Construct(const FArguments& InArgs)
         + SVerticalBox::Slot()
         .AutoHeight()
         [
-            SNew(SBox)
-            .HeightOverride(30.0f)
+            SNew(SBorder)
+            .BorderImage(FAppStyle::Get().GetBrush("Brushes.Header"))
             [
-                SAssignNew(ActionPropertySplitter, SSplitter)
+                SNew(SBox)
+                .HeightOverride(25.0f)
+                [
+                    SAssignNew(ActionPropertySplitter, SSplitter)
+                    .PhysicalSplitterHandleSize(1.0f)
+                ]
             ]
         ]
         + SVerticalBox::Slot()
@@ -60,11 +65,12 @@ void SActorIOTab::Construct(const FArguments& InArgs)
     }
 }
 
-void SActorIOTab::AddPropertyHeader(const FText& InPropertyName, const FMargin& InPadding)
+void SActorIOActionList::AddPropertyHeader(const FText& InPropertyName, float InSizeValue, const FMargin& InPadding)
 {
     const int32 PropertyIndex = ActionPropertySplitter->GetChildren()->Num();
 
     ActionPropertySplitter->AddSlot()
+    .Value(InSizeValue)
     .OnSlotResized_Lambda([this, PropertyIndex](float InSize) { OnActionPropertyResized(PropertyIndex, InSize); })
     [
         SNew(SBox)
@@ -77,7 +83,7 @@ void SActorIOTab::AddPropertyHeader(const FText& InPropertyName, const FMargin& 
     ];
 }
 
-void SActorIOTab::OnActionPropertyResized(int32 InSlotIndex, float InSize)
+void SActorIOActionList::OnActionPropertyResized(int32 InSlotIndex, float InSize)
 {
     ActionPropertySizes[InSlotIndex] = InSize;
     ActionPropertySplitter->SlotAt(InSlotIndex).SetSizeValue(InSize);
@@ -93,25 +99,27 @@ void SActorIOTab::OnActionPropertyResized(int32 InSlotIndex, float InSize)
 }
 
 
-SLATE_IMPLEMENT_WIDGET(SActorOutputsTab)
-void SActorOutputsTab::PrivateRegisterAttributes(FSlateAttributeInitializer& AttributeInitializer)
+SLATE_IMPLEMENT_WIDGET(SActorOutputList)
+void SActorOutputList::PrivateRegisterAttributes(FSlateAttributeInitializer& AttributeInitializer)
 {
 }
 
-void SActorOutputsTab::Construct(const FArguments& InArgs)
+void SActorOutputList::Construct(const FArguments& InArgs)
 {
-    Super::Construct(SActorIOTab::FArguments());
+    Super::Construct(SActorIOActionList::FArguments());
 }
 
-void SActorOutputsTab::InitializeHeaderRow()
+void SActorOutputList::InitializeHeaderRow()
 {
-    AddPropertyHeader(LOCTEXT("Event", "Event:"), FMargin(30.0f, 0.0f, 5.0f, 0.0f));
-    AddPropertyHeader(LOCTEXT("Target", "Target:"), FMargin(5.0f, 0.0f));
-    AddPropertyHeader(LOCTEXT("Action", "Action:"), FMargin(5.0f, 0.0f));
-    AddPropertyHeader(LOCTEXT("Parameters", "Parameters:"), FMargin(5.0f, 0.0f));
+    AddPropertyHeader(LOCTEXT("Event", "Event:"), 1.0f, FMargin(30.0f, 0.0f, 0.0f, 0.0f));
+    AddPropertyHeader(LOCTEXT("Target", "Target:"), 1.0f, FMargin(5.0f, 0.0f, 0.0f, 0.0f));
+    AddPropertyHeader(LOCTEXT("Action", "Action:"), 1.0f, FMargin(5.0f, 0.0f, 0.0f, 0.0f));
+    AddPropertyHeader(LOCTEXT("Parameter", "Parameter:"), 1.0f, FMargin(5.0f, 0.0f, 0.0f, 0.0f));
+    AddPropertyHeader(LOCTEXT("Delay", "Delay:"), 0.35f, FMargin(5.0f, 0.0f, 0.0f, 0.0f));
+    AddPropertyHeader(LOCTEXT("Once", "Once?"), 0.5f, FMargin(5.0f, 0.0f, 0.0f, 0.0f));
 }
 
-void SActorOutputsTab::Refresh()
+void SActorOutputList::Refresh()
 {
     ActionList->ClearChildren();
 
@@ -136,25 +144,27 @@ void SActorOutputsTab::Refresh()
 }
 
 
-SLATE_IMPLEMENT_WIDGET(SActorInputsTab)
-void SActorInputsTab::PrivateRegisterAttributes(FSlateAttributeInitializer& AttributeInitializer)
+SLATE_IMPLEMENT_WIDGET(SActorInputList)
+void SActorInputList::PrivateRegisterAttributes(FSlateAttributeInitializer& AttributeInitializer)
 {
 }
 
-void SActorInputsTab::Construct(const FArguments& InArgs)
+void SActorInputList::Construct(const FArguments& InArgs)
 {
-    Super::Construct(SActorIOTab::FArguments());
+    Super::Construct(SActorIOActionList::FArguments());
 }
 
-void SActorInputsTab::InitializeHeaderRow()
+void SActorInputList::InitializeHeaderRow()
 {
-    AddPropertyHeader(LOCTEXT("Caller", "Caller:"), FMargin(30.0f, 0.0f, 5.0f, 0.0f));
-    AddPropertyHeader(LOCTEXT("Event", "Target:"), FMargin(5.0f, 0.0f));
-    AddPropertyHeader(LOCTEXT("Action", "Action:"), FMargin(5.0f, 0.0f));
-    AddPropertyHeader(LOCTEXT("Parameters", "Parameters:"), FMargin(5.0f, 0.0f));
+    AddPropertyHeader(LOCTEXT("Caller", "Caller:"), 1.0f, FMargin(30.0f, 0.0f, 0.0f, 0.0f));
+    AddPropertyHeader(LOCTEXT("Event", "Target:"), 1.0f, FMargin(5.0f, 0.0f, 0.0f, 0.0f));
+    AddPropertyHeader(LOCTEXT("Action", "Action:"), 1.0f, FMargin(5.0f, 0.0f, 0.0f, 0.0f));
+    AddPropertyHeader(LOCTEXT("Parameter", "Parameter:"), 1.0f, FMargin(5.0f, 0.0f, 0.0f, 0.0f));
+    //AddPropertyHeader(LOCTEXT("Delay", "Delay:"), FMargin(5.0f, 0.0f));
+    //AddPropertyHeader(LOCTEXT("Once", "Once?"), FMargin(5.0f, 0.0f));
 }
 
-void SActorInputsTab::Refresh()
+void SActorInputList::Refresh()
 {
     ActionList->ClearChildren();
 

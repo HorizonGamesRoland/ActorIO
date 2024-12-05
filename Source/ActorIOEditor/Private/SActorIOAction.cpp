@@ -8,6 +8,7 @@
 #include "ActorIOEditor.h"
 #include "ActorIOEditorStyle.h"
 #include "PropertyCustomizationHelpers.h"
+#include "Widgets/Input/SSpinBox.h"
 
 #define LOCTEXT_NAMESPACE "FActorIOEditor"
 
@@ -106,16 +107,16 @@ FText SActorIOAction::GetEventTooltipText(FName InEventId) const
 	return FText::GetEmpty();
 }
 
-FColor SActorIOAction::GetEventTextColor(FName InEventId) const
+FSlateColor SActorIOAction::GetEventTextColor(FName InEventId) const
 {
 	if (InEventId == NAME_None)
 	{
 		// Also accept 'None' as valid because we only want to highlight outdated events/functions.
-		return FColor::White;
+		return FSlateColor::UseForeground();
 	}
 
 	const FActorIOEvent* TargetEvent = ValidEvents.FindByKey(InEventId);
-	return TargetEvent ? FColor::White : FColor::Red;
+	return TargetEvent ? FSlateColor::UseForeground() : FStyleColors::Error;
 }
 
 FText SActorIOAction::GetFunctionDisplayName(FName InFunctionId) const
@@ -140,16 +141,16 @@ FText SActorIOAction::GetFunctionTooltipText(FName InFunctionId) const
 	return FText::GetEmpty();
 }
 
-FColor SActorIOAction::GetFunctionTextColor(FName InFunctionId) const
+FSlateColor SActorIOAction::GetFunctionTextColor(FName InFunctionId) const
 {
 	if (InFunctionId == NAME_None)
 	{
 		// Also accept 'None' as valid because we only want to highlight outdated events/functions.
-		return FColor::White;
+		return FSlateColor::UseForeground();
 	}
 
 	const FActorIOFunction* TargetFunction = ValidFunctions.FindByKey(InFunctionId);
-	return TargetFunction ? FColor::White : FColor::Red;
+	return TargetFunction ? FSlateColor::UseForeground() : FStyleColors::Error;
 }
 
 
@@ -175,7 +176,7 @@ void SActorOutputAction::InitializeAction()
 		+ SHorizontalBox::Slot()
 		.VAlign(VAlign_Center)
 		.AutoWidth()
-		.Padding(5.0f, 0.0f)
+		.Padding(3.0f, 0.0f)
 		[
 			SNew(SImage)
 			.Image(FActorIOEditorStyle::Get().GetBrush("OutputActionIcon"))
@@ -196,7 +197,7 @@ void SActorOutputAction::InitializeAction()
 		+ SHorizontalBox::Slot()
 		.VAlign(VAlign_Center)
 		.AutoWidth()
-		.Padding(5.0f, 0.0f)
+		.Padding(3.0f, 0.0f)
 		[
 			SNew(SImage)
 			.Image(FActorIOEditorStyle::Get().GetBrush("ActionArrowIcon"))
@@ -209,7 +210,8 @@ void SActorOutputAction::InitializeAction()
 		SNew(SObjectPropertyEntryBox)
 		.AllowedClass(AActor::StaticClass())
 		.AllowClear(true)
-		.DisplayBrowse(true)
+		.EnableContentPicker(true)
+		.DisplayBrowse(false)
 		.DisplayUseSelected(false)
 		.ObjectPath(this, &SActorOutputAction::GetTargetActorPath)
 		.OnObjectChanged(this, &SActorOutputAction::OnTargetActorChanged)
@@ -218,15 +220,51 @@ void SActorOutputAction::InitializeAction()
 	PropertySplitter->AddSlot()
 	.Resizable(false)
 	[
-		SNew(SComboBox<FName>)
-		.OptionsSource(&SelectableFunctionIds)
-		.OnGenerateWidget(this, &SActorOutputAction::OnGenerateFunctionComboBoxWidget)
-		.OnSelectionChanged(this, &SActorOutputAction::OnTargetFunctionChanged)
+		SNew(SBox)
+		.Padding(0.0f, 0.0f, 1.0f, 0.0f)
 		[
-			SAssignNew(FunctionText, STextBlock)
+			SNew(SComboBox<FName>)
+			.OptionsSource(&SelectableFunctionIds)
+			.OnGenerateWidget(this, &SActorOutputAction::OnGenerateFunctionComboBoxWidget)
+			.OnSelectionChanged(this, &SActorOutputAction::OnTargetFunctionChanged)
+			[
+				SAssignNew(FunctionText, STextBlock)
+				.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont"))
+				.Text(GetFunctionDisplayName(Action->FunctionId))
+				.ColorAndOpacity(GetFunctionTextColor(Action->FunctionId))
+			]
+		]
+	];
+
+	PropertySplitter->AddSlot()
+	.Resizable(false)
+	[
+		SNew(SBox)
+		.Padding(1.0f, 0.0f)
+		[
+			SNew(SEditableTextBox)
 			.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont"))
-			.Text(GetFunctionDisplayName(Action->FunctionId))
-			.ColorAndOpacity(GetFunctionTextColor(Action->FunctionId))
+			.Text(FText::FromString(Action->FunctionArguments))
+			.OnTextCommitted(this, &SActorOutputAction::OnFunctionArgumentsChanged)
+		]
+	];
+
+	PropertySplitter->AddSlot()
+	.Resizable(false)
+	[
+		SNew(SBox)
+		.Padding(1.0f, 0.0f)
+		[
+			SNew(SSpinBox<float>)
+			.MinValue(0.0f)
+			.MinFractionalDigits(2)
+			.MaxFractionalDigits(2)
+			.EnableSlider(false)
+			.EnableWheel(false)
+			.AlwaysUsesDeltaSnap(true)
+			.Delta(0.01f)
+			.Value(this, &SActorOutputAction::GetActionDelay)
+			.OnValueCommitted(this, &SActorOutputAction::OnActionDelayChanged)
 		]
 	];
 
@@ -235,12 +273,16 @@ void SActorOutputAction::InitializeAction()
 	[
 		SNew(SHorizontalBox)
 		+ SHorizontalBox::Slot()
-		.Padding(3.0f, 0.0f)
+		.AutoWidth()
+		.Padding(3.0f, 0.0f, 0.0f, 0.0f)
 		[
-			SNew(SEditableTextBox)
-			.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont"))
-			.Text(FText::FromString(Action->FunctionArguments))
-			.OnTextCommitted(this, &SActorOutputAction::OnFunctionArgumentsChanged)
+			SNew(SCheckBox)
+			.IsChecked(this, &SActorOutputAction::IsExecuteOnlyOnceChecked)
+			.OnCheckStateChanged(this, &SActorOutputAction::OnExecuteOnlyOnceChecked)
+		]
+		+ SHorizontalBox::Slot()
+		[
+			SNew(SSpacer)
 		]
 		+ SHorizontalBox::Slot()
 		.AutoWidth()
@@ -354,6 +396,38 @@ void SActorOutputAction::OnFunctionArgumentsChanged(const FText& InText, ETextCo
 	ActionOwner->Modify();
 
 	Action->FunctionArguments = InText.ToString();
+}
+
+float SActorOutputAction::GetActionDelay() const
+{
+	return Action->Delay;
+}
+
+void SActorOutputAction::OnActionDelayChanged(float InValue, ETextCommit::Type InCommitType)
+{
+	const FScopedTransaction Transaction(LOCTEXT("ModifyActorIOAction", "Modify ActorIO Action"));
+	Action->Modify();
+
+	UActorIOComponent* ActionOwner = Action->GetOwnerIOComponent();
+	ActionOwner->Modify();
+
+	Action->Delay = InValue;
+}
+
+ECheckBoxState SActorOutputAction::IsExecuteOnlyOnceChecked() const
+{
+	return Action->bExecuteOnlyOnce ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+}
+
+void SActorOutputAction::OnExecuteOnlyOnceChecked(ECheckBoxState InState)
+{
+	const FScopedTransaction Transaction(LOCTEXT("ModifyActorIOAction", "Modify ActorIO Action"));
+	Action->Modify();
+
+	UActorIOComponent* ActionOwner = Action->GetOwnerIOComponent();
+	ActionOwner->Modify();
+
+	Action->bExecuteOnlyOnce = InState == ECheckBoxState::Checked;
 }
 
 FReply SActorOutputAction::OnClick_RemoveAction()

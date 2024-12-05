@@ -5,13 +5,13 @@
 #include "CoreMinimal.h"
 #include "Widgets/SCompoundWidget.h"
 
-class SActorIOTab : public SCompoundWidget
+class SActorIOActionList : public SCompoundWidget
 {
-    SLATE_DECLARE_WIDGET(SActorIOTab, SCompoundWidget)
+    SLATE_DECLARE_WIDGET(SActorIOActionList, SCompoundWidget)
 
 public:
 
-    SLATE_BEGIN_ARGS(SActorIOTab)
+    SLATE_BEGIN_ARGS(SActorIOActionList)
     {}
     SLATE_END_ARGS()
 
@@ -31,19 +31,19 @@ protected:
 
     virtual void InitializeHeaderRow() {}
 
-    void AddPropertyHeader(const FText& InPropertyName, const FMargin& InPadding);
+    void AddPropertyHeader(const FText& InPropertyName, float InSizeValue, const FMargin& InPadding);
 
     void OnActionPropertyResized(int32 InSlotIndex, float InSize);
 };
 
 
-class SActorOutputsTab : public SActorIOTab
+class SActorOutputList : public SActorIOActionList
 {
-    SLATE_DECLARE_WIDGET(SActorOutputsTab, SActorIOTab)
+    SLATE_DECLARE_WIDGET(SActorOutputList, SActorIOActionList)
 
 public:
 
-    SLATE_BEGIN_ARGS(SActorOutputsTab)
+    SLATE_BEGIN_ARGS(SActorOutputList)
     {}
     SLATE_END_ARGS()
 
@@ -54,13 +54,13 @@ public:
 };
 
 
-class SActorInputsTab : public SActorIOTab
+class SActorInputList : public SActorIOActionList
 {
-    SLATE_DECLARE_WIDGET(SActorInputsTab, SActorIOTab)
+    SLATE_DECLARE_WIDGET(SActorInputList, SActorIOActionList)
 
 public:
 
-    SLATE_BEGIN_ARGS(SActorInputsTab)
+    SLATE_BEGIN_ARGS(SActorInputList)
     {}
     SLATE_END_ARGS()
 

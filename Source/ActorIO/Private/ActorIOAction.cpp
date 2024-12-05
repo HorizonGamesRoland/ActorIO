@@ -190,10 +190,3 @@ AActor* UActorIOAction::GetOwnerActor() const
 	UActorIOComponent* OwnerComponent = GetOwnerIOComponent();
 	return OwnerComponent ? OwnerComponent->GetOwner() : nullptr;
 }
-
-void UActorIOAction::BeginDestroy()
-{
-	GetWorld()->GetTimerManager().ClearAllTimersForObject(this);
-
-	Super::BeginDestroy();
-}

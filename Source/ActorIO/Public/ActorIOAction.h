@@ -59,8 +59,4 @@ protected:
 
 	UFUNCTION()
 	void ExecuteAction();
-
-public:
-
-	virtual void BeginDestroy() override;
 };

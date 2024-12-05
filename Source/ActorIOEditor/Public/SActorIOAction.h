@@ -57,13 +57,13 @@ protected:
 
     FText GetEventTooltipText(FName InEventId) const;
 
-    FColor GetEventTextColor(FName InEventId) const;
+    FSlateColor GetEventTextColor(FName InEventId) const;
 
     FText GetFunctionDisplayName(FName InFunctionId) const;
 
     FText GetFunctionTooltipText(FName InFunctionId) const;
 
-    FColor GetFunctionTextColor(FName InFunctionId) const;
+    FSlateColor GetFunctionTextColor(FName InFunctionId) const;
 };
 
 
@@ -109,6 +109,14 @@ protected:
     void OnTargetFunctionChanged(FName InName, ESelectInfo::Type InSelectType);
 
     void OnFunctionArgumentsChanged(const FText& InText, ETextCommit::Type InCommitType);
+
+    float GetActionDelay() const;
+
+    void OnActionDelayChanged(float InValue, ETextCommit::Type InCommitType);
+
+    ECheckBoxState IsExecuteOnlyOnceChecked() const;
+
+    void OnExecuteOnlyOnceChecked(ECheckBoxState InState);
 
 protected:
 

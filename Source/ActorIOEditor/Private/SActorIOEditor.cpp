@@ -1,7 +1,7 @@
 // Copyright 2024 Horizon Games. All Rights Reserved.
 
 #include "SActorIOEditor.h"
-#include "SActorIOTab.h"
+#include "SActorIOActionList.h"
 #include "SActorIOAction.h"
 #include "ActorIOEditor.h"
 #include "ActorIOEditorSubsystem.h"
@@ -22,8 +22,8 @@ void SActorIOEditor::PrivateRegisterAttributes(FSlateAttributeInitializer& Attri
 
 void SActorIOEditor::Construct(const FArguments& InArgs)
 {
-    OutputsTab = SNew(SActorOutputsTab);
-    InputsTab = SNew(SActorInputsTab);
+    OutputsTab = SNew(SActorOutputList);
+    InputsTab = SNew(SActorInputList);
 
     // Display output actions by default.
     bViewOutputs = true;
@@ -46,7 +46,7 @@ void SActorIOEditor::Construct(const FArguments& InArgs)
                 .Padding(5.0f, 0.0f, 0.0f, 0.0f)
                 [
                     SNew(SBox)
-                    .HeightOverride(30.0f)
+                    .HeightOverride(25.0f)
                     .VAlign(VAlign_Center)
                     [
                         SAssignNew(SelectedActorText, STextBlock)
@@ -99,10 +99,14 @@ void SActorIOEditor::Construct(const FArguments& InArgs)
         ]
         + SSplitter::Slot()
         [
-            // ---------------------------------
-            //~ Actions panel
-            // ---------------------------------
-            SAssignNew(ActionPanel, SBox)
+            SNew(SBox)
+            .Padding(0.0f, 3.0f, 3.0f, 3.0f)
+            [
+                // ---------------------------------
+                //~ Actions panel
+                // ---------------------------------
+                SAssignNew(ActionPanel, SBox)
+            ]
         ]
     ];
 
