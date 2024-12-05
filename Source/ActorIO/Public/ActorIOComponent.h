@@ -3,11 +3,11 @@
 #pragma once
 
 #include "ActorIO.h"
+#include "ActorIOMessage.h"
 #include "Components/ActorComponent.h"
 #include "ActorIOComponent.generated.h"
 
 class UActorIOAction;
-struct FActorIOMessage;
 
 UCLASS(Blueprintable, ClassGroup = "Actor IO")
 class ACTORIO_API UActorIOComponent : public UActorComponent
@@ -24,7 +24,7 @@ protected:
 	TArray<TObjectPtr<UActorIOAction>> Actions;
 
 	UPROPERTY()
-	TSet<FActorIOMessage> MessageStack;
+	TArray<FActorIOMessage> MessageStack;
 
 public:
 

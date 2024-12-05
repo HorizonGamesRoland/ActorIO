@@ -170,14 +170,3 @@ AActor* UActorIOAction::GetOwnerActor() const
 	UActorIOComponent* OwnerComponent = GetOwnerIOComponent();
 	return OwnerComponent ? OwnerComponent->GetOwner() : nullptr;
 }
-
-bool FActorIOMessage::Invoke() const
-{
-	if (IsValid(TargetObject))
-	{
-		FOutputDeviceNull Ar;
-		return TargetObject->CallFunctionByNameWithArguments(*Command, Ar, OwningAction, true);
-	}
-
-	return false;
-}
