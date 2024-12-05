@@ -5,10 +5,6 @@
 
 UActorIOComponent::UActorIOComponent()
 {
-	PrimaryComponentTick.bCanEverTick = true;
-	PrimaryComponentTick.bStartWithTickEnabled = false;
-	PrimaryComponentTick.TickGroup = TG_PostUpdateWork;
-
 	Actions = TArray<TObjectPtr<UActorIOAction>>();
 }
 
@@ -47,6 +43,17 @@ void UActorIOComponent::RemoveAction(UActorIOAction* InAction)
 	Actions.RemoveAt(ActionIdx);
 }
 
+void UActorIOComponent::RemoveInvalidActions()
+{
+	for (int32 ActionIdx = Actions.Num() - 1; ActionIdx >= 0; --ActionIdx)
+	{
+		if (!Actions[ActionIdx].Get())
+		{
+			Actions.RemoveAt(ActionIdx);
+		}
+	}
+}
+
 TArray<TWeakObjectPtr<UActorIOAction>> UActorIOComponent::GetActions() const
 {
 	TArray<TWeakObjectPtr<UActorIOAction>> OutActions = TArray<TWeakObjectPtr<UActorIOAction>>();
@@ -81,17 +88,6 @@ void UActorIOComponent::UnbindActions()
 		if (Action)
 		{
 			Action->UnbindAction();
-		}
-	}
-}
-
-void UActorIOComponent::RemoveInvalidActions()
-{
-	for (int32 ActionIdx = Actions.Num() - 1; ActionIdx >= 0; --ActionIdx)
-	{
-		if (!Actions[ActionIdx].Get())
-		{
-			Actions.RemoveAt(ActionIdx);
 		}
 	}
 }

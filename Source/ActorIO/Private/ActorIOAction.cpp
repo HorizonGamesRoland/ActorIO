@@ -86,6 +86,11 @@ void UActorIOAction::BindAction()
 
 void UActorIOAction::UnbindAction()
 {
+	if (!bIsBound)
+	{
+		return;
+	}
+
 	UActorIOComponent* OwnerIOComponent = GetOwnerIOComponent();
 	if (!OwnerIOComponent)
 	{
@@ -99,32 +104,29 @@ void UActorIOAction::UnbindAction()
 		return;
 	}
 
-	if (bIsBound)
+	FMulticastScriptDelegate* TargetDelegate = TargetEvent->MulticastDelegatePtr;
+	if (TargetDelegate)
 	{
-		FMulticastScriptDelegate* TargetDelegate = TargetEvent->MulticastDelegatePtr;
-		if (TargetDelegate)
+		TargetDelegate->Remove(ActionDelegate);
+		bIsBound = false;
+	}
+	else if (!TargetEvent->SparseDelegateName.IsNone())
+	{
+		FSparseDelegate* SparseDelegate = FSparseDelegateStorage::ResolveSparseDelegate(TargetEvent->DelegateOwner, TargetEvent->SparseDelegateName);
+		if (SparseDelegate)
 		{
-			TargetDelegate->Remove(ActionDelegate);
+			SparseDelegate->__Internal_Remove(TargetEvent->DelegateOwner, TargetEvent->SparseDelegateName, ActionDelegate);
 			bIsBound = false;
 		}
-		else if (!TargetEvent->SparseDelegateName.IsNone())
+	}
+	else if (!TargetEvent->BlueprintDelegateName.IsNone())
+	{
+		UClass* DelegateOwnerClass = TargetEvent->DelegateOwner->GetClass();
+		FMulticastDelegateProperty* DelegateProp = CastField<FMulticastDelegateProperty>(DelegateOwnerClass->FindPropertyByName(TargetEvent->BlueprintDelegateName));
+		if (DelegateProp)
 		{
-			FSparseDelegate* SparseDelegate = FSparseDelegateStorage::ResolveSparseDelegate(TargetEvent->DelegateOwner, TargetEvent->SparseDelegateName);
-			if (SparseDelegate)
-			{
-				SparseDelegate->__Internal_Remove(TargetEvent->DelegateOwner, TargetEvent->SparseDelegateName, ActionDelegate);
-				bIsBound = false;
-			}
-		}
-		else if (!TargetEvent->BlueprintDelegateName.IsNone())
-		{
-			UClass* DelegateOwnerClass = TargetEvent->DelegateOwner->GetClass();
-			FMulticastDelegateProperty* DelegateProp = CastField<FMulticastDelegateProperty>(DelegateOwnerClass->FindPropertyByName(TargetEvent->BlueprintDelegateName));
-			if (DelegateProp)
-			{
-				DelegateProp->RemoveDelegate(ActionDelegate, TargetEvent->DelegateOwner);
-				bIsBound = false;
-			}
+			DelegateProp->RemoveDelegate(ActionDelegate, TargetEvent->DelegateOwner);
+			bIsBound = false;
 		}
 	}
 }
@@ -135,6 +137,12 @@ void UActorIOAction::ExecuteAction()
 	{
 		// The target actor was invalid.
 		// Actor was most likely destroyed.
+		return;
+	}
+
+	if (bExecuteOnlyOnce && bWasExecuted)
+	{
+		// Action has already been executed once.
 		return;
 	}
 
@@ -152,11 +160,23 @@ void UActorIOAction::ExecuteAction()
 
 	UE_LOG(LogTemp, Warning, TEXT("Executing action: %s"), *Command);
 
-	FOutputDeviceNull Ar;
-	if (TargetActor->CallFunctionByNameWithArguments(*Command, Ar, this, true))
+	FTimerDelegate ExecutionDelegate = FTimerDelegate::CreateLambda([this, Command]()
 	{
-		bWasExecuted = true;
+		FOutputDeviceNull Ar;
+		TargetActor->CallFunctionByNameWithArguments(*Command, Ar, this, true);
+	});
+
+	if (Delay > 0.0f)
+	{
+		FTimerHandle UnusedTimerHandle;
+		GetWorld()->GetTimerManager().SetTimer(UnusedTimerHandle, ExecutionDelegate, Delay, false);
 	}
+	else
+	{
+		ExecutionDelegate.Execute();
+	}
+
+	bWasExecuted = true;
 }
 
 UActorIOComponent* UActorIOAction::GetOwnerIOComponent() const
@@ -169,4 +189,11 @@ AActor* UActorIOAction::GetOwnerActor() const
 {
 	UActorIOComponent* OwnerComponent = GetOwnerIOComponent();
 	return OwnerComponent ? OwnerComponent->GetOwner() : nullptr;
+}
+
+void UActorIOAction::BeginDestroy()
+{
+	GetWorld()->GetTimerManager().ClearAllTimersForObject(this);
+
+	Super::BeginDestroy();
 }

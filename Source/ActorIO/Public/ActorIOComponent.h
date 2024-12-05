@@ -23,9 +23,6 @@ protected:
 	UPROPERTY(Instanced, EditAnywhere) // <--- #TEMP: edit anywhere for debugging
 	TArray<TObjectPtr<UActorIOAction>> Actions;
 
-	UPROPERTY()
-	TArray<FActorIOMessage> MessageStack;
-
 public:
 
 	UActorIOAction* CreateNewAction();

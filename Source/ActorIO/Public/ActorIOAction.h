@@ -50,7 +50,7 @@ public:
 	void BindAction();
 
 	void UnbindAction();
-	
+
 	UActorIOComponent* GetOwnerIOComponent() const;
 
 	AActor* GetOwnerActor() const;
@@ -59,4 +59,8 @@ protected:
 
 	UFUNCTION()
 	void ExecuteAction();
+
+public:
+
+	virtual void BeginDestroy() override;
 };
