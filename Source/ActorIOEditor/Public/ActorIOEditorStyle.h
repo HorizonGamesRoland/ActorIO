@@ -17,6 +17,15 @@ private:
 
 public:
 
+	/** Height of action entries. Same as PropertyEditorConstants::PropertyRowHeight. */
+	static constexpr float ActionHeight = 26.0f;
+	/** Height of header rows. */
+	static constexpr float HeaderRowHeight = 28.0f;
+	/** Height of primary tool buttons. */
+	static constexpr float ToolButtonHeight = 38.0f;
+
+public:
+
 	/**
 	 * Initializes the style set.
 	 * Called during module startup.

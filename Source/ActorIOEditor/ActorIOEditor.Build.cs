@@ -31,6 +31,7 @@ public class ActorIOEditor : ModuleRules
             "SlateCore",
             "InputCore",
             "WorkspaceMenuStructure",
+            "ToolWidgets",
         });
     }
 }

@@ -5,11 +5,13 @@
 #include "SActorIOAction.h"
 #include "ActorIOEditor.h"
 #include "ActorIOEditorSubsystem.h"
+#include "ActorIOEditorStyle.h"
 #include "ActorIOSystem.h"
 #include "ActorIOComponent.h"
 #include "ActorIOAction.h"
 #include "GameFramework/Actor.h"
 #include "LevelEditor.h"
+#include "SPositiveActionButton.h"
 
 #define LOCTEXT_NAMESPACE "ActorIOEditor"
 
@@ -31,53 +33,75 @@ void SActorIOEditor::Construct(const FArguments& InArgs)
     ChildSlot
     [
         SNew(SSplitter)
+        .PhysicalSplitterHandleSize(0.0f)
         + SSplitter::Slot()
         .Value(0.33f)
         [
-            // ---------------------------------
-            //~ Menu panel with buttons
-            // ---------------------------------
             SNew(SBox)
             .Padding(3.0f)
             [
                 SNew(SVerticalBox)
                 + SVerticalBox::Slot()
                 .AutoHeight()
-                .Padding(5.0f, 0.0f, 0.0f, 0.0f)
+                .Padding(0.0f, 0.0f, 0.0f, 3.0f)
+                [
+                    SNew(SBorder)
+                    .BorderImage(FActorIOEditorStyle::Get().GetBrush("RoundedHeaderBrush"))
+                    .Padding(0.0f)
+                    [
+                        SNew(SBox)
+                        .HeightOverride(FActorIOEditorStyle::HeaderRowHeight)
+                        .Padding(10.0f, 0.0f)
+                        [
+                            SNew(SHorizontalBox)
+                            + SHorizontalBox::Slot()
+                            .VAlign(VAlign_Center)
+                            .AutoWidth()
+                            .Padding(0.0f, 0.0f, 5.0f, 0.0f)
+                            [
+                                SNew(SImage)
+                                .Image(FAppStyle::Get().GetBrush("ClassIcon.Actor"))
+                            ]
+                            + SHorizontalBox::Slot()
+                            .VAlign(VAlign_Center)
+                            [
+                                SAssignNew(SelectedActorText, STextBlock)
+                            ]
+                        ]
+                    ]
+                ]
+                + SVerticalBox::Slot()
+                .AutoHeight()
+                .Padding(0.0f, 0.0f, 0.0f, 3.0f)
                 [
                     SNew(SBox)
-                    .HeightOverride(25.0f)
-                    .VAlign(VAlign_Center)
+                    .HeightOverride(FActorIOEditorStyle::ToolButtonHeight)
                     [
-                        SAssignNew(SelectedActorText, STextBlock)
+                        SNew(SButton)
+                        .HAlign(HAlign_Center)
+                        .VAlign(VAlign_Center)
+                        .OnClicked(this, &SActorIOEditor::OnClick_Outputs)
+                        [
+                            SAssignNew(OutputsButtonText, STextBlock)
+                            .Visibility(EVisibility::HitTestInvisible)
+                        ]
                     ]
                 ]
                 + SVerticalBox::Slot()
                 .AutoHeight()
-                .Padding(0.0f, 0.0f, 0.0f, 2.0f)
+                .Padding(0.0f, 0.0f, 0.0f, 3.0f)
                 [
-                    SNew(SButton)
-                    .HAlign(HAlign_Center)
-                    .VAlign(VAlign_Center)
-                    .ContentPadding(10.0f)
-                    .OnClicked(this, &SActorIOEditor::OnClick_Outputs)
+                    SNew(SBox)
+                    .HeightOverride(FActorIOEditorStyle::ToolButtonHeight)
                     [
-                        SAssignNew(OutputsButtonText, STextBlock)
-                        .Visibility(EVisibility::HitTestInvisible)
-                    ]
-                ]
-                + SVerticalBox::Slot()
-                .AutoHeight()
-                .Padding(0.0f, 0.0f, 0.0f, 2.0f)
-                [
-                    SNew(SButton)
-                    .HAlign(HAlign_Center)
-                    .VAlign(VAlign_Center)
-                    .ContentPadding(10.0f)
-                    .OnClicked(this, &SActorIOEditor::OnClick_Inputs)
-                    [
-                        SAssignNew(InputsButtonText, STextBlock)
-                        .Visibility(EVisibility::HitTestInvisible)
+                        SNew(SButton)
+                        .HAlign(HAlign_Center)
+                        .VAlign(VAlign_Center)
+                        .OnClicked(this, &SActorIOEditor::OnClick_Inputs)
+                        [
+                            SAssignNew(InputsButtonText, STextBlock)
+                            .Visibility(EVisibility::HitTestInvisible)
+                        ]
                     ]
                 ]
                 + SVerticalBox::Slot()
@@ -88,25 +112,20 @@ void SActorIOEditor::Construct(const FArguments& InArgs)
                 + SVerticalBox::Slot()
                 .AutoHeight()
                 [
-                    SNew(SButton)
-                    .HAlign(HAlign_Center)
-                    .VAlign(VAlign_Center)
-                    .ContentPadding(10.0f)
-                    .Text(LOCTEXT("NewAction", "+ New Action"))
-                    .OnClicked(this, &SActorIOEditor::OnClick_NewAction)
+                    SNew(SBox)
+                    .HeightOverride(FActorIOEditorStyle::ToolButtonHeight)
+                    [
+                        SNew(SPositiveActionButton)
+                        .Text(LOCTEXT("NewAction", "New Action"))
+                        .OnClicked(this, &SActorIOEditor::OnClick_NewAction)
+                    ]
                 ]
             ]
         ]
         + SSplitter::Slot()
         [
-            SNew(SBox)
+            SAssignNew(ActionPanel, SBox)
             .Padding(0.0f, 3.0f, 3.0f, 3.0f)
-            [
-                // ---------------------------------
-                //~ Actions panel
-                // ---------------------------------
-                SAssignNew(ActionPanel, SBox)
-            ]
         ]
     ];
 
@@ -120,8 +139,7 @@ void SActorIOEditor::Refresh()
     UActorIOComponent* ActorIOComponent = SelectedActor ? SelectedActor->GetComponentByClass<UActorIOComponent>() : nullptr;
 
     const FString ActorName = SelectedActor ? SelectedActor->GetActorNameOrLabel() : TEXT("None");
-    SelectedActorText->SetText(FText::FormatNamed(LOCTEXT("SelectedActorName", "Actor: {Name}"),
-        TEXT("Name"), FText::FromString(ActorName)));
+    SelectedActorText->SetText(FText::FromString(ActorName));
 
     const int32 NumOutputActions = ActorIOComponent ? ActorIOComponent->GetNumActions() : 0;
     OutputsButtonText->SetText(FText::FormatNamed(LOCTEXT("OutputsButton", "Outputs ({Count})"),

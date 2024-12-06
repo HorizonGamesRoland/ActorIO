@@ -14,6 +14,10 @@
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
+//=======================================================
+//~ Begin SActorIOAction
+//=======================================================
+
 SLATE_IMPLEMENT_WIDGET(SActorIOAction)
 void SActorIOAction::PrivateRegisterAttributes(FSlateAttributeInitializer& AttributeInitializer)
 {
@@ -29,7 +33,7 @@ void SActorIOAction::Construct(const FArguments& InArgs)
 	ChildSlot
 	[
 		SNew(SBox)
-		.HeightOverride(26.0f) // PropertyEditorConstants::PropertyRowHeight
+		.HeightOverride(FActorIOEditorStyle::ActionHeight)
 		.Padding(0.0f, 0.0f, 0.0f, 2.0f)
 		[
 			SAssignNew(PropertySplitter, SSplitter)
@@ -154,6 +158,9 @@ FSlateColor SActorIOAction::GetFunctionTextColor(FName InFunctionId) const
 }
 
 
+//=======================================================
+//~ Begin SActorOutputAction
+//=======================================================
 
 SLATE_IMPLEMENT_WIDGET(SActorOutputAction)
 void SActorOutputAction::PrivateRegisterAttributes(FSlateAttributeInitializer& AttributeInitializer)
@@ -176,10 +183,10 @@ void SActorOutputAction::InitializeAction()
 		+ SHorizontalBox::Slot()
 		.VAlign(VAlign_Center)
 		.AutoWidth()
-		.Padding(3.0f, 0.0f)
+		.Padding(5.0f, 0.0f)
 		[
 			SNew(SImage)
-			.Image(FActorIOEditorStyle::Get().GetBrush("OutputActionIcon"))
+			.Image(FActorIOEditorStyle::Get().GetBrush("Action.OutputIcon"))
 		]
 		+ SHorizontalBox::Slot()
 		[
@@ -197,10 +204,10 @@ void SActorOutputAction::InitializeAction()
 		+ SHorizontalBox::Slot()
 		.VAlign(VAlign_Center)
 		.AutoWidth()
-		.Padding(3.0f, 0.0f)
+		.Padding(5.0f, 0.0f)
 		[
 			SNew(SImage)
-			.Image(FActorIOEditorStyle::Get().GetBrush("ActionArrowIcon"))
+			.Image(FActorIOEditorStyle::Get().GetBrush("Action.TargetIcon"))
 		]
 	];
 
@@ -286,13 +293,18 @@ void SActorOutputAction::InitializeAction()
 		]
 		+ SHorizontalBox::Slot()
 		.AutoWidth()
+		.Padding(0.0f, 0.0f, 3.0f, 0.0f)
 		[
 			SNew(SButton)
 			.HAlign(HAlign_Center)
 			.VAlign(VAlign_Center)
 			.ContentPadding(0.0f)
-			.Text(LOCTEXT("RemoveAction", "X"))
 			.OnClicked(this, &SActorOutputAction::OnClick_RemoveAction)
+			[
+				SNew(SImage)
+				.Image(FAppStyle::GetBrush("Icons.Delete"))
+				.Visibility(EVisibility::HitTestInvisible)
+			]
 		]
 	];
 }
@@ -445,6 +457,10 @@ FReply SActorOutputAction::OnClick_RemoveAction()
 }
 
 
+//=======================================================
+//~ Begin SActorInputAction
+//=======================================================
+
 SLATE_IMPLEMENT_WIDGET(SActorInputAction)
 void SActorInputAction::PrivateRegisterAttributes(FSlateAttributeInitializer& AttributeInitializer)
 {
@@ -469,7 +485,7 @@ void SActorInputAction::InitializeAction()
 		.Padding(5.0f, 0.0f)
 		[
 			SNew(SImage)
-			.Image(FActorIOEditorStyle::Get().GetBrush("InputActionIcon"))
+			.Image(FActorIOEditorStyle::Get().GetBrush("Action.InputIcon"))
 		]
 		+ SHorizontalBox::Slot()
 		.Padding(0.0f, 0.0f, 3.0f, 0.0f)
@@ -498,7 +514,7 @@ void SActorInputAction::InitializeAction()
 		.Padding(5.0f, 0.0f)
 		[
 			SNew(SImage)
-			.Image(FActorIOEditorStyle::Get().GetBrush("ActionArrowIcon"))
+			.Image(FActorIOEditorStyle::Get().GetBrush("Action.TargetIcon"))
 		]
 	];
 

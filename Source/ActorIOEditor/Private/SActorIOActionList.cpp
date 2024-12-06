@@ -6,10 +6,15 @@
 #include "ActorIOComponent.h"
 #include "ActorIOAction.h"
 #include "ActorIOEditorSubsystem.h"
+#include "ActorIOEditorStyle.h"
 
 #define LOCTEXT_NAMESPACE "ActorIOEditor"
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
+
+//=======================================================
+//~ Begin SActorIOActionList
+//=======================================================
 
 SLATE_IMPLEMENT_WIDGET(SActorIOActionList)
 void SActorIOActionList::PrivateRegisterAttributes(FSlateAttributeInitializer& AttributeInitializer)
@@ -20,25 +25,28 @@ void SActorIOActionList::Construct(const FArguments& InArgs)
 {
 	ChildSlot
 	[
-		SNew(SVerticalBox)
-        + SVerticalBox::Slot()
-        .AutoHeight()
+        SNew(SBorder)
+        .BorderImage(FActorIOEditorStyle::Get().GetBrush("ActionList.Body"))
+        .Padding(0.0f)
         [
-            SNew(SBorder)
-            .BorderImage(FAppStyle::Get().GetBrush("Brushes.Header"))
+            SNew(SVerticalBox)
+            + SVerticalBox::Slot()
+            .AutoHeight()
+            .Padding(1.0f, 1.0f, 1.0f, 3.0f)
             [
-                SNew(SBox)
-                .HeightOverride(25.0f)
+                SNew(SBorder)
+                .BorderImage(FActorIOEditorStyle::Get().GetBrush("ActionList.Header"))
+                .Padding(0.0f)
                 [
-                    SAssignNew(ActionPropertySplitter, SSplitter)
-                    .PhysicalSplitterHandleSize(1.0f)
+                    SNew(SBox)
+                    .HeightOverride(FActorIOEditorStyle::HeaderRowHeight)
+                    [
+                        SAssignNew(ActionPropertySplitter, SSplitter)
+                        .PhysicalSplitterHandleSize(1.0f)
+                    ]
                 ]
             ]
-        ]
-        + SVerticalBox::Slot()
-        [
-            SNew(SBorder)
-            .BorderImage(FAppStyle::Get().GetBrush("Brushes.Recessed"))
+            + SVerticalBox::Slot()
             [
                 SAssignNew(ActionList, SVerticalBox)
             ]
@@ -99,6 +107,10 @@ void SActorIOActionList::OnActionPropertyResized(int32 InSlotIndex, float InSize
 }
 
 
+//=======================================================
+//~ Begin SActorOutputList
+//=======================================================
+
 SLATE_IMPLEMENT_WIDGET(SActorOutputList)
 void SActorOutputList::PrivateRegisterAttributes(FSlateAttributeInitializer& AttributeInitializer)
 {
@@ -143,6 +155,10 @@ void SActorOutputList::Refresh()
     }
 }
 
+
+//=======================================================
+//~ Begin SActorInputList
+//=======================================================
 
 SLATE_IMPLEMENT_WIDGET(SActorInputList)
 void SActorInputList::PrivateRegisterAttributes(FSlateAttributeInitializer& AttributeInitializer)
