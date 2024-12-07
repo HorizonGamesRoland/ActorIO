@@ -24,21 +24,22 @@ void SActorIOEditor::PrivateRegisterAttributes(FSlateAttributeInitializer& Attri
 
 void SActorIOEditor::Construct(const FArguments& InArgs)
 {
-    OutputsTab = SNew(SActorOutputList);
-    InputsTab = SNew(SActorInputList);
+    OutputActionList = SNew(SActorOutputList);
+    InputActionList = SNew(SActorInputList);
 
     // Display output actions by default.
     bViewOutputs = true;
 
     ChildSlot
     [
-        SNew(SSplitter)
-        .PhysicalSplitterHandleSize(0.0f)
-        + SSplitter::Slot()
-        .Value(0.33f)
+        SNew(SBox)
+        .Padding(3.0f)
         [
-            SNew(SBox)
-            .Padding(3.0f)
+            SNew(SSplitter)
+            .PhysicalSplitterHandleSize(0.0f)
+            + SSplitter::Slot()
+            .MinSize(70)
+            .Value(0.33f)
             [
                 SNew(SVerticalBox)
                 + SVerticalBox::Slot()
@@ -121,11 +122,11 @@ void SActorIOEditor::Construct(const FArguments& InArgs)
                     ]
                 ]
             ]
-        ]
-        + SSplitter::Slot()
-        [
-            SAssignNew(ActionPanel, SBox)
-            .Padding(0.0f, 3.0f, 3.0f, 3.0f)
+            + SSplitter::Slot()
+            [
+                SAssignNew(ActionPanel, SBox)
+                .Padding(3.0f, 0.0f, 0.0f, 0.0f)
+            ]
         ]
     ];
 
@@ -151,13 +152,13 @@ void SActorIOEditor::Refresh()
 
     if (bViewOutputs)
     {
-        ActionPanel->SetContent(OutputsTab.ToSharedRef());
-        OutputsTab->Refresh();
+        ActionPanel->SetContent(OutputActionList.ToSharedRef());
+        OutputActionList->Refresh();
     }
     else
     {
-        ActionPanel->SetContent(InputsTab.ToSharedRef());
-        InputsTab->Refresh();
+        ActionPanel->SetContent(InputActionList.ToSharedRef());
+        InputActionList->Refresh();
     }
 }
 

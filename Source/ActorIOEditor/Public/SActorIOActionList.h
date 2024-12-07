@@ -21,9 +21,11 @@ public:
 
 protected:
 
-    TSharedPtr<class SSplitter> ActionPropertySplitter;
+    TSharedPtr<class SBox> PropertyHeaderContainer;
 
-    TArray<float> ActionPropertySizes;
+    TSharedPtr<class SSplitter> PropertyHeaderSplitter;
+
+    TArray<float> PropertyHeaderSizes;
 
     TSharedPtr<class SVerticalBox> ActionList;
 
@@ -33,7 +35,9 @@ protected:
 
     void AddPropertyHeader(const FText& InPropertyName, float InSizeValue, const FMargin& InPadding);
 
-    void OnActionPropertyResized(int32 InSlotIndex, float InSize);
+    void OnPropertyHeaderResized(int32 InSlotIndex, float InSize);
+
+    void OnScrollBarVisibilityChanged(EVisibility InVisibility);
 };
 
 

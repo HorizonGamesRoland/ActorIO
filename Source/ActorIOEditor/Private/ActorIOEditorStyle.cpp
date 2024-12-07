@@ -25,9 +25,9 @@ void FActorIOEditorStyle::Initialize()
 	StyleSet->SetContentRoot(PluginResources);
 	StyleSet->SetCoreContentRoot(EditorResources);
 
-	StyleSet->Set("RoundedHeaderBrush", new FSlateRoundedBoxBrush(FStyleColors::Header, FStyleColors::Black, 1.0f));
-	StyleSet->Set("ActionList.Header", new FSlateRoundedBoxBrush(FStyleColors::Header, 4.0f, FStyleColors::Black, 0.0f));
-	StyleSet->Set("ActionList.Body", new FSlateRoundedBoxBrush(FStyleColors::Recessed, 4.0f, FStyleColors::Black, 1.0f));
+	StyleSet->Set("RoundedHeaderBrush", new FSlateRoundedBoxBrush(FStyleColors::Header, FStyleColors::Input, 1.0f));
+	StyleSet->Set("ActionList.Header", new FSlateRoundedBoxBrush(FStyleColors::Header, 4.0f, FStyleColors::Input, 0.0f));
+	StyleSet->Set("ActionList.Body", new FSlateRoundedBoxBrush(FStyleColors::Recessed, 4.0f, FStyleColors::Input, 1.0f));
 
 	const FVector2D Icon16x16(16.0f, 16.0f);
 

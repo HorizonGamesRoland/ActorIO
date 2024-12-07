@@ -32,54 +32,60 @@ void SActorIOActionList::Construct(const FArguments& InArgs)
             SNew(SVerticalBox)
             + SVerticalBox::Slot()
             .AutoHeight()
-            .Padding(1.0f, 1.0f, 1.0f, 3.0f)
+            .Padding(1.0f, 1.0f, 1.0f, 0.0f)
             [
                 SNew(SBorder)
                 .BorderImage(FActorIOEditorStyle::Get().GetBrush("ActionList.Header"))
                 .Padding(0.0f)
                 [
-                    SNew(SBox)
+                    SAssignNew(PropertyHeaderContainer, SBox)
                     .HeightOverride(FActorIOEditorStyle::HeaderRowHeight)
                     [
-                        SAssignNew(ActionPropertySplitter, SSplitter)
+                        SAssignNew(PropertyHeaderSplitter, SSplitter)
                         .PhysicalSplitterHandleSize(1.0f)
                     ]
                 ]
             ]
             + SVerticalBox::Slot()
             [
-                SAssignNew(ActionList, SVerticalBox)
+                SNew(SScrollBox)
+                .ScrollBarThickness(FVector2D(FActorIOEditorStyle::ActionListScrollbarThickness))
+                .OnScrollBarVisibilityChanged(this, &SActorIOActionList::OnScrollBarVisibilityChanged)
+                + SScrollBox::Slot()
+                [
+                    SAssignNew(ActionList, SVerticalBox)
+                ]
             ]
         ]
 	];
 
     InitializeHeaderRow();
 
-    if (ActionPropertySizes.IsEmpty())
+    if (PropertyHeaderSizes.IsEmpty())
     {
-        const int32 NumSlots = ActionPropertySplitter->GetChildren()->Num();
-        ActionPropertySizes.Init(1.0f, NumSlots);
+        const int32 NumSlots = PropertyHeaderSplitter->GetChildren()->Num();
+        PropertyHeaderSizes.Init(1.0f, NumSlots);
 
         for (int32 SlotIdx = 0; SlotIdx != NumSlots; ++SlotIdx)
         {
-            const float TargetSize = ActionPropertySplitter->SlotAt(SlotIdx).GetSizeValue();
-            ActionPropertySizes[SlotIdx] = TargetSize;
+            const float TargetSize = PropertyHeaderSplitter->SlotAt(SlotIdx).GetSizeValue();
+            PropertyHeaderSizes[SlotIdx] = TargetSize;
         }
     }
 
-    for (int32 SlotIdx = 0; SlotIdx != ActionPropertySizes.Num(); ++SlotIdx)
+    for (int32 SlotIdx = 0; SlotIdx != PropertyHeaderSizes.Num(); ++SlotIdx)
     {
-        OnActionPropertyResized(SlotIdx, ActionPropertySizes[SlotIdx]);
+        OnPropertyHeaderResized(SlotIdx, PropertyHeaderSizes[SlotIdx]);
     }
 }
 
 void SActorIOActionList::AddPropertyHeader(const FText& InPropertyName, float InSizeValue, const FMargin& InPadding)
 {
-    const int32 PropertyIndex = ActionPropertySplitter->GetChildren()->Num();
+    const int32 PropertyIndex = PropertyHeaderSplitter->GetChildren()->Num();
 
-    ActionPropertySplitter->AddSlot()
+    PropertyHeaderSplitter->AddSlot()
     .Value(InSizeValue)
-    .OnSlotResized_Lambda([this, PropertyIndex](float InSize) { OnActionPropertyResized(PropertyIndex, InSize); })
+    .OnSlotResized_Lambda([this, PropertyIndex](float InSize) { OnPropertyHeaderResized(PropertyIndex, InSize); })
     [
         SNew(SBox)
         .VAlign(VAlign_Center)
@@ -91,19 +97,34 @@ void SActorIOActionList::AddPropertyHeader(const FText& InPropertyName, float In
     ];
 }
 
-void SActorIOActionList::OnActionPropertyResized(int32 InSlotIndex, float InSize)
+void SActorIOActionList::OnPropertyHeaderResized(int32 InSlotIndex, float InSize)
 {
-    ActionPropertySizes[InSlotIndex] = InSize;
-    ActionPropertySplitter->SlotAt(InSlotIndex).SetSizeValue(InSize);
+    PropertyHeaderSizes[InSlotIndex] = InSize;
+    PropertyHeaderSplitter->SlotAt(InSlotIndex).SetSizeValue(InSize);
 
     if (FChildren* ChildWidgets = ActionList->GetChildren())
     {
         ChildWidgets->ForEachWidget([InSlotIndex, InSize](SWidget& ChildWidget)
         {
-            SActorIOAction& ActionWidget = static_cast<SActorIOAction&>(ChildWidget);
-            ActionWidget.SetPropertySize(InSlotIndex, InSize);
+            const FName WidgetType = ChildWidget.GetType();
+            if (WidgetType == TEXT("SActorOutputAction") || WidgetType == TEXT("SActorInputAction"))
+            {
+                SActorIOAction& ActionWidget = static_cast<SActorIOAction&>(ChildWidget);
+                ActionWidget.SetPropertySize(InSlotIndex, InSize);
+            }
         });
     }
+}
+
+void SActorIOActionList::OnScrollBarVisibilityChanged(EVisibility InVisibility)
+{
+    FMargin Padding = FMargin(0.0f);
+    if (InVisibility == EVisibility::Visible)
+    {
+        Padding.Right = FActorIOEditorStyle::ActionListScrollbarThickness;
+    }
+
+    PropertyHeaderContainer->SetPadding(Padding);
 }
 
 
@@ -149,7 +170,18 @@ void SActorOutputList::Refresh()
             [
                 SNew(SActorOutputAction)
                 .Action(Action)
-                .PropertySizes(ActionPropertySizes)
+                .PropertySizes(PropertyHeaderSizes)
+            ];
+        }
+
+        // Add closing gap between last action and bottom of scroll box.
+        if (ActorIOComponent->GetNumActions() > 0)
+        {
+            ActionList->AddSlot()
+            .AutoHeight()
+            [
+                SNew(SSpacer)
+                .Size(FVector2D(0.0f, FActorIOEditorStyle::ActionSpacing))
             ];
         }
     }
@@ -194,7 +226,7 @@ void SActorInputList::Refresh()
         [
             SNew(SActorInputAction)
             .Action(InputAction)
-            .PropertySizes(ActionPropertySizes)
+            .PropertySizes(PropertyHeaderSizes)
         ];
     }
 }

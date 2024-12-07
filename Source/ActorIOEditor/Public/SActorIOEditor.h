@@ -29,9 +29,9 @@ protected:
 
     TSharedPtr<class SBox> ActionPanel;
 
-    TSharedPtr<class SActorOutputList> OutputsTab;
+    TSharedPtr<class SActorOutputList> OutputActionList;
 
-    TSharedPtr<class SActorInputList> InputsTab;
+    TSharedPtr<class SActorInputList> InputActionList;
 
     bool bViewOutputs;
 
