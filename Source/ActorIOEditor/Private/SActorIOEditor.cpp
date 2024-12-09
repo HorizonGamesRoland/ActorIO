@@ -12,6 +12,8 @@
 #include "GameFramework/Actor.h"
 #include "LevelEditor.h"
 #include "SPositiveActionButton.h"
+#include "Styling/SlateTypes.h"
+#include "Misc/Optional.h"
 
 #define LOCTEXT_NAMESPACE "ActorIOEditor"
 
@@ -47,7 +49,7 @@ void SActorIOEditor::Construct(const FArguments& InArgs)
                 .Padding(0.0f, 0.0f, 0.0f, 3.0f)
                 [
                     SNew(SBorder)
-                    .BorderImage(FActorIOEditorStyle::Get().GetBrush("RoundedHeaderBrush"))
+                    .BorderImage(FActorIOEditorStyle::Get().GetBrush("RoundedHeader"))
                     .Padding(0.0f)
                     [
                         SNew(SBox)
@@ -78,13 +80,19 @@ void SActorIOEditor::Construct(const FArguments& InArgs)
                     SNew(SBox)
                     .HeightOverride(FActorIOEditorStyle::ToolButtonHeight)
                     [
-                        SNew(SButton)
-                        .HAlign(HAlign_Center)
-                        .VAlign(VAlign_Center)
-                        .OnClicked(this, &SActorIOEditor::OnClick_Outputs)
+                        SNew(SCheckBox)
+                        .Type(ESlateCheckBoxType::ToggleButton)
+                        .Style(&FActorIOEditorStyle::Get().GetWidgetStyle<FCheckBoxStyle>("ToggleButtonCheckbox"))
+                        .IsChecked(this, &SActorIOEditor::IsOutputsButtonChecked)
+                        .OnCheckStateChanged(this, &SActorIOEditor::OnOutputsButtonChecked)
                         [
-                            SAssignNew(OutputsButtonText, STextBlock)
-                            .Visibility(EVisibility::HitTestInvisible)
+                            SNew(SBox)
+                            .HAlign(HAlign_Center)
+                            .VAlign(VAlign_Center)
+                            [
+                                SAssignNew(OutputsButtonText, STextBlock)
+                                .Visibility(EVisibility::HitTestInvisible)
+                            ]
                         ]
                     ]
                 ]
@@ -95,13 +103,19 @@ void SActorIOEditor::Construct(const FArguments& InArgs)
                     SNew(SBox)
                     .HeightOverride(FActorIOEditorStyle::ToolButtonHeight)
                     [
-                        SNew(SButton)
-                        .HAlign(HAlign_Center)
-                        .VAlign(VAlign_Center)
-                        .OnClicked(this, &SActorIOEditor::OnClick_Inputs)
+                        SNew(SCheckBox)
+                        .Type(ESlateCheckBoxType::ToggleButton)
+                        .Style(&FActorIOEditorStyle::Get().GetWidgetStyle<FCheckBoxStyle>("ToggleButtonCheckbox"))
+                        .IsChecked(this, &SActorIOEditor::IsInputsButtonChecked)
+                        .OnCheckStateChanged(this, &SActorIOEditor::OnInputsButtonChecked)
                         [
-                            SAssignNew(InputsButtonText, STextBlock)
-                            .Visibility(EVisibility::HitTestInvisible)
+                            SNew(SBox)
+                            .HAlign(HAlign_Center)
+                            .VAlign(VAlign_Center)
+                            [
+                                SAssignNew(InputsButtonText, STextBlock)
+                                .Visibility(EVisibility::HitTestInvisible)
+                            ]
                         ]
                     ]
                 ]
@@ -162,26 +176,32 @@ void SActorIOEditor::Refresh()
     }
 }
 
-FReply SActorIOEditor::OnClick_Outputs()
+ECheckBoxState SActorIOEditor::IsOutputsButtonChecked() const
 {
-    if (!bViewOutputs)
+    return bViewOutputs ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+}
+
+void SActorIOEditor::OnOutputsButtonChecked(ECheckBoxState InState)
+{
+    if (InState == ECheckBoxState::Checked && !bViewOutputs)
     {
         bViewOutputs = true;
         Refresh();
     }
-    
-    return FReply::Handled();
 }
 
-FReply SActorIOEditor::OnClick_Inputs()
+ECheckBoxState SActorIOEditor::IsInputsButtonChecked() const
 {
-    if (bViewOutputs)
+    return !bViewOutputs ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+}
+
+void SActorIOEditor::OnInputsButtonChecked(ECheckBoxState InState)
+{
+    if (InState == ECheckBoxState::Checked && bViewOutputs)
     {
         bViewOutputs = false;
         Refresh();
     }
-
-    return FReply::Handled();
 }
 
 FReply SActorIOEditor::OnClick_NewAction()

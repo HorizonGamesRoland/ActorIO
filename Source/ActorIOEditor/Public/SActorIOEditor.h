@@ -37,9 +37,13 @@ protected:
 
 protected:
 
-    FReply OnClick_Outputs();
+    ECheckBoxState IsOutputsButtonChecked() const;
 
-    FReply OnClick_Inputs();
+    void OnOutputsButtonChecked(ECheckBoxState InState);
+
+    ECheckBoxState IsInputsButtonChecked() const;
+
+    void OnInputsButtonChecked(ECheckBoxState InState);
 
     FReply OnClick_NewAction();
 };
