@@ -156,3 +156,77 @@ protected:
 
     TSharedPtr<class SEditableTextBox> FunctionArgumentsTextBox;
 };
+
+
+
+
+class SActorOutputListViewRow : public SMultiColumnTableRow<TWeakObjectPtr<UActorIOAction>>
+{
+    SLATE_DECLARE_WIDGET(SActorOutputListViewRow, SMultiColumnTableRow<TWeakObjectPtr<UActorIOAction>>)
+
+public:
+
+    SLATE_BEGIN_ARGS(SActorOutputListViewRow)
+    {}
+    SLATE_END_ARGS()
+
+    void Construct(const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTableView, TWeakObjectPtr<UActorIOAction> InActionPtr);
+
+    virtual TSharedRef<SWidget> GenerateWidgetForColumn(const FName& ColumnName) override;
+
+protected:
+
+    TWeakObjectPtr<UActorIOAction> ActionPtr;
+
+    TArray<FActorIOEvent> ValidEvents;
+
+    TArray<FActorIOFunction> ValidFunctions;
+
+    TArray<FName> SelectableEventIds;
+
+    TArray<FName> SelectableFunctionIds;
+
+protected:
+
+    void UpdateSelectableEvents();
+
+    void UpdateSelectableFunctions();
+
+    FText GetEventDisplayName(FName InEventId) const;
+
+    FText GetEventTooltipText(FName InEventId) const;
+
+    FSlateColor GetEventTextColor(FName InEventId) const;
+
+    FText GetFunctionDisplayName(FName InFunctionId) const;
+
+    FText GetFunctionTooltipText(FName InFunctionId) const;
+
+    FSlateColor GetFunctionTextColor(FName InFunctionId) const;
+
+    TSharedRef<SWidget> OnGenerateEventComboBoxWidget(FName InName);
+
+    TSharedRef<SWidget> OnGenerateFunctionComboBoxWidget(FName InName);
+
+protected:
+
+    void OnEventChanged(FName InName, ESelectInfo::Type InSelectType);
+
+    void OnTargetActorChanged(const FAssetData& InAssetData);
+
+    FString GetTargetActorPath() const;
+
+    void OnTargetFunctionChanged(FName InName, ESelectInfo::Type InSelectType);
+
+    void OnFunctionArgumentsChanged(const FText& InText, ETextCommit::Type InCommitType);
+
+    float GetActionDelay() const;
+
+    void OnActionDelayChanged(float InValue, ETextCommit::Type InCommitType);
+
+    ECheckBoxState IsExecuteOnlyOnceChecked() const;
+
+    void OnExecuteOnlyOnceChecked(ECheckBoxState InState);
+
+    FReply OnClick_RemoveAction();
+};

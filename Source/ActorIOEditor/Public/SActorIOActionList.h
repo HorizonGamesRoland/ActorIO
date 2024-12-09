@@ -73,3 +73,31 @@ public:
     virtual void InitializeHeaderRow() override;
     virtual void Refresh() override;
 };
+
+
+
+
+class UActorIOAction;
+
+class SActorOutputListView : public SListView<TWeakObjectPtr<UActorIOAction>>
+{
+    SLATE_DECLARE_WIDGET(SActorOutputListView, SListView<TWeakObjectPtr<UActorIOAction>>)
+
+public:
+
+    SLATE_BEGIN_ARGS(SActorOutputListView)
+    {}
+    SLATE_END_ARGS()
+
+    void Construct(const FArguments& InArgs);
+
+protected:
+
+    TArray<TWeakObjectPtr<UActorIOAction>> ActionListItems;
+
+protected:
+
+    TSharedRef<ITableRow> OnGenerateWidgetForActionListView(TWeakObjectPtr<UActorIOAction> Item, const TSharedRef<STableViewBase>& OwnerTable);
+
+    void UpdateActionList();
+};

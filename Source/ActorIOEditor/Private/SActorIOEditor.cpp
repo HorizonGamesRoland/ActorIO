@@ -166,7 +166,7 @@ void SActorIOEditor::Refresh()
 
     if (bViewOutputs)
     {
-        ActionPanel->SetContent(OutputActionList.ToSharedRef());
+        ActionPanel->SetContent(SNew(SActorOutputListView));
         OutputActionList->Refresh();
     }
     else

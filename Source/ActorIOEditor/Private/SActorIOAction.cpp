@@ -179,36 +179,7 @@ void SActorOutputAction::InitializeAction()
 	PropertySplitter->AddSlot()
 	.Resizable(false)
 	[
-		SNew(SHorizontalBox)
-		+ SHorizontalBox::Slot()
-		.VAlign(VAlign_Center)
-		.AutoWidth()
-		.Padding(5.0f, 0.0f)
-		[
-			SNew(SImage)
-			.Image(FActorIOEditorStyle::Get().GetBrush("Action.OutputIcon"))
-		]
-		+ SHorizontalBox::Slot()
-		[
-			SNew(SComboBox<FName>)
-			.OptionsSource(&SelectableEventIds)
-			.OnGenerateWidget(this, &SActorOutputAction::OnGenerateEventComboBoxWidget)
-			.OnSelectionChanged(this, &SActorOutputAction::OnEventChanged)
-			[
-				SAssignNew(EventText, STextBlock)
-				.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont")) // PropertyEditorConstants::PropertyFontStyle
-				.Text(GetEventDisplayName(Action->EventId))
-				.ColorAndOpacity(GetEventTextColor(Action->EventId))
-			]
-		]
-		+ SHorizontalBox::Slot()
-		.VAlign(VAlign_Center)
-		.AutoWidth()
-		.Padding(5.0f, 0.0f)
-		[
-			SNew(SImage)
-			.Image(FActorIOEditorStyle::Get().GetBrush("Action.TargetIcon"))
-		]
+		
 	];
 
 	PropertySplitter->AddSlot()
@@ -545,6 +516,304 @@ void SActorInputAction::Refresh()
 {
 	Super::Refresh();
 }
+
+
+
+
+//=======================================================
+//~ Begin SActorOutputListViewRow
+//=======================================================
+
+SLATE_IMPLEMENT_WIDGET(SActorOutputListViewRow)
+void SActorOutputListViewRow::PrivateRegisterAttributes(FSlateAttributeInitializer& AttributeInitializer)
+{
+}
+
+void SActorOutputListViewRow::Construct(const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTableView, TWeakObjectPtr<UActorIOAction> InActionPtr)
+{
+	ActionPtr = InActionPtr;
+
+	UpdateSelectableEvents();
+	UpdateSelectableFunctions();
+
+	FSuperRowType::Construct(FTableRowArgs(), InOwnerTableView);
+}
+
+TSharedRef<SWidget> SActorOutputListViewRow::GenerateWidgetForColumn(const FName& ColumnName)
+{
+	if (!ActionPtr.IsValid())
+	{
+		return SNew(STextBlock)
+			.Text(INVTEXT("Invalid Action!"))
+			.ColorAndOpacity(FStyleColors::Error);
+	}
+
+	if (ColumnName == TEXT("Event"))
+	{
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.VAlign(VAlign_Center)
+		.AutoWidth()
+		.Padding(5.0f, 0.0f)
+		[
+			SNew(SImage)
+			.Image(FActorIOEditorStyle::Get().GetBrush("Action.OutputIcon"))
+		]
+		+ SHorizontalBox::Slot()
+		[
+			SNew(SComboBox<FName>)
+			.OptionsSource(&SelectableEventIds)
+			.OnGenerateWidget(this, &SActorOutputListViewRow::OnGenerateEventComboBoxWidget)
+			.OnSelectionChanged(this, &SActorOutputListViewRow::OnEventChanged)
+			[
+				SAssignNew(EventText, STextBlock)
+				.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont")) // PropertyEditorConstants::PropertyFontStyle
+				.Text(GetEventDisplayName(ActionPtr->EventId))
+				.ColorAndOpacity(GetEventTextColor(ActionPtr->EventId))
+			]
+		]
+		+ SHorizontalBox::Slot()
+		.VAlign(VAlign_Center)
+		.AutoWidth()
+		.Padding(5.0f, 0.0f)
+		[
+			SNew(SImage)
+			.Image(FActorIOEditorStyle::Get().GetBrush("Action.TargetIcon"))
+		];
+	}
+
+	return SNullWidget::NullWidget;
+}
+
+void SActorOutputListViewRow::UpdateSelectableEvents()
+{
+	SelectableEventIds.Reset();
+	SelectableEventIds.Add(TEXT("<Clear>"));
+
+	ValidEvents = UActorIOSystem::GetEventsForObject(ActionPtr->GetOwnerActor());
+	for (const FActorIOEvent& IOEvent : ValidEvents)
+	{
+		SelectableEventIds.Emplace(IOEvent.EventId);
+	}
+}
+
+void SActorOutputListViewRow::UpdateSelectableFunctions()
+{
+	SelectableFunctionIds.Reset();
+	SelectableFunctionIds.Add(TEXT("<Clear>"));
+
+	ValidFunctions = UActorIOSystem::GetFunctionsForObject(ActionPtr->TargetActor);
+	for (const FActorIOFunction& IOFunction : ValidFunctions)
+	{
+		SelectableFunctionIds.Emplace(IOFunction.FunctionId);
+	}
+}
+
+FText SActorOutputListViewRow::GetEventDisplayName(FName InEventId) const
+{
+	const FActorIOEvent* TargetEvent = ValidEvents.FindByKey(InEventId);
+	if (TargetEvent && !TargetEvent->DisplayName.IsEmpty())
+	{
+		return TargetEvent->DisplayName;
+	}
+
+	return FText::FromName(InEventId);
+}
+
+FText SActorOutputListViewRow::GetEventTooltipText(FName InEventId) const
+{
+	const FActorIOEvent* TargetEvent = ValidEvents.FindByKey(InEventId);
+	if (TargetEvent)
+	{
+		return TargetEvent->TooltipText;
+	}
+
+	return FText::GetEmpty();
+}
+
+FSlateColor SActorOutputListViewRow::GetEventTextColor(FName InEventId) const
+{
+	if (InEventId == NAME_None)
+	{
+		// Also accept 'None' as valid because we only want to highlight outdated events/functions.
+		return FSlateColor::UseForeground();
+	}
+
+	const FActorIOEvent* TargetEvent = ValidEvents.FindByKey(InEventId);
+	return TargetEvent ? FSlateColor::UseForeground() : FStyleColors::Error;
+}
+
+FText SActorOutputListViewRow::GetFunctionDisplayName(FName InFunctionId) const
+{
+	const FActorIOFunction* TargetFunction = ValidFunctions.FindByKey(InFunctionId);
+	if (TargetFunction && !TargetFunction->DisplayName.IsEmpty())
+	{
+		return TargetFunction->DisplayName;
+	}
+
+	return FText::FromName(InFunctionId);
+}
+
+FText SActorOutputListViewRow::GetFunctionTooltipText(FName InFunctionId) const
+{
+	const FActorIOFunction* TargetFunction = ValidFunctions.FindByKey(InFunctionId);
+	if (TargetFunction)
+	{
+		return TargetFunction->TooltipText;
+	}
+
+	return FText::GetEmpty();
+}
+
+FSlateColor SActorOutputListViewRow::GetFunctionTextColor(FName InFunctionId) const
+{
+	if (InFunctionId == NAME_None)
+	{
+		// Also accept 'None' as valid because we only want to highlight outdated events/functions.
+		return FSlateColor::UseForeground();
+	}
+
+	const FActorIOFunction* TargetFunction = ValidFunctions.FindByKey(InFunctionId);
+	return TargetFunction ? FSlateColor::UseForeground() : FStyleColors::Error;
+}
+
+TSharedRef<SWidget> SActorOutputListViewRow::OnGenerateEventComboBoxWidget(FName InName)
+{
+	return SNew(STextBlock)
+		.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont")) // PropertyEditorConstants::PropertyFontStyle
+		.Text(GetEventDisplayName(InName))
+		.ToolTipText(GetEventTooltipText(InName));
+}
+
+TSharedRef<SWidget> SActorOutputListViewRow::OnGenerateFunctionComboBoxWidget(FName InName)
+{
+	return SNew(STextBlock)
+		.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont")) // PropertyEditorConstants::PropertyFontStyle
+		.Text(GetFunctionDisplayName(InName))
+		.ToolTipText(GetFunctionTooltipText(InName));
+}
+
+void SActorOutputListViewRow::OnEventChanged(FName InName, ESelectInfo::Type InSelectType)
+{
+	if (InSelectType != ESelectInfo::Direct)
+	{
+		const FScopedTransaction Transaction(LOCTEXT("ModifyActorIOAction", "Modify ActorIO Action"));
+		ActionPtr->Modify();
+
+		UActorIOComponent* ActionOwner = ActionPtr->GetOwnerIOComponent();
+		ActionOwner->Modify();
+
+		if (InName == FName(TEXT("<Clear>")))
+		{
+			InName = NAME_None;
+		}
+
+		ActionPtr->EventId = InName;
+
+		Refresh();
+	}
+}
+
+void SActorOutputListViewRow::OnTargetActorChanged(const FAssetData& InAssetData)
+{
+	const FScopedTransaction Transaction(LOCTEXT("ModifyActorIOAction", "Modify ActorIO Action"));
+	ActionPtr->Modify();
+
+	UActorIOComponent* ActionOwner = ActionPtr->GetOwnerIOComponent();
+	ActionOwner->Modify();
+
+	ActionPtr->TargetActor = Cast<AActor>(InAssetData.GetAsset());
+	ActionPtr->FunctionId = NAME_None;
+	ActionPtr->FunctionArguments = FString();
+
+	UpdateSelectableFunctions();
+}
+
+FString SActorOutputListViewRow::GetTargetActorPath() const
+{
+	return ActionPtr->TargetActor.GetPathName();
+}
+
+void SActorOutputListViewRow::OnTargetFunctionChanged(FName InName, ESelectInfo::Type InSelectType)
+{
+	if (InSelectType != ESelectInfo::Direct)
+	{
+		const FScopedTransaction Transaction(LOCTEXT("ModifyActorIOAction", "Modify ActorIO Action"));
+		ActionPtr->Modify();
+
+		UActorIOComponent* ActionOwner = ActionPtr->GetOwnerIOComponent();
+		ActionOwner->Modify();
+
+		if (InName == FName(TEXT("<Clear>")))
+		{
+			InName = NAME_None;
+		}
+
+		ActionPtr->FunctionId = InName;
+		ActionPtr->FunctionArguments = FString();
+
+		Refresh();
+	}
+}
+
+void SActorOutputListViewRow::OnFunctionArgumentsChanged(const FText& InText, ETextCommit::Type InCommitType)
+{
+	const FScopedTransaction Transaction(LOCTEXT("ModifyActorIOAction", "Modify ActorIO Action"));
+	ActionPtr->Modify();
+
+	UActorIOComponent* ActionOwner = ActionPtr->GetOwnerIOComponent();
+	ActionOwner->Modify();
+
+	ActionPtr->FunctionArguments = InText.ToString();
+}
+
+float SActorOutputListViewRow::GetActionDelay() const
+{
+	return ActionPtr->Delay;
+}
+
+void SActorOutputListViewRow::OnActionDelayChanged(float InValue, ETextCommit::Type InCommitType)
+{
+	const FScopedTransaction Transaction(LOCTEXT("ModifyActorIOAction", "Modify ActorIO Action"));
+	ActionPtr->Modify();
+
+	UActorIOComponent* ActionOwner = ActionPtr->GetOwnerIOComponent();
+	ActionOwner->Modify();
+
+	ActionPtr->Delay = InValue;
+}
+
+ECheckBoxState SActorOutputListViewRow::IsExecuteOnlyOnceChecked() const
+{
+	return ActionPtr->bExecuteOnlyOnce ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+}
+
+void SActorOutputListViewRow::OnExecuteOnlyOnceChecked(ECheckBoxState InState)
+{
+	const FScopedTransaction Transaction(LOCTEXT("ModifyActorIOAction", "Modify ActorIO Action"));
+	ActionPtr->Modify();
+
+	UActorIOComponent* ActionOwner = ActionPtr->GetOwnerIOComponent();
+	ActionOwner->Modify();
+
+	ActionPtr->bExecuteOnlyOnce = InState == ECheckBoxState::Checked;
+}
+
+FReply SActorOutputListViewRow::OnClick_RemoveAction()
+{
+	const FScopedTransaction Transaction(LOCTEXT("RemoveActorIOAction", "Remove ActorIO Action"));
+
+	UActorIOComponent* ActionOwner = ActionPtr->GetOwnerIOComponent();
+	ActionOwner->Modify();
+	ActionOwner->RemoveAction(ActionPtr.Get());
+
+	FActorIOEditor& ActorIOEditorModule = FModuleManager::GetModuleChecked<FActorIOEditor>("ActorIOEditor");
+	ActorIOEditorModule.UpdateEditorWindow();
+
+	return FReply::Handled();
+}
+
+
 
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 

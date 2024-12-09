@@ -231,6 +231,76 @@ void SActorInputList::Refresh()
     }
 }
 
+//=======================================================
+//~ Begin SActorOutputListView
+//=======================================================
+
+SLATE_IMPLEMENT_WIDGET(SActorOutputListView)
+void SActorOutputListView::PrivateRegisterAttributes(FSlateAttributeInitializer& AttributeInitializer)
+{
+}
+
+void SActorOutputListView::Construct(const FArguments& InArgs)
+{
+    SListView::Construct(
+        SListView::FArguments()
+        .ListItemsSource(&ActionListItems)
+        .OnGenerateRow(this, &SActorOutputListView::OnGenerateWidgetForActionListView)
+        .HeaderRow
+        (
+            SNew(SHeaderRow)
+            +SHeaderRow::Column(TEXT("Event"))
+            .DefaultLabel(LOCTEXT("OutputListColEvent", "Event:"))
+            .FillWidth(1.0f)
+
+            + SHeaderRow::Column(TEXT("Target"))
+            .DefaultLabel(LOCTEXT("OutputListColTarget", "Target:"))
+            .FillWidth(1.0f)
+
+            + SHeaderRow::Column(TEXT("Action"))
+            .DefaultLabel(LOCTEXT("OutputListColAction", "Action:"))
+            .FillWidth(1.0f)
+
+            + SHeaderRow::Column(TEXT("Parameter"))
+            .DefaultLabel(LOCTEXT("OutputListColParameter", "Parameter:"))
+            .FillWidth(1.0f)
+
+            + SHeaderRow::Column(TEXT("Target"))
+            .DefaultLabel(LOCTEXT("OutputListColTarget", "Target:"))
+            .FillWidth(1.0f)
+
+            + SHeaderRow::Column(TEXT("Delay"))
+            .DefaultLabel(LOCTEXT("OutputListColDelay", "Delay:"))
+            .FillWidth(0.35f)
+
+            + SHeaderRow::Column(TEXT("Once"))
+            .DefaultLabel(LOCTEXT("OutputListColOnce", "Once?"))
+            .FillWidth(0.5f)
+        )
+    );
+
+    UpdateActionList();
+}
+
+TSharedRef<ITableRow> SActorOutputListView::OnGenerateWidgetForActionListView(TWeakObjectPtr<UActorIOAction> Item, const TSharedRef<STableViewBase>& OwnerTable)
+{
+    return SNew(SActorOutputListViewRow, OwnerTable, Item);
+}
+
+void SActorOutputListView::UpdateActionList()
+{
+    ActionListItems.Reset();
+
+    UActorIOEditorSubsystem* ActorIOEditorSubsystem = GEditor->GetEditorSubsystem<UActorIOEditorSubsystem>();
+    AActor* SelectedActor = ActorIOEditorSubsystem ? ActorIOEditorSubsystem->GetSelectedActor() : nullptr;
+    UActorIOComponent* ActorIOComponent = SelectedActor ? SelectedActor->GetComponentByClass<UActorIOComponent>() : nullptr;
+
+    if (ActorIOComponent)
+    {
+        ActionListItems = ActorIOComponent->GetActions();
+    }
+}
+
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 #undef LOCTEXT_NAMESPACE
