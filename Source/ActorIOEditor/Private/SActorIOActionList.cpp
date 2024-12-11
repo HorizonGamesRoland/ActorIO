@@ -31,7 +31,7 @@ void SActorIOActionListView::Construct(const FArguments& InArgs)
 		.ListViewStyle(&FActorIOEditorStyle::Get().GetWidgetStyle<FTableViewStyle>("ActionListView"))
         .ListItemsSource(&ActionListItems)
 		.SelectionMode(ESelectionMode::None)
-        .OnGenerateRow(this, &SActorIOActionListView::OnGenerateWidgetForActionListView)
+        .OnGenerateRow(this, &SActorIOActionListView::OnGenerateRowItem)
         .HeaderRow
         (
             SNew(SHeaderRow)
@@ -91,17 +91,30 @@ void SActorIOActionListView::Refresh()
 
 	UActorIOEditorSubsystem* ActorIOEditorSubsystem = GEditor->GetEditorSubsystem<UActorIOEditorSubsystem>();
 	AActor* SelectedActor = ActorIOEditorSubsystem ? ActorIOEditorSubsystem->GetSelectedActor() : nullptr;
-	UActorIOComponent* ActorIOComponent = SelectedActor ? SelectedActor->GetComponentByClass<UActorIOComponent>() : nullptr;
 
-	if (ActorIOComponent)
+	if (ActionListViewMode == EActorIOActionListViewMode::Outputs)
 	{
-		ActionListItems = ActorIOComponent->GetActions();
+		UActorIOComponent* ActorIOComponent = SelectedActor ? SelectedActor->GetComponentByClass<UActorIOComponent>() : nullptr;
+		if (ActorIOComponent)
+		{
+			ActionListItems = ActorIOComponent->GetActions();
+		}
+	}
+	else
+	{
+		ActionListItems = UActorIOSystem::GetInputActionsForObject(SelectedActor);
 	}
 
 	RequestListRefresh();
 }
 
-TSharedRef<ITableRow> SActorIOActionListView::OnGenerateWidgetForActionListView(TWeakObjectPtr<UActorIOAction> Item, const TSharedRef<STableViewBase>& OwnerTable)
+void SActorIOActionListView::SetViewMode(EActorIOActionListViewMode InMode)
+{
+	ActionListViewMode = InMode;
+	Refresh();
+}
+
+TSharedRef<ITableRow> SActorIOActionListView::OnGenerateRowItem(TWeakObjectPtr<UActorIOAction> Item, const TSharedRef<STableViewBase>& OwnerTable)
 {
     return SNew(SActorIOActionListViewRow, OwnerTable, Item);
 }
@@ -133,13 +146,8 @@ TSharedRef<SWidget> SActorIOActionListViewRow::GenerateWidgetForColumn(const FNa
 
 	if (!ActionPtr.IsValid())
 	{
-		OutWidget->SetPadding(FMargin(0.0f, FActorIOEditorStyle::ActionSpacing, 0.0f, 0.0f));
-		OutWidget->SetContent
-		(
-			SNew(STextBlock)
-			.Text(INVTEXT("Invalid Action!"))
-			.ColorAndOpacity(FStyleColors::Error)
-		);
+		// Do nothing if the action is invalid somehow.
+		return OutWidget;
 	}
 	else if (ColumnName == ColumnId::ActionType)
 	{
@@ -282,6 +290,160 @@ TSharedRef<SWidget> SActorIOActionListViewRow::GenerateWidgetForColumn(const FNa
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
+TSharedRef<SWidget> SActorIOActionListViewRow::OnGenerateEventComboBoxWidget(FName InName) const
+{
+	return SNew(STextBlock)
+		.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont")) // PropertyEditorConstants::PropertyFontStyle
+		.Text(GetEventDisplayName(InName))
+		.ToolTipText(GetEventTooltipText(InName));
+}
+
+void SActorIOActionListViewRow::OnEventComboBoxOpening()
+{
+	UpdateSelectableEvents();
+}
+
+void SActorIOActionListViewRow::OnEventComboBoxSelectionChanged(FName InName, ESelectInfo::Type InSelectType)
+{
+	if (InName == FName(TEXT("<Clear>")))
+	{
+		InName = NAME_None;
+	}
+
+	EventText->SetText(GetEventDisplayName(InName));
+	EventText->SetToolTipText(GetEventTooltipText(InName));
+	EventText->SetColorAndOpacity(GetEventTextColor(InName));
+
+	if (InSelectType != ESelectInfo::Direct)
+	{
+		const FScopedTransaction Transaction(LOCTEXT("ModifyActorIOAction", "Modify ActorIO Action"));
+		ActionPtr->Modify();
+
+		UActorIOComponent* ActionOwner = ActionPtr->GetOwnerIOComponent();
+		ActionOwner->Modify();
+
+		ActionPtr->EventId = InName;
+
+		//Refresh();
+	}
+}
+
+FString SActorIOActionListViewRow::OnGetTargetActorPath() const
+{
+	return ActionPtr->TargetActor.GetPathName();
+}
+
+void SActorIOActionListViewRow::OnTargetActorChanged(const FAssetData& InAssetData)
+{
+	const FScopedTransaction Transaction(LOCTEXT("ModifyActorIOAction", "Modify ActorIO Action"));
+	ActionPtr->Modify();
+
+	UActorIOComponent* ActionOwner = ActionPtr->GetOwnerIOComponent();
+	ActionOwner->Modify();
+
+	ActionPtr->TargetActor = Cast<AActor>(InAssetData.GetAsset());
+	ActionPtr->FunctionId = NAME_None;
+	ActionPtr->FunctionArguments = FString();
+
+	UpdateSelectableFunctions();
+}
+
+TSharedRef<SWidget> SActorIOActionListViewRow::OnGenerateFunctionComboBoxWidget(FName InName) const
+{
+	return SNew(STextBlock)
+		.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont")) // PropertyEditorConstants::PropertyFontStyle
+		.Text(GetFunctionDisplayName(InName))
+		.ToolTipText(GetFunctionTooltipText(InName));
+}
+
+void SActorIOActionListViewRow::OnFunctionComboBoxOpening()
+{
+	UpdateSelectableFunctions();
+}
+
+void SActorIOActionListViewRow::OnFunctionComboBoxSelectionChanged(FName InName, ESelectInfo::Type InSelectType)
+{
+	if (InName == FName(TEXT("<Clear>")))
+	{
+		InName = NAME_None;
+	}
+
+	FunctionText->SetText(GetFunctionDisplayName(InName));
+	FunctionText->SetToolTipText(GetFunctionTooltipText(InName));
+	FunctionText->SetColorAndOpacity(GetFunctionTextColor(InName));
+
+	if (InSelectType != ESelectInfo::Direct)
+	{
+		const FScopedTransaction Transaction(LOCTEXT("ModifyActorIOAction", "Modify ActorIO Action"));
+		ActionPtr->Modify();
+
+		UActorIOComponent* ActionOwner = ActionPtr->GetOwnerIOComponent();
+		ActionOwner->Modify();
+
+		ActionPtr->FunctionId = InName;
+		ActionPtr->FunctionArguments = FString();
+
+		//Refresh();
+	}
+}
+
+void SActorIOActionListViewRow::OnFunctionParametersChanged(const FText& InText, ETextCommit::Type InCommitType)
+{
+	const FScopedTransaction Transaction(LOCTEXT("ModifyActorIOAction", "Modify ActorIO Action"));
+	ActionPtr->Modify();
+
+	UActorIOComponent* ActionOwner = ActionPtr->GetOwnerIOComponent();
+	ActionOwner->Modify();
+
+	ActionPtr->FunctionArguments = InText.ToString();
+}
+
+float SActorIOActionListViewRow::OnGetActionDelay() const
+{
+	return ActionPtr->Delay;
+}
+
+void SActorIOActionListViewRow::OnActionDelayChanged(float InValue, ETextCommit::Type InCommitType)
+{
+	const FScopedTransaction Transaction(LOCTEXT("ModifyActorIOAction", "Modify ActorIO Action"));
+	ActionPtr->Modify();
+
+	UActorIOComponent* ActionOwner = ActionPtr->GetOwnerIOComponent();
+	ActionOwner->Modify();
+
+	ActionPtr->Delay = InValue;
+}
+
+ECheckBoxState SActorIOActionListViewRow::IsExecuteOnlyOnceChecked() const
+{
+	return ActionPtr->bExecuteOnlyOnce ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+}
+
+void SActorIOActionListViewRow::OnExecuteOnlyOnceChecked(ECheckBoxState InState)
+{
+	const FScopedTransaction Transaction(LOCTEXT("ModifyActorIOAction", "Modify ActorIO Action"));
+	ActionPtr->Modify();
+
+	UActorIOComponent* ActionOwner = ActionPtr->GetOwnerIOComponent();
+	ActionOwner->Modify();
+
+	ActionPtr->bExecuteOnlyOnce = InState == ECheckBoxState::Checked;
+}
+
+FReply SActorIOActionListViewRow::OnClick_RemoveAction()
+{
+	const FScopedTransaction Transaction(LOCTEXT("RemoveActorIOAction", "Remove ActorIO Action"));
+
+	UActorIOComponent* ActionOwner = ActionPtr->GetOwnerIOComponent();
+	ActionOwner->Modify();
+	ActionOwner->RemoveAction(ActionPtr.Get());
+
+	FActorIOEditor& ActorIOEditorModule = FModuleManager::GetModuleChecked<FActorIOEditor>("ActorIOEditor");
+	ActorIOEditorModule.UpdateEditorWindow();
+
+	return FReply::Handled();
+}
+
 void SActorIOActionListViewRow::UpdateSelectableEvents()
 {
 	SelectableEventIds.Reset();
@@ -372,152 +534,6 @@ FSlateColor SActorIOActionListViewRow::GetFunctionTextColor(FName InFunctionId) 
 
 	const FActorIOFunction* TargetFunction = ValidFunctions.FindByKey(InFunctionId);
 	return TargetFunction ? FSlateColor::UseForeground() : FStyleColors::Error;
-}
-
-TSharedRef<SWidget> SActorIOActionListViewRow::OnGenerateEventComboBoxWidget(FName InName) const
-{
-	return SNew(STextBlock)
-		.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont")) // PropertyEditorConstants::PropertyFontStyle
-		.Text(GetEventDisplayName(InName))
-		.ToolTipText(GetEventTooltipText(InName));
-}
-
-void SActorIOActionListViewRow::OnEventComboBoxOpening()
-{
-	UpdateSelectableEvents();
-}
-
-void SActorIOActionListViewRow::OnEventComboBoxSelectionChanged(FName InName, ESelectInfo::Type InSelectType)
-{
-	if (InSelectType != ESelectInfo::Direct)
-	{
-		const FScopedTransaction Transaction(LOCTEXT("ModifyActorIOAction", "Modify ActorIO Action"));
-		ActionPtr->Modify();
-
-		UActorIOComponent* ActionOwner = ActionPtr->GetOwnerIOComponent();
-		ActionOwner->Modify();
-
-		if (InName == FName(TEXT("<Clear>")))
-		{
-			InName = NAME_None;
-		}
-
-		ActionPtr->EventId = InName;
-
-		//Refresh();
-	}
-}
-
-FString SActorIOActionListViewRow::OnGetTargetActorPath() const
-{
-	return ActionPtr->TargetActor.GetPathName();
-}
-
-void SActorIOActionListViewRow::OnTargetActorChanged(const FAssetData& InAssetData)
-{
-	const FScopedTransaction Transaction(LOCTEXT("ModifyActorIOAction", "Modify ActorIO Action"));
-	ActionPtr->Modify();
-
-	UActorIOComponent* ActionOwner = ActionPtr->GetOwnerIOComponent();
-	ActionOwner->Modify();
-
-	ActionPtr->TargetActor = Cast<AActor>(InAssetData.GetAsset());
-	ActionPtr->FunctionId = NAME_None;
-	ActionPtr->FunctionArguments = FString();
-
-	UpdateSelectableFunctions();
-}
-
-TSharedRef<SWidget> SActorIOActionListViewRow::OnGenerateFunctionComboBoxWidget(FName InName) const
-{
-	return SNew(STextBlock)
-		.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont")) // PropertyEditorConstants::PropertyFontStyle
-		.Text(GetFunctionDisplayName(InName))
-		.ToolTipText(GetFunctionTooltipText(InName));
-}
-
-void SActorIOActionListViewRow::OnFunctionComboBoxOpening()
-{
-	UpdateSelectableFunctions();
-}
-
-void SActorIOActionListViewRow::OnFunctionComboBoxSelectionChanged(FName InName, ESelectInfo::Type InSelectType)
-{
-	if (InSelectType != ESelectInfo::Direct)
-	{
-		const FScopedTransaction Transaction(LOCTEXT("ModifyActorIOAction", "Modify ActorIO Action"));
-		ActionPtr->Modify();
-
-		UActorIOComponent* ActionOwner = ActionPtr->GetOwnerIOComponent();
-		ActionOwner->Modify();
-
-		if (InName == FName(TEXT("<Clear>")))
-		{
-			InName = NAME_None;
-		}
-
-		ActionPtr->FunctionId = InName;
-		ActionPtr->FunctionArguments = FString();
-
-		//Refresh();
-	}
-}
-
-void SActorIOActionListViewRow::OnFunctionParametersChanged(const FText& InText, ETextCommit::Type InCommitType)
-{
-	const FScopedTransaction Transaction(LOCTEXT("ModifyActorIOAction", "Modify ActorIO Action"));
-	ActionPtr->Modify();
-
-	UActorIOComponent* ActionOwner = ActionPtr->GetOwnerIOComponent();
-	ActionOwner->Modify();
-
-	ActionPtr->FunctionArguments = InText.ToString();
-}
-
-float SActorIOActionListViewRow::OnGetActionDelay() const
-{
-	return ActionPtr->Delay;
-}
-
-void SActorIOActionListViewRow::OnActionDelayChanged(float InValue, ETextCommit::Type InCommitType)
-{
-	const FScopedTransaction Transaction(LOCTEXT("ModifyActorIOAction", "Modify ActorIO Action"));
-	ActionPtr->Modify();
-
-	UActorIOComponent* ActionOwner = ActionPtr->GetOwnerIOComponent();
-	ActionOwner->Modify();
-
-	ActionPtr->Delay = InValue;
-}
-
-ECheckBoxState SActorIOActionListViewRow::IsExecuteOnlyOnceChecked() const
-{
-	return ActionPtr->bExecuteOnlyOnce ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
-}
-
-void SActorIOActionListViewRow::OnExecuteOnlyOnceChecked(ECheckBoxState InState)
-{
-	const FScopedTransaction Transaction(LOCTEXT("ModifyActorIOAction", "Modify ActorIO Action"));
-	ActionPtr->Modify();
-
-	UActorIOComponent* ActionOwner = ActionPtr->GetOwnerIOComponent();
-	ActionOwner->Modify();
-
-	ActionPtr->bExecuteOnlyOnce = InState == ECheckBoxState::Checked;
-}
-
-FReply SActorIOActionListViewRow::OnClick_RemoveAction()
-{
-	const FScopedTransaction Transaction(LOCTEXT("RemoveActorIOAction", "Remove ActorIO Action"));
-
-	UActorIOComponent* ActionOwner = ActionPtr->GetOwnerIOComponent();
-	ActionOwner->Modify();
-	ActionOwner->RemoveAction(ActionPtr.Get());
-
-	FActorIOEditor& ActorIOEditorModule = FModuleManager::GetModuleChecked<FActorIOEditor>("ActorIOEditor");
-	ActorIOEditorModule.UpdateEditorWindow();
-
-	return FReply::Handled();
 }
 
 #undef LOCTEXT_NAMESPACE

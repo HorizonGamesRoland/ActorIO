@@ -21,6 +21,13 @@ namespace ColumnId
     const FName OnlyOnce = FName(TEXT("OnlyOnce"));
 }
 
+enum class EActorIOActionListViewMode : uint8
+{
+    Inputs,
+
+    Outputs
+};
+
 class SActorIOActionListView : public SListView<TWeakObjectPtr<UActorIOAction>>
 {
     SLATE_DECLARE_WIDGET(SActorIOActionListView, SListView<TWeakObjectPtr<UActorIOAction>>)
@@ -28,20 +35,30 @@ class SActorIOActionListView : public SListView<TWeakObjectPtr<UActorIOAction>>
 public:
 
     SLATE_BEGIN_ARGS(SActorIOActionListView)
+        : _ViewMode(EActorIOActionListViewMode::Outputs)
     {}
+
+    SLATE_ATTRIBUTE(EActorIOActionListViewMode, ViewMode)
+
     SLATE_END_ARGS()
 
     void Construct(const FArguments& InArgs);
 
     void Refresh();
 
+    void SetViewMode(EActorIOActionListViewMode InMode);
+
+    EActorIOActionListViewMode GetViewMode() const { return ActionListViewMode; }
+
 protected:
 
     TArray<TWeakObjectPtr<UActorIOAction>> ActionListItems;
 
+    EActorIOActionListViewMode ActionListViewMode;
+
 protected:
 
-    TSharedRef<ITableRow> OnGenerateWidgetForActionListView(TWeakObjectPtr<UActorIOAction> Item, const TSharedRef<STableViewBase>& OwnerTable);
+    TSharedRef<ITableRow> OnGenerateRowItem(TWeakObjectPtr<UActorIOAction> Item, const TSharedRef<STableViewBase>& OwnerTable);
 };
 
 
@@ -78,24 +95,6 @@ protected:
 
 protected:
 
-    void UpdateSelectableEvents();
-
-    void UpdateSelectableFunctions();
-
-    FText GetEventDisplayName(FName InEventId) const;
-
-    FText GetEventTooltipText(FName InEventId) const;
-
-    FSlateColor GetEventTextColor(FName InEventId) const;
-
-    FText GetFunctionDisplayName(FName InFunctionId) const;
-
-    FText GetFunctionTooltipText(FName InFunctionId) const;
-
-    FSlateColor GetFunctionTextColor(FName InFunctionId) const;
-
-protected:
-
     TSharedRef<SWidget> OnGenerateEventComboBoxWidget(FName InName) const;
 
     void OnEventComboBoxOpening();
@@ -122,7 +121,23 @@ protected:
 
     void OnExecuteOnlyOnceChecked(ECheckBoxState InState);
 
+    FReply OnClick_RemoveAction();
+
 protected:
 
-    FReply OnClick_RemoveAction();
+    void UpdateSelectableEvents();
+
+    void UpdateSelectableFunctions();
+
+    FText GetEventDisplayName(FName InEventId) const;
+
+    FText GetEventTooltipText(FName InEventId) const;
+
+    FSlateColor GetEventTextColor(FName InEventId) const;
+
+    FText GetFunctionDisplayName(FName InFunctionId) const;
+
+    FText GetFunctionTooltipText(FName InFunctionId) const;
+
+    FSlateColor GetFunctionTextColor(FName InFunctionId) const;
 };
