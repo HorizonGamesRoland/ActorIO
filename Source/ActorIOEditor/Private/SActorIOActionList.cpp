@@ -25,81 +25,85 @@ void SActorIOActionListView::PrivateRegisterAttributes(FSlateAttributeInitialize
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SActorIOActionListView::Construct(const FArguments& InArgs)
 {
-    SListView::Construct(
+    SListView::Construct
+	(
         SListView::FArguments()
+		.ListViewStyle(&FActorIOEditorStyle::Get().GetWidgetStyle<FTableViewStyle>("ActionListView"))
         .ListItemsSource(&ActionListItems)
 		.SelectionMode(ESelectionMode::None)
-		.EnableAnimatedScrolling(true)
         .OnGenerateRow(this, &SActorIOActionListView::OnGenerateWidgetForActionListView)
         .HeaderRow
         (
             SNew(SHeaderRow)
 			+ SHeaderRow::Column(ColumnId::ActionType)
 			.DefaultLabel(FText::GetEmpty())
-			.FixedWidth(30)
+			.FixedWidth(30.0f)
+			[
+				SNew(SBox)
+				.HeightOverride(FActorIOEditorStyle::HeaderRowHeight)
+			]
 
             +SHeaderRow::Column(ColumnId::Event)
-            .DefaultLabel(LOCTEXT("OutputListColEvent", "Event:"))
+            .DefaultLabel(LOCTEXT("ActionListColEvent", "Event"))
+			.DefaultTooltip(FText::GetEmpty())
             .FillWidth(1.0f)
 			.HeaderContentPadding(FMargin(5.0f, 0.0f, 0.0f, 0.0f))
 
             + SHeaderRow::Column(ColumnId::Target)
-            .DefaultLabel(LOCTEXT("OutputListColTarget", "Target:"))
+            .DefaultLabel(LOCTEXT("ActionListColTarget", "Target"))
+			.DefaultTooltip(FText::GetEmpty())
             .FillWidth(1.0f)
 			.HeaderContentPadding(FMargin(5.0f, 0.0f, 0.0f, 0.0f))
 
             + SHeaderRow::Column(ColumnId::Action)
-            .DefaultLabel(LOCTEXT("OutputListColAction", "Action:"))
+            .DefaultLabel(LOCTEXT("ActionListColAction", "Action"))
+			.DefaultTooltip(FText::GetEmpty())
             .FillWidth(1.0f)
 			.HeaderContentPadding(FMargin(5.0f, 0.0f, 0.0f, 0.0f))
 
             + SHeaderRow::Column(ColumnId::Parameter)
-            .DefaultLabel(LOCTEXT("OutputListColParameter", "Parameter:"))
+            .DefaultLabel(LOCTEXT("ActionListColParameter", "Parameter"))
+			.DefaultTooltip(FText::GetEmpty())
             .FillWidth(1.0f)
 			.HeaderContentPadding(FMargin(5.0f, 0.0f, 0.0f, 0.0f))
 
             + SHeaderRow::Column(ColumnId::Delay)
-            .DefaultLabel(LOCTEXT("OutputListColDelay", "Delay:"))
+            .DefaultLabel(LOCTEXT("ActionListColDelay", "Delay"))
+			.DefaultTooltip(FText::GetEmpty())
             .FillWidth(0.35f)
 			.HeaderContentPadding(FMargin(5.0f, 0.0f, 0.0f, 0.0f))
 
             + SHeaderRow::Column(ColumnId::OnlyOnce)
-            .DefaultLabel(LOCTEXT("OutputListColOnce", "Once?"))
-            .FillWidth(0.4f)
+            .DefaultLabel(LOCTEXT("ActionListColOnce", "Once?"))
+			.DefaultTooltip(FText::GetEmpty())
+            .FillWidth(0.5f)
 			.HeaderContentPadding(FMargin(5.0f, 0.0f, 0.0f, 0.0f))
-
-			+ SHeaderRow::Column(ColumnId::ActionButtons)
-			.DefaultLabel(FText::GetEmpty())
-			.FixedWidth(50.0f)
         )
     );
 
-    UpdateActionList();
+    Refresh();
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 void SActorIOActionListView::Refresh()
 {
-	UpdateActionList();
+	ActionListItems.Reset();
+
+	UActorIOEditorSubsystem* ActorIOEditorSubsystem = GEditor->GetEditorSubsystem<UActorIOEditorSubsystem>();
+	AActor* SelectedActor = ActorIOEditorSubsystem ? ActorIOEditorSubsystem->GetSelectedActor() : nullptr;
+	UActorIOComponent* ActorIOComponent = SelectedActor ? SelectedActor->GetComponentByClass<UActorIOComponent>() : nullptr;
+
+	if (ActorIOComponent)
+	{
+		ActionListItems = ActorIOComponent->GetActions();
+	}
+
+	RequestListRefresh();
 }
 
 TSharedRef<ITableRow> SActorIOActionListView::OnGenerateWidgetForActionListView(TWeakObjectPtr<UActorIOAction> Item, const TSharedRef<STableViewBase>& OwnerTable)
 {
     return SNew(SActorIOActionListViewRow, OwnerTable, Item);
-}
-
-void SActorIOActionListView::UpdateActionList()
-{
-    ActionListItems.Reset();
-
-    UActorIOEditorSubsystem* ActorIOEditorSubsystem = GEditor->GetEditorSubsystem<UActorIOEditorSubsystem>();
-    AActor* SelectedActor = ActorIOEditorSubsystem ? ActorIOEditorSubsystem->GetSelectedActor() : nullptr;
-    UActorIOComponent* ActorIOComponent = SelectedActor ? SelectedActor->GetComponentByClass<UActorIOComponent>() : nullptr;
-
-    if (ActorIOComponent)
-    {
-        ActionListItems = ActorIOComponent->GetActions();
-    }
 }
 
 
@@ -159,7 +163,8 @@ TSharedRef<SWidget> SActorIOActionListViewRow::GenerateWidgetForColumn(const FNa
 				SNew(SComboBox<FName>)
 				.OptionsSource(&SelectableEventIds)
 				.OnGenerateWidget(this, &SActorIOActionListViewRow::OnGenerateEventComboBoxWidget)
-				.OnSelectionChanged(this, &SActorIOActionListViewRow::OnEventChanged)
+				.OnComboBoxOpening(this, &SActorIOActionListViewRow::OnEventComboBoxOpening)
+				.OnSelectionChanged(this, &SActorIOActionListViewRow::OnEventComboBoxSelectionChanged)
 				[
 					SAssignNew(EventText, STextBlock)
 					.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont")) // PropertyEditorConstants::PropertyFontStyle
@@ -188,7 +193,7 @@ TSharedRef<SWidget> SActorIOActionListViewRow::GenerateWidgetForColumn(const FNa
 			.EnableContentPicker(true)
 			.DisplayBrowse(false)
 			.DisplayUseSelected(false)
-			.ObjectPath(this, &SActorIOActionListViewRow::GetTargetActorPath)
+			.ObjectPath(this, &SActorIOActionListViewRow::OnGetTargetActorPath)
 			.OnObjectChanged(this, &SActorIOActionListViewRow::OnTargetActorChanged)
 		);
 	}
@@ -200,7 +205,8 @@ TSharedRef<SWidget> SActorIOActionListViewRow::GenerateWidgetForColumn(const FNa
 			SNew(SComboBox<FName>)
 			.OptionsSource(&SelectableFunctionIds)
 			.OnGenerateWidget(this, &SActorIOActionListViewRow::OnGenerateFunctionComboBoxWidget)
-			.OnSelectionChanged(this, &SActorIOActionListViewRow::OnTargetFunctionChanged)
+			.OnComboBoxOpening(this, &SActorIOActionListViewRow::OnFunctionComboBoxOpening)
+			.OnSelectionChanged(this, &SActorIOActionListViewRow::OnFunctionComboBoxSelectionChanged)
 			[
 				SAssignNew(FunctionText, STextBlock)
 				.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont"))
@@ -217,7 +223,7 @@ TSharedRef<SWidget> SActorIOActionListViewRow::GenerateWidgetForColumn(const FNa
 			SNew(SEditableTextBox)
 			.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont"))
 			.Text(FText::FromString(ActionPtr->FunctionArguments))
-			.OnTextCommitted(this, &SActorIOActionListViewRow::OnFunctionArgumentsChanged)
+			.OnTextCommitted(this, &SActorIOActionListViewRow::OnFunctionParametersChanged)
 		);
 	}
 	else if (ColumnName == ColumnId::Delay)
@@ -233,7 +239,7 @@ TSharedRef<SWidget> SActorIOActionListViewRow::GenerateWidgetForColumn(const FNa
 			.EnableWheel(false)
 			.AlwaysUsesDeltaSnap(true)
 			.Delta(0.01f)
-			.Value(this, &SActorIOActionListViewRow::GetActionDelay)
+			.Value(this, &SActorIOActionListViewRow::OnGetActionDelay)
 			.OnValueCommitted(this, &SActorIOActionListViewRow::OnActionDelayChanged)
 		);
 	}
@@ -242,26 +248,32 @@ TSharedRef<SWidget> SActorIOActionListViewRow::GenerateWidgetForColumn(const FNa
 		OutWidget->SetPadding(FMargin(3.0f, FActorIOEditorStyle::ActionSpacing, 0.0f, 0.0f));
 		OutWidget->SetContent
 		(
-			SNew(SCheckBox)
-			.IsChecked(this, &SActorIOActionListViewRow::IsExecuteOnlyOnceChecked)
-			.OnCheckStateChanged(this, &SActorIOActionListViewRow::OnExecuteOnlyOnceChecked)
-		);
-	}
-	else if (ColumnName == ColumnId::ActionButtons)
-	{
-		OutWidget->SetHAlign(HAlign_Center);
-		OutWidget->SetPadding(FMargin(1.0f, FActorIOEditorStyle::ActionSpacing, 1.0f, 0.0f));
-		OutWidget->SetContent
-		(
-			SNew(SButton)
-			.HAlign(HAlign_Center)
-			.VAlign(VAlign_Center)
-			.ContentPadding(0.0f)
-			.OnClicked(this, &SActorIOActionListViewRow::OnClick_RemoveAction)
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
 			[
-				SNew(SImage)
-				.Image(FAppStyle::GetBrush("Icons.Delete"))
-				.Visibility(EVisibility::HitTestInvisible)
+				SNew(SCheckBox)
+				.IsChecked(this, &SActorIOActionListViewRow::IsExecuteOnlyOnceChecked)
+				.OnCheckStateChanged(this, &SActorIOActionListViewRow::OnExecuteOnlyOnceChecked)
+			]
+			+ SHorizontalBox::Slot()
+			[
+				SNew(SSpacer)
+			]
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(0.0f, 0.0f, 2.0f, 0.0f)
+			[
+				SNew(SButton)
+				.HAlign(HAlign_Center)
+				.VAlign(VAlign_Center)
+				.ContentPadding(0.0f)
+				.OnClicked(this, &SActorIOActionListViewRow::OnClick_RemoveAction)
+				[
+					SNew(SImage)
+					.Image(FAppStyle::GetBrush("Icons.Delete"))
+					.Visibility(EVisibility::HitTestInvisible)
+				]
 			]
 		);
 	}
@@ -362,7 +374,7 @@ FSlateColor SActorIOActionListViewRow::GetFunctionTextColor(FName InFunctionId) 
 	return TargetFunction ? FSlateColor::UseForeground() : FStyleColors::Error;
 }
 
-TSharedRef<SWidget> SActorIOActionListViewRow::OnGenerateEventComboBoxWidget(FName InName)
+TSharedRef<SWidget> SActorIOActionListViewRow::OnGenerateEventComboBoxWidget(FName InName) const
 {
 	return SNew(STextBlock)
 		.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont")) // PropertyEditorConstants::PropertyFontStyle
@@ -370,15 +382,12 @@ TSharedRef<SWidget> SActorIOActionListViewRow::OnGenerateEventComboBoxWidget(FNa
 		.ToolTipText(GetEventTooltipText(InName));
 }
 
-TSharedRef<SWidget> SActorIOActionListViewRow::OnGenerateFunctionComboBoxWidget(FName InName)
+void SActorIOActionListViewRow::OnEventComboBoxOpening()
 {
-	return SNew(STextBlock)
-		.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont")) // PropertyEditorConstants::PropertyFontStyle
-		.Text(GetFunctionDisplayName(InName))
-		.ToolTipText(GetFunctionTooltipText(InName));
+	UpdateSelectableEvents();
 }
 
-void SActorIOActionListViewRow::OnEventChanged(FName InName, ESelectInfo::Type InSelectType)
+void SActorIOActionListViewRow::OnEventComboBoxSelectionChanged(FName InName, ESelectInfo::Type InSelectType)
 {
 	if (InSelectType != ESelectInfo::Direct)
 	{
@@ -399,6 +408,11 @@ void SActorIOActionListViewRow::OnEventChanged(FName InName, ESelectInfo::Type I
 	}
 }
 
+FString SActorIOActionListViewRow::OnGetTargetActorPath() const
+{
+	return ActionPtr->TargetActor.GetPathName();
+}
+
 void SActorIOActionListViewRow::OnTargetActorChanged(const FAssetData& InAssetData)
 {
 	const FScopedTransaction Transaction(LOCTEXT("ModifyActorIOAction", "Modify ActorIO Action"));
@@ -414,12 +428,20 @@ void SActorIOActionListViewRow::OnTargetActorChanged(const FAssetData& InAssetDa
 	UpdateSelectableFunctions();
 }
 
-FString SActorIOActionListViewRow::GetTargetActorPath() const
+TSharedRef<SWidget> SActorIOActionListViewRow::OnGenerateFunctionComboBoxWidget(FName InName) const
 {
-	return ActionPtr->TargetActor.GetPathName();
+	return SNew(STextBlock)
+		.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont")) // PropertyEditorConstants::PropertyFontStyle
+		.Text(GetFunctionDisplayName(InName))
+		.ToolTipText(GetFunctionTooltipText(InName));
 }
 
-void SActorIOActionListViewRow::OnTargetFunctionChanged(FName InName, ESelectInfo::Type InSelectType)
+void SActorIOActionListViewRow::OnFunctionComboBoxOpening()
+{
+	UpdateSelectableFunctions();
+}
+
+void SActorIOActionListViewRow::OnFunctionComboBoxSelectionChanged(FName InName, ESelectInfo::Type InSelectType)
 {
 	if (InSelectType != ESelectInfo::Direct)
 	{
@@ -441,7 +463,7 @@ void SActorIOActionListViewRow::OnTargetFunctionChanged(FName InName, ESelectInf
 	}
 }
 
-void SActorIOActionListViewRow::OnFunctionArgumentsChanged(const FText& InText, ETextCommit::Type InCommitType)
+void SActorIOActionListViewRow::OnFunctionParametersChanged(const FText& InText, ETextCommit::Type InCommitType)
 {
 	const FScopedTransaction Transaction(LOCTEXT("ModifyActorIOAction", "Modify ActorIO Action"));
 	ActionPtr->Modify();
@@ -452,7 +474,7 @@ void SActorIOActionListViewRow::OnFunctionArgumentsChanged(const FText& InText, 
 	ActionPtr->FunctionArguments = InText.ToString();
 }
 
-float SActorIOActionListViewRow::GetActionDelay() const
+float SActorIOActionListViewRow::OnGetActionDelay() const
 {
 	return ActionPtr->Delay;
 }

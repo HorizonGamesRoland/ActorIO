@@ -26,8 +26,12 @@ void FActorIOEditorStyle::Initialize()
 	StyleSet->SetCoreContentRoot(EditorResources);
 
 	StyleSet->Set("RoundedHeader", new FSlateRoundedBoxBrush(FStyleColors::Header, FStyleColors::Input, 1.0f));
-	StyleSet->Set("ActionList.Header", new FSlateRoundedBoxBrush(FStyleColors::Header, 4.0f, FStyleColors::Input, 0.0f));
-	StyleSet->Set("ActionList.Body", new FSlateRoundedBoxBrush(FStyleColors::Recessed, 4.0f, FStyleColors::Input, 1.0f));
+
+	const FTableViewStyle ActionListStyle = FTableViewStyle()
+		.SetBackgroundBrush(FSlateNoResource());
+
+	StyleSet->Set("ActionListView", ActionListStyle);
+	StyleSet->Set("ActionListView.Border", new FSlateRoundedBoxBrush(FStyleColors::Recessed, FVector4(0.0f, 0.0f, 4.0f, 4.0f), FStyleColors::Input, 1.0f));
 
 	const FCheckBoxStyle ToggleButtonStyle = FCheckBoxStyle()
 		.SetCheckBoxType(ESlateCheckBoxType::ToggleButton)

@@ -135,8 +135,17 @@ void SActorIOEditor::Construct(const FArguments& InArgs)
             ]
             + SSplitter::Slot()
             [
-                SAssignNew(ActionPanel, SBox)
+                SNew(SBox)
                 .Padding(3.0f, 0.0f, 0.0f, 0.0f)
+                [
+                    SNew(SBorder)
+                    .BorderImage(FActorIOEditorStyle::Get().GetBrush("ActionListView.Border"))
+                    .Padding(1.0f)
+                    [
+                        SAssignNew(ActionListView, SActorIOActionListView)
+                        .Clipping(EWidgetClipping::ClipToBounds)
+                    ]
+                ]
             ]
         ]
     ];
@@ -161,14 +170,7 @@ void SActorIOEditor::Refresh()
     InputsButtonText->SetText(FText::FormatNamed(LOCTEXT("InputsButton", "Inputs ({Count})"),
         TEXT("Count"), NumInputActions));
 
-    if (bViewOutputs)
-    {
-        ActionPanel->SetContent(SNew(SActorIOActionListView));
-    }
-    else
-    {
-        ActionPanel->SetContent(SNew(SActorIOActionListView));
-    }
+    ActionListView->Refresh();
 }
 
 ECheckBoxState SActorIOEditor::IsOutputsButtonChecked() const

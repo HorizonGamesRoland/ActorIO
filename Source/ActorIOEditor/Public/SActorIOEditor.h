@@ -27,7 +27,7 @@ protected:
 
     TSharedPtr<class STextBlock> InputsButtonText;
 
-    TSharedPtr<class SBox> ActionPanel;
+    TSharedPtr<class SActorIOActionListView> ActionListView;
 
     bool bViewOutputs;
 

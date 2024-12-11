@@ -19,7 +19,6 @@ namespace ColumnId
     const FName Parameter = FName(TEXT("Parameter"));
     const FName Delay = FName(TEXT("Delay"));
     const FName OnlyOnce = FName(TEXT("OnlyOnce"));
-    const FName ActionButtons = FName(TEXT("ActionButtons"));
 }
 
 class SActorIOActionListView : public SListView<TWeakObjectPtr<UActorIOAction>>
@@ -43,8 +42,6 @@ protected:
 protected:
 
     TSharedRef<ITableRow> OnGenerateWidgetForActionListView(TWeakObjectPtr<UActorIOAction> Item, const TSharedRef<STableViewBase>& OwnerTable);
-
-    void UpdateActionList();
 };
 
 
@@ -97,23 +94,27 @@ protected:
 
     FSlateColor GetFunctionTextColor(FName InFunctionId) const;
 
-    TSharedRef<SWidget> OnGenerateEventComboBoxWidget(FName InName);
-
-    TSharedRef<SWidget> OnGenerateFunctionComboBoxWidget(FName InName);
-
 protected:
 
-    void OnEventChanged(FName InName, ESelectInfo::Type InSelectType);
+    TSharedRef<SWidget> OnGenerateEventComboBoxWidget(FName InName) const;
+
+    void OnEventComboBoxOpening();
+
+    void OnEventComboBoxSelectionChanged(FName InName, ESelectInfo::Type InSelectType);
+
+    FString OnGetTargetActorPath() const;
 
     void OnTargetActorChanged(const FAssetData& InAssetData);
 
-    FString GetTargetActorPath() const;
+    TSharedRef<SWidget> OnGenerateFunctionComboBoxWidget(FName InName) const;
 
-    void OnTargetFunctionChanged(FName InName, ESelectInfo::Type InSelectType);
+    void OnFunctionComboBoxOpening();
 
-    void OnFunctionArgumentsChanged(const FText& InText, ETextCommit::Type InCommitType);
+    void OnFunctionComboBoxSelectionChanged(FName InName, ESelectInfo::Type InSelectType);
 
-    float GetActionDelay() const;
+    void OnFunctionParametersChanged(const FText& InText, ETextCommit::Type InCommitType);
+
+    float OnGetActionDelay() const;
 
     void OnActionDelayChanged(float InValue, ETextCommit::Type InCommitType);
 
