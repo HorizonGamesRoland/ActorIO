@@ -24,9 +24,7 @@ public:
 	/** Height of action entries. Same as PropertyEditorConstants::PropertyRowHeight. */
 	static constexpr float ActionHeight = 26.0f;
 	/** Spacing between actions in the action list. */
-	static constexpr float ActionSpacing = 3.0f;
-	/** Thickness of the action list scrollbar. */
-	static constexpr float ActionListScrollbarThickness = 8.0f;
+	static constexpr float ActionSpacing = 2.0f;
 
 public:
 

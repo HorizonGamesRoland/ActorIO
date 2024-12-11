@@ -26,9 +26,6 @@ void SActorIOEditor::PrivateRegisterAttributes(FSlateAttributeInitializer& Attri
 
 void SActorIOEditor::Construct(const FArguments& InArgs)
 {
-    OutputActionList = SNew(SActorOutputList);
-    InputActionList = SNew(SActorInputList);
-
     // Display output actions by default.
     bViewOutputs = true;
 
@@ -166,13 +163,11 @@ void SActorIOEditor::Refresh()
 
     if (bViewOutputs)
     {
-        ActionPanel->SetContent(SNew(SActorOutputListView));
-        OutputActionList->Refresh();
+        ActionPanel->SetContent(SNew(SActorIOActionListView));
     }
     else
     {
-        ActionPanel->SetContent(InputActionList.ToSharedRef());
-        InputActionList->Refresh();
+        ActionPanel->SetContent(SNew(SActorIOActionListView));
     }
 }
 

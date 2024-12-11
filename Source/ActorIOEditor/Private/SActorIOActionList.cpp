@@ -5,289 +5,90 @@
 #include "ActorIOSystem.h"
 #include "ActorIOComponent.h"
 #include "ActorIOAction.h"
+#include "ActorIOEditor.h"
 #include "ActorIOEditorSubsystem.h"
 #include "ActorIOEditorStyle.h"
+#include "PropertyCustomizationHelpers.h"
+#include "Widgets/Input/SSpinBox.h"
 
 #define LOCTEXT_NAMESPACE "ActorIOEditor"
 
+//=======================================================
+//~ Begin SActorIOActionListView
+//=======================================================
+
+SLATE_IMPLEMENT_WIDGET(SActorIOActionListView)
+void SActorIOActionListView::PrivateRegisterAttributes(FSlateAttributeInitializer& AttributeInitializer)
+{
+}
+
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-
-//=======================================================
-//~ Begin SActorIOActionList
-//=======================================================
-
-SLATE_IMPLEMENT_WIDGET(SActorIOActionList)
-void SActorIOActionList::PrivateRegisterAttributes(FSlateAttributeInitializer& AttributeInitializer)
-{
-}
-
-void SActorIOActionList::Construct(const FArguments& InArgs)
-{
-	ChildSlot
-	[
-        SNew(SBorder)
-        .BorderImage(FActorIOEditorStyle::Get().GetBrush("ActionList.Body"))
-        .Padding(0.0f)
-        [
-            SNew(SVerticalBox)
-            + SVerticalBox::Slot()
-            .AutoHeight()
-            .Padding(1.0f, 1.0f, 1.0f, 0.0f)
-            [
-                SNew(SBorder)
-                .BorderImage(FActorIOEditorStyle::Get().GetBrush("ActionList.Header"))
-                .Padding(0.0f)
-                [
-                    SAssignNew(PropertyHeaderContainer, SBox)
-                    .HeightOverride(FActorIOEditorStyle::HeaderRowHeight)
-                    [
-                        SAssignNew(PropertyHeaderSplitter, SSplitter)
-                        .PhysicalSplitterHandleSize(1.0f)
-                    ]
-                ]
-            ]
-            + SVerticalBox::Slot()
-            [
-                SNew(SScrollBox)
-                .ScrollBarThickness(FVector2D(FActorIOEditorStyle::ActionListScrollbarThickness))
-                .OnScrollBarVisibilityChanged(this, &SActorIOActionList::OnScrollBarVisibilityChanged)
-                + SScrollBox::Slot()
-                [
-                    SAssignNew(ActionList, SVerticalBox)
-                ]
-            ]
-        ]
-	];
-
-    InitializeHeaderRow();
-
-    if (PropertyHeaderSizes.IsEmpty())
-    {
-        const int32 NumSlots = PropertyHeaderSplitter->GetChildren()->Num();
-        PropertyHeaderSizes.Init(1.0f, NumSlots);
-
-        for (int32 SlotIdx = 0; SlotIdx != NumSlots; ++SlotIdx)
-        {
-            const float TargetSize = PropertyHeaderSplitter->SlotAt(SlotIdx).GetSizeValue();
-            PropertyHeaderSizes[SlotIdx] = TargetSize;
-        }
-    }
-
-    for (int32 SlotIdx = 0; SlotIdx != PropertyHeaderSizes.Num(); ++SlotIdx)
-    {
-        OnPropertyHeaderResized(SlotIdx, PropertyHeaderSizes[SlotIdx]);
-    }
-}
-
-void SActorIOActionList::AddPropertyHeader(const FText& InPropertyName, float InSizeValue, const FMargin& InPadding)
-{
-    const int32 PropertyIndex = PropertyHeaderSplitter->GetChildren()->Num();
-
-    PropertyHeaderSplitter->AddSlot()
-    .Value(InSizeValue)
-    .OnSlotResized_Lambda([this, PropertyIndex](float InSize) { OnPropertyHeaderResized(PropertyIndex, InSize); })
-    [
-        SNew(SBox)
-        .VAlign(VAlign_Center)
-        .Padding(InPadding)
-        [
-            SNew(STextBlock)
-            .Text(InPropertyName)
-        ]
-    ];
-}
-
-void SActorIOActionList::OnPropertyHeaderResized(int32 InSlotIndex, float InSize)
-{
-    PropertyHeaderSizes[InSlotIndex] = InSize;
-    PropertyHeaderSplitter->SlotAt(InSlotIndex).SetSizeValue(InSize);
-
-    if (FChildren* ChildWidgets = ActionList->GetChildren())
-    {
-        ChildWidgets->ForEachWidget([InSlotIndex, InSize](SWidget& ChildWidget)
-        {
-            const FName WidgetType = ChildWidget.GetType();
-            if (WidgetType == TEXT("SActorOutputAction") || WidgetType == TEXT("SActorInputAction"))
-            {
-                SActorIOAction& ActionWidget = static_cast<SActorIOAction&>(ChildWidget);
-                ActionWidget.SetPropertySize(InSlotIndex, InSize);
-            }
-        });
-    }
-}
-
-void SActorIOActionList::OnScrollBarVisibilityChanged(EVisibility InVisibility)
-{
-    FMargin Padding = FMargin(0.0f);
-    if (InVisibility == EVisibility::Visible)
-    {
-        Padding.Right = FActorIOEditorStyle::ActionListScrollbarThickness;
-    }
-
-    PropertyHeaderContainer->SetPadding(Padding);
-}
-
-
-//=======================================================
-//~ Begin SActorOutputList
-//=======================================================
-
-SLATE_IMPLEMENT_WIDGET(SActorOutputList)
-void SActorOutputList::PrivateRegisterAttributes(FSlateAttributeInitializer& AttributeInitializer)
-{
-}
-
-void SActorOutputList::Construct(const FArguments& InArgs)
-{
-    Super::Construct(SActorIOActionList::FArguments());
-}
-
-void SActorOutputList::InitializeHeaderRow()
-{
-    AddPropertyHeader(LOCTEXT("Event", "Event:"), 1.0f, FMargin(30.0f, 0.0f, 0.0f, 0.0f));
-    AddPropertyHeader(LOCTEXT("Target", "Target:"), 1.0f, FMargin(5.0f, 0.0f, 0.0f, 0.0f));
-    AddPropertyHeader(LOCTEXT("Action", "Action:"), 1.0f, FMargin(5.0f, 0.0f, 0.0f, 0.0f));
-    AddPropertyHeader(LOCTEXT("Parameter", "Parameter:"), 1.0f, FMargin(5.0f, 0.0f, 0.0f, 0.0f));
-    AddPropertyHeader(LOCTEXT("Delay", "Delay:"), 0.35f, FMargin(5.0f, 0.0f, 0.0f, 0.0f));
-    AddPropertyHeader(LOCTEXT("Once", "Once?"), 0.5f, FMargin(5.0f, 0.0f, 0.0f, 0.0f));
-}
-
-void SActorOutputList::Refresh()
-{
-    ActionList->ClearChildren();
-
-    UActorIOEditorSubsystem* ActorIOEditorSubsystem = GEditor->GetEditorSubsystem<UActorIOEditorSubsystem>();
-    AActor* SelectedActor = ActorIOEditorSubsystem ? ActorIOEditorSubsystem->GetSelectedActor() : nullptr;
-    UActorIOComponent* ActorIOComponent = SelectedActor ? SelectedActor->GetComponentByClass<UActorIOComponent>() : nullptr;
-
-    if (ActorIOComponent)
-    {
-        ActorIOComponent->RemoveInvalidActions();
-        for (const TWeakObjectPtr<UActorIOAction>& Action : ActorIOComponent->GetActions())
-        {
-            ActionList->AddSlot()
-            .AutoHeight()
-            [
-                SNew(SActorOutputAction)
-                .Action(Action)
-                .PropertySizes(PropertyHeaderSizes)
-            ];
-        }
-
-        // Add closing gap between last action and bottom of scroll box.
-        if (ActorIOComponent->GetNumActions() > 0)
-        {
-            ActionList->AddSlot()
-            .AutoHeight()
-            [
-                SNew(SSpacer)
-                .Size(FVector2D(0.0f, FActorIOEditorStyle::ActionSpacing))
-            ];
-        }
-    }
-}
-
-
-//=======================================================
-//~ Begin SActorInputList
-//=======================================================
-
-SLATE_IMPLEMENT_WIDGET(SActorInputList)
-void SActorInputList::PrivateRegisterAttributes(FSlateAttributeInitializer& AttributeInitializer)
-{
-}
-
-void SActorInputList::Construct(const FArguments& InArgs)
-{
-    Super::Construct(SActorIOActionList::FArguments());
-}
-
-void SActorInputList::InitializeHeaderRow()
-{
-    AddPropertyHeader(LOCTEXT("Caller", "Caller:"), 1.0f, FMargin(30.0f, 0.0f, 0.0f, 0.0f));
-    AddPropertyHeader(LOCTEXT("Event", "Target:"), 1.0f, FMargin(5.0f, 0.0f, 0.0f, 0.0f));
-    AddPropertyHeader(LOCTEXT("Action", "Action:"), 1.0f, FMargin(5.0f, 0.0f, 0.0f, 0.0f));
-    AddPropertyHeader(LOCTEXT("Parameter", "Parameter:"), 1.0f, FMargin(5.0f, 0.0f, 0.0f, 0.0f));
-    //AddPropertyHeader(LOCTEXT("Delay", "Delay:"), FMargin(5.0f, 0.0f));
-    //AddPropertyHeader(LOCTEXT("Once", "Once?"), FMargin(5.0f, 0.0f));
-}
-
-void SActorInputList::Refresh()
-{
-    ActionList->ClearChildren();
-
-    UActorIOEditorSubsystem* ActorIOEditorSubsystem = GEditor->GetEditorSubsystem<UActorIOEditorSubsystem>();
-    AActor* SelectedActor = ActorIOEditorSubsystem ? ActorIOEditorSubsystem->GetSelectedActor() : nullptr;
-
-    for (const TWeakObjectPtr<UActorIOAction>& InputAction : UActorIOSystem::GetInputActionsForObject(SelectedActor))
-    {
-        ActionList->AddSlot()
-        .AutoHeight()
-        [
-            SNew(SActorInputAction)
-            .Action(InputAction)
-            .PropertySizes(PropertyHeaderSizes)
-        ];
-    }
-}
-
-//=======================================================
-//~ Begin SActorOutputListView
-//=======================================================
-
-SLATE_IMPLEMENT_WIDGET(SActorOutputListView)
-void SActorOutputListView::PrivateRegisterAttributes(FSlateAttributeInitializer& AttributeInitializer)
-{
-}
-
-void SActorOutputListView::Construct(const FArguments& InArgs)
+void SActorIOActionListView::Construct(const FArguments& InArgs)
 {
     SListView::Construct(
         SListView::FArguments()
         .ListItemsSource(&ActionListItems)
-        .OnGenerateRow(this, &SActorOutputListView::OnGenerateWidgetForActionListView)
+		.SelectionMode(ESelectionMode::None)
+		.EnableAnimatedScrolling(true)
+        .OnGenerateRow(this, &SActorIOActionListView::OnGenerateWidgetForActionListView)
         .HeaderRow
         (
             SNew(SHeaderRow)
-            +SHeaderRow::Column(TEXT("Event"))
+			+ SHeaderRow::Column(ColumnId::ActionType)
+			.DefaultLabel(FText::GetEmpty())
+			.FixedWidth(30)
+
+            +SHeaderRow::Column(ColumnId::Event)
             .DefaultLabel(LOCTEXT("OutputListColEvent", "Event:"))
             .FillWidth(1.0f)
+			.HeaderContentPadding(FMargin(5.0f, 0.0f, 0.0f, 0.0f))
 
-            + SHeaderRow::Column(TEXT("Target"))
+            + SHeaderRow::Column(ColumnId::Target)
             .DefaultLabel(LOCTEXT("OutputListColTarget", "Target:"))
             .FillWidth(1.0f)
+			.HeaderContentPadding(FMargin(5.0f, 0.0f, 0.0f, 0.0f))
 
-            + SHeaderRow::Column(TEXT("Action"))
+            + SHeaderRow::Column(ColumnId::Action)
             .DefaultLabel(LOCTEXT("OutputListColAction", "Action:"))
             .FillWidth(1.0f)
+			.HeaderContentPadding(FMargin(5.0f, 0.0f, 0.0f, 0.0f))
 
-            + SHeaderRow::Column(TEXT("Parameter"))
+            + SHeaderRow::Column(ColumnId::Parameter)
             .DefaultLabel(LOCTEXT("OutputListColParameter", "Parameter:"))
             .FillWidth(1.0f)
+			.HeaderContentPadding(FMargin(5.0f, 0.0f, 0.0f, 0.0f))
 
-            + SHeaderRow::Column(TEXT("Target"))
-            .DefaultLabel(LOCTEXT("OutputListColTarget", "Target:"))
-            .FillWidth(1.0f)
-
-            + SHeaderRow::Column(TEXT("Delay"))
+            + SHeaderRow::Column(ColumnId::Delay)
             .DefaultLabel(LOCTEXT("OutputListColDelay", "Delay:"))
             .FillWidth(0.35f)
+			.HeaderContentPadding(FMargin(5.0f, 0.0f, 0.0f, 0.0f))
 
-            + SHeaderRow::Column(TEXT("Once"))
+            + SHeaderRow::Column(ColumnId::OnlyOnce)
             .DefaultLabel(LOCTEXT("OutputListColOnce", "Once?"))
-            .FillWidth(0.5f)
+            .FillWidth(0.4f)
+			.HeaderContentPadding(FMargin(5.0f, 0.0f, 0.0f, 0.0f))
+
+			+ SHeaderRow::Column(ColumnId::ActionButtons)
+			.DefaultLabel(FText::GetEmpty())
+			.FixedWidth(50.0f)
         )
     );
 
     UpdateActionList();
 }
+END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
-TSharedRef<ITableRow> SActorOutputListView::OnGenerateWidgetForActionListView(TWeakObjectPtr<UActorIOAction> Item, const TSharedRef<STableViewBase>& OwnerTable)
+void SActorIOActionListView::Refresh()
 {
-    return SNew(SActorOutputListViewRow, OwnerTable, Item);
+	UpdateActionList();
 }
 
-void SActorOutputListView::UpdateActionList()
+TSharedRef<ITableRow> SActorIOActionListView::OnGenerateWidgetForActionListView(TWeakObjectPtr<UActorIOAction> Item, const TSharedRef<STableViewBase>& OwnerTable)
+{
+    return SNew(SActorIOActionListViewRow, OwnerTable, Item);
+}
+
+void SActorIOActionListView::UpdateActionList()
 {
     ActionListItems.Reset();
 
@@ -301,6 +102,400 @@ void SActorOutputListView::UpdateActionList()
     }
 }
 
+
+//=======================================================
+//~ Begin SActorIOActionListViewRow
+//=======================================================
+
+SLATE_IMPLEMENT_WIDGET(SActorIOActionListViewRow)
+void SActorIOActionListViewRow::PrivateRegisterAttributes(FSlateAttributeInitializer& AttributeInitializer)
+{
+}
+
+void SActorIOActionListViewRow::Construct(const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTableView, TWeakObjectPtr<UActorIOAction> InActionPtr)
+{
+	ActionPtr = InActionPtr;
+
+	UpdateSelectableEvents();
+	UpdateSelectableFunctions();
+
+	FSuperRowType::Construct(FTableRowArgs(), InOwnerTableView);
+}
+
+BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
+TSharedRef<SWidget> SActorIOActionListViewRow::GenerateWidgetForColumn(const FName& ColumnName)
+{
+	TSharedRef<SBox> OutWidget = SNew(SBox);
+
+	if (!ActionPtr.IsValid())
+	{
+		OutWidget->SetPadding(FMargin(0.0f, FActorIOEditorStyle::ActionSpacing, 0.0f, 0.0f));
+		OutWidget->SetContent
+		(
+			SNew(STextBlock)
+			.Text(INVTEXT("Invalid Action!"))
+			.ColorAndOpacity(FStyleColors::Error)
+		);
+	}
+	else if (ColumnName == ColumnId::ActionType)
+	{
+		OutWidget->SetHAlign(HAlign_Center);
+		OutWidget->SetVAlign(VAlign_Center);
+		OutWidget->SetPadding(FMargin(0.0f, FActorIOEditorStyle::ActionSpacing, 0.0f, 0.0f));
+		OutWidget->SetContent
+		(
+			SNew(SImage)
+			.Image(FActorIOEditorStyle::Get().GetBrush("Action.OutputIcon"))
+		);
+	}
+	else if (ColumnName == ColumnId::Event)
+	{
+		OutWidget->SetPadding(FMargin(0.0f, FActorIOEditorStyle::ActionSpacing, 0.0f, 0.0f));
+		OutWidget->SetContent
+		(
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			[
+				SNew(SComboBox<FName>)
+				.OptionsSource(&SelectableEventIds)
+				.OnGenerateWidget(this, &SActorIOActionListViewRow::OnGenerateEventComboBoxWidget)
+				.OnSelectionChanged(this, &SActorIOActionListViewRow::OnEventChanged)
+				[
+					SAssignNew(EventText, STextBlock)
+					.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont")) // PropertyEditorConstants::PropertyFontStyle
+					.Text(GetEventDisplayName(ActionPtr->EventId))
+					.ColorAndOpacity(GetEventTextColor(ActionPtr->EventId))
+				]
+			]
+			+ SHorizontalBox::Slot()
+			.VAlign(VAlign_Center)
+			.AutoWidth()
+			.Padding(5.0f, 0.0f)
+			[
+				SNew(SImage)
+				.Image(FActorIOEditorStyle::Get().GetBrush("Action.TargetIcon"))
+			]
+		);
+	}
+	else if (ColumnName == ColumnId::Target)
+	{
+		OutWidget->SetPadding(FMargin(0.0f, FActorIOEditorStyle::ActionSpacing, 0.0f, 0.0f));
+		OutWidget->SetContent
+		(
+			SNew(SObjectPropertyEntryBox)
+			.AllowedClass(AActor::StaticClass())
+			.AllowClear(true)
+			.EnableContentPicker(true)
+			.DisplayBrowse(false)
+			.DisplayUseSelected(false)
+			.ObjectPath(this, &SActorIOActionListViewRow::GetTargetActorPath)
+			.OnObjectChanged(this, &SActorIOActionListViewRow::OnTargetActorChanged)
+		);
+	}
+	else if (ColumnName == ColumnId::Action)
+	{
+		OutWidget->SetPadding(FMargin(0.0f, FActorIOEditorStyle::ActionSpacing, 1.0f, 0.0f));
+		OutWidget->SetContent
+		(
+			SNew(SComboBox<FName>)
+			.OptionsSource(&SelectableFunctionIds)
+			.OnGenerateWidget(this, &SActorIOActionListViewRow::OnGenerateFunctionComboBoxWidget)
+			.OnSelectionChanged(this, &SActorIOActionListViewRow::OnTargetFunctionChanged)
+			[
+				SAssignNew(FunctionText, STextBlock)
+				.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont"))
+				.Text(GetFunctionDisplayName(ActionPtr->FunctionId))
+				.ColorAndOpacity(GetFunctionTextColor(ActionPtr->FunctionId))
+			]
+		);
+	}
+	else if (ColumnName == ColumnId::Parameter)
+	{
+		OutWidget->SetPadding(FMargin(1.0f, FActorIOEditorStyle::ActionSpacing, 1.0f, 0.0f));
+		OutWidget->SetContent
+		(
+			SNew(SEditableTextBox)
+			.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont"))
+			.Text(FText::FromString(ActionPtr->FunctionArguments))
+			.OnTextCommitted(this, &SActorIOActionListViewRow::OnFunctionArgumentsChanged)
+		);
+	}
+	else if (ColumnName == ColumnId::Delay)
+	{
+		OutWidget->SetPadding(FMargin(1.0f, FActorIOEditorStyle::ActionSpacing, 1.0f, 0.0f));
+		OutWidget->SetContent
+		(
+			SNew(SSpinBox<float>)
+			.MinValue(0.0f)
+			.MinFractionalDigits(2)
+			.MaxFractionalDigits(2)
+			.EnableSlider(false)
+			.EnableWheel(false)
+			.AlwaysUsesDeltaSnap(true)
+			.Delta(0.01f)
+			.Value(this, &SActorIOActionListViewRow::GetActionDelay)
+			.OnValueCommitted(this, &SActorIOActionListViewRow::OnActionDelayChanged)
+		);
+	}
+	else if (ColumnName == ColumnId::OnlyOnce)
+	{
+		OutWidget->SetPadding(FMargin(3.0f, FActorIOEditorStyle::ActionSpacing, 0.0f, 0.0f));
+		OutWidget->SetContent
+		(
+			SNew(SCheckBox)
+			.IsChecked(this, &SActorIOActionListViewRow::IsExecuteOnlyOnceChecked)
+			.OnCheckStateChanged(this, &SActorIOActionListViewRow::OnExecuteOnlyOnceChecked)
+		);
+	}
+	else if (ColumnName == ColumnId::ActionButtons)
+	{
+		OutWidget->SetHAlign(HAlign_Center);
+		OutWidget->SetPadding(FMargin(1.0f, FActorIOEditorStyle::ActionSpacing, 1.0f, 0.0f));
+		OutWidget->SetContent
+		(
+			SNew(SButton)
+			.HAlign(HAlign_Center)
+			.VAlign(VAlign_Center)
+			.ContentPadding(0.0f)
+			.OnClicked(this, &SActorIOActionListViewRow::OnClick_RemoveAction)
+			[
+				SNew(SImage)
+				.Image(FAppStyle::GetBrush("Icons.Delete"))
+				.Visibility(EVisibility::HitTestInvisible)
+			]
+		);
+	}
+
+	return OutWidget;
+}
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
+
+void SActorIOActionListViewRow::UpdateSelectableEvents()
+{
+	SelectableEventIds.Reset();
+	SelectableEventIds.Add(TEXT("<Clear>"));
+
+	ValidEvents = UActorIOSystem::GetEventsForObject(ActionPtr->GetOwnerActor());
+	for (const FActorIOEvent& IOEvent : ValidEvents)
+	{
+		SelectableEventIds.Emplace(IOEvent.EventId);
+	}
+}
+
+void SActorIOActionListViewRow::UpdateSelectableFunctions()
+{
+	SelectableFunctionIds.Reset();
+	SelectableFunctionIds.Add(TEXT("<Clear>"));
+
+	ValidFunctions = UActorIOSystem::GetFunctionsForObject(ActionPtr->TargetActor);
+	for (const FActorIOFunction& IOFunction : ValidFunctions)
+	{
+		SelectableFunctionIds.Emplace(IOFunction.FunctionId);
+	}
+}
+
+FText SActorIOActionListViewRow::GetEventDisplayName(FName InEventId) const
+{
+	const FActorIOEvent* TargetEvent = ValidEvents.FindByKey(InEventId);
+	if (TargetEvent && !TargetEvent->DisplayName.IsEmpty())
+	{
+		return TargetEvent->DisplayName;
+	}
+
+	return FText::FromName(InEventId);
+}
+
+FText SActorIOActionListViewRow::GetEventTooltipText(FName InEventId) const
+{
+	const FActorIOEvent* TargetEvent = ValidEvents.FindByKey(InEventId);
+	if (TargetEvent)
+	{
+		return TargetEvent->TooltipText;
+	}
+
+	return FText::GetEmpty();
+}
+
+FSlateColor SActorIOActionListViewRow::GetEventTextColor(FName InEventId) const
+{
+	if (InEventId == NAME_None)
+	{
+		// Also accept 'None' as valid because we only want to highlight outdated events/functions.
+		return FSlateColor::UseForeground();
+	}
+
+	const FActorIOEvent* TargetEvent = ValidEvents.FindByKey(InEventId);
+	return TargetEvent ? FSlateColor::UseForeground() : FStyleColors::Error;
+}
+
+FText SActorIOActionListViewRow::GetFunctionDisplayName(FName InFunctionId) const
+{
+	const FActorIOFunction* TargetFunction = ValidFunctions.FindByKey(InFunctionId);
+	if (TargetFunction && !TargetFunction->DisplayName.IsEmpty())
+	{
+		return TargetFunction->DisplayName;
+	}
+
+	return FText::FromName(InFunctionId);
+}
+
+FText SActorIOActionListViewRow::GetFunctionTooltipText(FName InFunctionId) const
+{
+	const FActorIOFunction* TargetFunction = ValidFunctions.FindByKey(InFunctionId);
+	if (TargetFunction)
+	{
+		return TargetFunction->TooltipText;
+	}
+
+	return FText::GetEmpty();
+}
+
+FSlateColor SActorIOActionListViewRow::GetFunctionTextColor(FName InFunctionId) const
+{
+	if (InFunctionId == NAME_None)
+	{
+		// Also accept 'None' as valid because we only want to highlight outdated events/functions.
+		return FSlateColor::UseForeground();
+	}
+
+	const FActorIOFunction* TargetFunction = ValidFunctions.FindByKey(InFunctionId);
+	return TargetFunction ? FSlateColor::UseForeground() : FStyleColors::Error;
+}
+
+TSharedRef<SWidget> SActorIOActionListViewRow::OnGenerateEventComboBoxWidget(FName InName)
+{
+	return SNew(STextBlock)
+		.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont")) // PropertyEditorConstants::PropertyFontStyle
+		.Text(GetEventDisplayName(InName))
+		.ToolTipText(GetEventTooltipText(InName));
+}
+
+TSharedRef<SWidget> SActorIOActionListViewRow::OnGenerateFunctionComboBoxWidget(FName InName)
+{
+	return SNew(STextBlock)
+		.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont")) // PropertyEditorConstants::PropertyFontStyle
+		.Text(GetFunctionDisplayName(InName))
+		.ToolTipText(GetFunctionTooltipText(InName));
+}
+
+void SActorIOActionListViewRow::OnEventChanged(FName InName, ESelectInfo::Type InSelectType)
+{
+	if (InSelectType != ESelectInfo::Direct)
+	{
+		const FScopedTransaction Transaction(LOCTEXT("ModifyActorIOAction", "Modify ActorIO Action"));
+		ActionPtr->Modify();
+
+		UActorIOComponent* ActionOwner = ActionPtr->GetOwnerIOComponent();
+		ActionOwner->Modify();
+
+		if (InName == FName(TEXT("<Clear>")))
+		{
+			InName = NAME_None;
+		}
+
+		ActionPtr->EventId = InName;
+
+		//Refresh();
+	}
+}
+
+void SActorIOActionListViewRow::OnTargetActorChanged(const FAssetData& InAssetData)
+{
+	const FScopedTransaction Transaction(LOCTEXT("ModifyActorIOAction", "Modify ActorIO Action"));
+	ActionPtr->Modify();
+
+	UActorIOComponent* ActionOwner = ActionPtr->GetOwnerIOComponent();
+	ActionOwner->Modify();
+
+	ActionPtr->TargetActor = Cast<AActor>(InAssetData.GetAsset());
+	ActionPtr->FunctionId = NAME_None;
+	ActionPtr->FunctionArguments = FString();
+
+	UpdateSelectableFunctions();
+}
+
+FString SActorIOActionListViewRow::GetTargetActorPath() const
+{
+	return ActionPtr->TargetActor.GetPathName();
+}
+
+void SActorIOActionListViewRow::OnTargetFunctionChanged(FName InName, ESelectInfo::Type InSelectType)
+{
+	if (InSelectType != ESelectInfo::Direct)
+	{
+		const FScopedTransaction Transaction(LOCTEXT("ModifyActorIOAction", "Modify ActorIO Action"));
+		ActionPtr->Modify();
+
+		UActorIOComponent* ActionOwner = ActionPtr->GetOwnerIOComponent();
+		ActionOwner->Modify();
+
+		if (InName == FName(TEXT("<Clear>")))
+		{
+			InName = NAME_None;
+		}
+
+		ActionPtr->FunctionId = InName;
+		ActionPtr->FunctionArguments = FString();
+
+		//Refresh();
+	}
+}
+
+void SActorIOActionListViewRow::OnFunctionArgumentsChanged(const FText& InText, ETextCommit::Type InCommitType)
+{
+	const FScopedTransaction Transaction(LOCTEXT("ModifyActorIOAction", "Modify ActorIO Action"));
+	ActionPtr->Modify();
+
+	UActorIOComponent* ActionOwner = ActionPtr->GetOwnerIOComponent();
+	ActionOwner->Modify();
+
+	ActionPtr->FunctionArguments = InText.ToString();
+}
+
+float SActorIOActionListViewRow::GetActionDelay() const
+{
+	return ActionPtr->Delay;
+}
+
+void SActorIOActionListViewRow::OnActionDelayChanged(float InValue, ETextCommit::Type InCommitType)
+{
+	const FScopedTransaction Transaction(LOCTEXT("ModifyActorIOAction", "Modify ActorIO Action"));
+	ActionPtr->Modify();
+
+	UActorIOComponent* ActionOwner = ActionPtr->GetOwnerIOComponent();
+	ActionOwner->Modify();
+
+	ActionPtr->Delay = InValue;
+}
+
+ECheckBoxState SActorIOActionListViewRow::IsExecuteOnlyOnceChecked() const
+{
+	return ActionPtr->bExecuteOnlyOnce ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+}
+
+void SActorIOActionListViewRow::OnExecuteOnlyOnceChecked(ECheckBoxState InState)
+{
+	const FScopedTransaction Transaction(LOCTEXT("ModifyActorIOAction", "Modify ActorIO Action"));
+	ActionPtr->Modify();
+
+	UActorIOComponent* ActionOwner = ActionPtr->GetOwnerIOComponent();
+	ActionOwner->Modify();
+
+	ActionPtr->bExecuteOnlyOnce = InState == ECheckBoxState::Checked;
+}
+
+FReply SActorIOActionListViewRow::OnClick_RemoveAction()
+{
+	const FScopedTransaction Transaction(LOCTEXT("RemoveActorIOAction", "Remove ActorIO Action"));
+
+	UActorIOComponent* ActionOwner = ActionPtr->GetOwnerIOComponent();
+	ActionOwner->Modify();
+	ActionOwner->RemoveAction(ActionPtr.Get());
+
+	FActorIOEditor& ActorIOEditorModule = FModuleManager::GetModuleChecked<FActorIOEditor>("ActorIOEditor");
+	ActorIOEditorModule.UpdateEditorWindow();
+
+	return FReply::Handled();
+}
 
 #undef LOCTEXT_NAMESPACE
