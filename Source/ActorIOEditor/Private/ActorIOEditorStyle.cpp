@@ -8,6 +8,7 @@
 #include "Brushes/SlateRoundedBoxBrush.h"
 
 #define RootToContentDir StyleSet->RootToContentDir
+#define RootToCoreContentDir StyleSet->RootToCoreContentDir
 
 TUniquePtr<FSlateStyleSet> FActorIOEditorStyle::StyleSet;
 
@@ -27,12 +28,6 @@ void FActorIOEditorStyle::Initialize()
 
 	StyleSet->Set("RoundedHeader", new FSlateRoundedBoxBrush(FStyleColors::Header, FStyleColors::Input, 1.0f));
 
-	const FTableViewStyle ActionListStyle = FTableViewStyle()
-		.SetBackgroundBrush(FSlateNoResource());
-
-	StyleSet->Set("ActionListView", ActionListStyle);
-	StyleSet->Set("ActionListView.Border", new FSlateRoundedBoxBrush(FStyleColors::Recessed, FVector4(0.0f, 0.0f, 4.0f, 4.0f), FStyleColors::Input, 1.0f));
-
 	const FCheckBoxStyle ToggleButtonStyle = FCheckBoxStyle()
 		.SetCheckBoxType(ESlateCheckBoxType::ToggleButton)
 		.SetCheckedImage(FSlateRoundedBoxBrush(FStyleColors::Primary, 4.0f, FStyleColors::Input, 1.0f))
@@ -50,6 +45,40 @@ void FActorIOEditorStyle::Initialize()
 		.SetPadding(0.0f);
 
 	StyleSet->Set("ToggleButtonCheckbox", ToggleButtonStyle);
+
+	const FButtonStyle ComboButtonStyle = FButtonStyle()
+		.SetNormal(FSlateRoundedBoxBrush(FStyleColors::Input, 4.0f, FStyleColors::InputOutline, 1.0f))
+		.SetHovered(FSlateRoundedBoxBrush(FStyleColors::Input, 4.0f, FStyleColors::Hover, 1.0f))
+		.SetPressed(FSlateRoundedBoxBrush(FStyleColors::Input, 4.0f, FStyleColors::Hover, 1.0f))
+		.SetDisabled(FSlateRoundedBoxBrush(FStyleColors::Input, 4.0f, FStyleColors::InputOutline, 1.0f))
+		.SetNormalForeground(FStyleColors::Foreground)
+		.SetHoveredForeground(FStyleColors::ForegroundHover)
+		.SetPressedForeground(FStyleColors::ForegroundHover)
+		.SetDisabledForeground(FStyleColors::Foreground)
+		.SetNormalPadding(FMargin(8.0f, 1.0f, 8.0f, 1.0f))
+		.SetPressedPadding(FMargin(8.0f, 2.0f, 8.0f, 0.0f));
+
+	StyleSet->Set("ComboButton", ComboButtonStyle);
+
+	const FButtonStyle ImageButtonStyle = FButtonStyle()
+		.SetNormal(FSlateRoundedBoxBrush(FStyleColors::Secondary, 4.0f, FStyleColors::Input, 1.0f))
+		.SetHovered(FSlateRoundedBoxBrush(FStyleColors::Hover, 4.0f, FStyleColors::Input, 1.0f))
+		.SetPressed(FSlateRoundedBoxBrush(FStyleColors::Header, 4.0f, FStyleColors::Input, 1.0f))
+		.SetDisabled(FSlateRoundedBoxBrush(FStyleColors::Dropdown, 4.0f, FStyleColors::Recessed, 1.0f))
+		.SetNormalForeground(FStyleColors::ForegroundHover)
+		.SetHoveredForeground(FStyleColors::ForegroundHover)
+		.SetPressedForeground(FStyleColors::ForegroundHover)
+		.SetDisabledForeground(FStyleColors::Foreground)
+		.SetNormalPadding(FMargin(0.0f))
+		.SetPressedPadding(FMargin(0.0f));
+
+	StyleSet->Set("ImageButton", ImageButtonStyle);
+
+	const FTableViewStyle ActionListStyle = FTableViewStyle()
+		.SetBackgroundBrush(FSlateNoResource());
+
+	StyleSet->Set("ActionListView", ActionListStyle);
+	StyleSet->Set("ActionListView.Border", new FSlateRoundedBoxBrush(FStyleColors::Recessed, FVector4(0.0f, 0.0f, 4.0f, 4.0f), FStyleColors::Input, 1.0f));
 
 	const FVector2D Icon16x16(16.0f, 16.0f);
 
@@ -79,3 +108,6 @@ const FName& FActorIOEditorStyle::GetStyleSetName()
 	static const FName StyleSetName(TEXT("ActorIOEditorStyle"));
 	return StyleSetName;
 }
+
+#undef RootToContentDir
+#undef RootToCoreContentDir

@@ -17,17 +17,16 @@
 
 #define LOCTEXT_NAMESPACE "ActorIOEditor"
 
-BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-
 SLATE_IMPLEMENT_WIDGET(SActorIOEditor)
 void SActorIOEditor::PrivateRegisterAttributes(FSlateAttributeInitializer& AttributeInitializer)
 {
 }
 
+BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SActorIOEditor::Construct(const FArguments& InArgs)
 {
-    // Display output actions by default.
-    bViewOutputs = true;
+    bViewInputActions = false;
+    bActionListNeedsRegenerate = true;
 
     ChildSlot
     [
@@ -138,13 +137,9 @@ void SActorIOEditor::Construct(const FArguments& InArgs)
                 SNew(SBox)
                 .Padding(3.0f, 0.0f, 0.0f, 0.0f)
                 [
-                    SNew(SBorder)
+                    SAssignNew(ActionListContainer, SBorder)
                     .BorderImage(FActorIOEditorStyle::Get().GetBrush("ActionListView.Border"))
                     .Padding(1.0f)
-                    [
-                        SAssignNew(ActionListView, SActorIOActionListView)
-                        .Clipping(EWidgetClipping::ClipToBounds)
-                    ]
                 ]
             ]
         ]
@@ -152,6 +147,7 @@ void SActorIOEditor::Construct(const FArguments& InArgs)
 
     Refresh();
 }
+END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 void SActorIOEditor::Refresh()
 {
@@ -170,33 +166,47 @@ void SActorIOEditor::Refresh()
     InputsButtonText->SetText(FText::FormatNamed(LOCTEXT("InputsButton", "Inputs ({Count})"),
         TEXT("Count"), NumInputActions));
 
-    ActionListView->Refresh();
+    if (bActionListNeedsRegenerate)
+    {
+        bActionListNeedsRegenerate = false;
+        ActionListContainer->SetContent
+        (
+            SAssignNew(ActionListView, SActorIOActionListView)
+            .ViewInputActions(bViewInputActions)
+        );
+    }
+    else
+    {
+        ActionListView->Refresh();
+    }
 }
 
 ECheckBoxState SActorIOEditor::IsOutputsButtonChecked() const
 {
-    return bViewOutputs ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+    return bViewInputActions ? ECheckBoxState::Unchecked : ECheckBoxState::Checked;
 }
 
 void SActorIOEditor::OnOutputsButtonChecked(ECheckBoxState InState)
 {
-    if (InState == ECheckBoxState::Checked && !bViewOutputs)
+    if (InState == ECheckBoxState::Checked && bViewInputActions)
     {
-        bViewOutputs = true;
+        bViewInputActions = false;
+        bActionListNeedsRegenerate = true;
         Refresh();
     }
 }
 
 ECheckBoxState SActorIOEditor::IsInputsButtonChecked() const
 {
-    return !bViewOutputs ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+    return bViewInputActions ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 void SActorIOEditor::OnInputsButtonChecked(ECheckBoxState InState)
 {
-    if (InState == ECheckBoxState::Checked && bViewOutputs)
+    if (InState == ECheckBoxState::Checked && !bViewInputActions)
     {
-        bViewOutputs = false;
+        bViewInputActions = true;
+        bActionListNeedsRegenerate = true;
         Refresh();
     }
 }
@@ -234,7 +244,5 @@ FReply SActorIOEditor::OnClick_NewAction()
     Refresh();
     return FReply::Handled();
 }
-
-END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 #undef LOCTEXT_NAMESPACE

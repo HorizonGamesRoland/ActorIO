@@ -13,6 +13,7 @@ struct FActorIOFunction;
 namespace ColumnId
 {
     const FName ActionType = FName(TEXT("ActionType"));
+    const FName Caller = FName(TEXT("Caller"));
     const FName Event = FName(TEXT("Event"));
     const FName Target = FName(TEXT("Target"));
     const FName Action = FName(TEXT("Action"));
@@ -21,13 +22,6 @@ namespace ColumnId
     const FName OnlyOnce = FName(TEXT("OnlyOnce"));
 }
 
-enum class EActorIOActionListViewMode : uint8
-{
-    Inputs,
-
-    Outputs
-};
-
 class SActorIOActionListView : public SListView<TWeakObjectPtr<UActorIOAction>>
 {
     SLATE_DECLARE_WIDGET(SActorIOActionListView, SListView<TWeakObjectPtr<UActorIOAction>>)
@@ -35,10 +29,10 @@ class SActorIOActionListView : public SListView<TWeakObjectPtr<UActorIOAction>>
 public:
 
     SLATE_BEGIN_ARGS(SActorIOActionListView)
-        : _ViewMode(EActorIOActionListViewMode::Outputs)
+        : _ViewInputActions(false)
     {}
 
-    SLATE_ATTRIBUTE(EActorIOActionListViewMode, ViewMode)
+    SLATE_ATTRIBUTE(bool, ViewInputActions)
 
     SLATE_END_ARGS()
 
@@ -46,15 +40,15 @@ public:
 
     void Refresh();
 
-    void SetViewMode(EActorIOActionListViewMode InMode);
+    bool IsViewingInputActions() const { return bViewInputActions; }
 
-    EActorIOActionListViewMode GetViewMode() const { return ActionListViewMode; }
+    bool IsViewingOutputActions() const { return !bViewInputActions; }
 
 protected:
 
     TArray<TWeakObjectPtr<UActorIOAction>> ActionListItems;
 
-    EActorIOActionListViewMode ActionListViewMode;
+    bool bViewInputActions;
 
 protected:
 
@@ -77,6 +71,8 @@ public:
 
     virtual TSharedRef<SWidget> GenerateWidgetForColumn(const FName& ColumnName) override;
 
+    bool IsOwnerViewingInputActions() const;
+
 protected:
 
     TWeakObjectPtr<UActorIOAction> ActionPtr;
@@ -94,6 +90,10 @@ protected:
     TSharedPtr<class STextBlock> FunctionText;
 
 protected:
+
+    const FSlateBrush* OnGetActionIcon() const;
+
+    FText OnGetCallerNameText() const;
 
     TSharedRef<SWidget> OnGenerateEventComboBoxWidget(FName InName) const;
 

@@ -27,9 +27,13 @@ protected:
 
     TSharedPtr<class STextBlock> InputsButtonText;
 
+    TSharedPtr<class SBorder> ActionListContainer;
+
     TSharedPtr<class SActorIOActionListView> ActionListView;
 
-    bool bViewOutputs;
+    bool bViewInputActions;
+
+    bool bActionListNeedsRegenerate;
 
 protected:
 
