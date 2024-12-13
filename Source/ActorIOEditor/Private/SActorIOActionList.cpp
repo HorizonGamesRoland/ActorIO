@@ -1,15 +1,16 @@
 // Copyright 2024 Horizon Games. All Rights Reserved.
 
 #include "SActorIOActionList.h"
-#include "SActorIOAction.h"
 #include "ActorIOSystem.h"
 #include "ActorIOComponent.h"
 #include "ActorIOAction.h"
 #include "ActorIOEditor.h"
 #include "ActorIOEditorSubsystem.h"
 #include "ActorIOEditorStyle.h"
-#include "PropertyCustomizationHelpers.h"
 #include "Widgets/Input/SSpinBox.h"
+#include "Widgets/Layout/SWidgetSwitcher.h"
+#include "PropertyCustomizationHelpers.h"
+#include "Misc/Optional.h"
 
 #define LOCTEXT_NAMESPACE "ActorIOEditor"
 
@@ -25,7 +26,7 @@ void SActorIOActionListView::PrivateRegisterAttributes(FSlateAttributeInitialize
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SActorIOActionListView::Construct(const FArguments& InArgs)
 {
-	bViewInputActions = InArgs._ViewInputActions.Get();
+	bViewInputActions = InArgs._ViewInputActions;
 
     SListView::Construct
 	(
@@ -120,7 +121,8 @@ void SActorIOActionListView::Refresh()
 
 TSharedRef<ITableRow> SActorIOActionListView::OnGenerateRowItem(TWeakObjectPtr<UActorIOAction> Item, const TSharedRef<STableViewBase>& OwnerTable)
 {
-    return SNew(SActorIOActionListViewRow, OwnerTable, Item);
+    return SNew(SActorIOActionListViewRow, OwnerTable, Item)
+		.IsInputAction(bViewInputActions);
 }
 
 
@@ -136,6 +138,7 @@ void SActorIOActionListViewRow::PrivateRegisterAttributes(FSlateAttributeInitial
 void SActorIOActionListViewRow::Construct(const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTableView, TWeakObjectPtr<UActorIOAction> InActionPtr)
 {
 	ActionPtr = InActionPtr;
+	bIsInputAction = InArgs._IsInputAction;
 
 	UpdateSelectableEvents();
 	UpdateSelectableFunctions();
@@ -148,8 +151,6 @@ TSharedRef<SWidget> SActorIOActionListViewRow::GenerateWidgetForColumn(const FNa
 {
 	TSharedRef<SBox> OutWidget = SNew(SBox)
 		.HeightOverride(FActorIOEditorStyle::ActionHeight);
-
-	const bool bIsViewingInputActions = IsOwnerViewingInputActions();
 
 	if (!ActionPtr.IsValid())
 	{
@@ -186,18 +187,29 @@ TSharedRef<SWidget> SActorIOActionListViewRow::GenerateWidgetForColumn(const FNa
 			SNew(SHorizontalBox)
 			+ SHorizontalBox::Slot()
 			[
-				SNew(SComboBox<FName>)
-				.ButtonStyle(&FActorIOEditorStyle::Get().GetWidgetStyle<FButtonStyle>("ComboButton"))
-				.OptionsSource(&SelectableEventIds)
-				.OnGenerateWidget(this, &SActorIOActionListViewRow::OnGenerateEventComboBoxWidget)
-				.OnComboBoxOpening(this, &SActorIOActionListViewRow::OnEventComboBoxOpening)
-				.OnSelectionChanged(this, &SActorIOActionListViewRow::OnEventComboBoxSelectionChanged)
-				.IsEnabled(!bIsViewingInputActions)
+				SNew(SWidgetSwitcher)
+				.WidgetIndex(bIsInputAction ? 1 : 0)
+				+ SWidgetSwitcher::Slot()
 				[
-					SAssignNew(EventText, STextBlock)
-					.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont")) // PropertyEditorConstants::PropertyFontStyle
+					SNew(SComboBox<FName>)
+					.OptionsSource(&SelectableEventIds)
+					.OnGenerateWidget(this, &SActorIOActionListViewRow::OnGenerateEventComboBoxWidget)
+					.OnComboBoxOpening(this, &SActorIOActionListViewRow::OnEventComboBoxOpening)
+					.OnSelectionChanged(this, &SActorIOActionListViewRow::OnEventComboBoxSelectionChanged)
+					[
+						SAssignNew(EventText, STextBlock)
+						.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont")) // PropertyEditorConstants::PropertyFontStyle
+						.Text(GetEventDisplayName(ActionPtr->EventId))
+						.ColorAndOpacity(GetEventTextColor(ActionPtr->EventId))
+					]
+				]
+				+ SWidgetSwitcher::Slot()
+				[
+					SNew(SEditableTextBox)
+					.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont"))
 					.Text(GetEventDisplayName(ActionPtr->EventId))
-					.ColorAndOpacity(GetEventTextColor(ActionPtr->EventId))
+					.ForegroundColor(GetEventTextColor(ActionPtr->EventId))
+					.IsEnabled(false)
 				]
 			]
 			+ SHorizontalBox::Slot()
@@ -223,7 +235,7 @@ TSharedRef<SWidget> SActorIOActionListViewRow::GenerateWidgetForColumn(const FNa
 			.DisplayUseSelected(false)
 			.ObjectPath(this, &SActorIOActionListViewRow::OnGetTargetActorPath)
 			.OnObjectChanged(this, &SActorIOActionListViewRow::OnTargetActorChanged)
-			.IsEnabled(!bIsViewingInputActions)
+			.IsEnabled(!bIsInputAction)
 		);
 	}
 	else if (ColumnName == ColumnId::Action)
@@ -231,18 +243,29 @@ TSharedRef<SWidget> SActorIOActionListViewRow::GenerateWidgetForColumn(const FNa
 		OutWidget->SetPadding(FMargin(0.0f, FActorIOEditorStyle::ActionSpacing, 1.0f, 0.0f));
 		OutWidget->SetContent
 		(
-			SNew(SComboBox<FName>)
-			.ButtonStyle(&FActorIOEditorStyle::Get().GetWidgetStyle<FButtonStyle>("ComboButton"))
-			.OptionsSource(&SelectableFunctionIds)
-			.OnGenerateWidget(this, &SActorIOActionListViewRow::OnGenerateFunctionComboBoxWidget)
-			.OnComboBoxOpening(this, &SActorIOActionListViewRow::OnFunctionComboBoxOpening)
-			.OnSelectionChanged(this, &SActorIOActionListViewRow::OnFunctionComboBoxSelectionChanged)
-			.IsEnabled(!bIsViewingInputActions)
+			SNew(SWidgetSwitcher)
+			.WidgetIndex(bIsInputAction ? 1 : 0)
+			+ SWidgetSwitcher::Slot()
 			[
-				SAssignNew(FunctionText, STextBlock)
+				SNew(SComboBox<FName>)
+				.OptionsSource(&SelectableFunctionIds)
+				.OnGenerateWidget(this, &SActorIOActionListViewRow::OnGenerateFunctionComboBoxWidget)
+				.OnComboBoxOpening(this, &SActorIOActionListViewRow::OnFunctionComboBoxOpening)
+				.OnSelectionChanged(this, &SActorIOActionListViewRow::OnFunctionComboBoxSelectionChanged)
+				[
+					SAssignNew(FunctionText, STextBlock)
+					.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont"))
+					.Text(GetFunctionDisplayName(ActionPtr->FunctionId))
+					.ColorAndOpacity(GetFunctionTextColor(ActionPtr->FunctionId))
+				]
+			]
+			+ SWidgetSwitcher::Slot()
+			[
+				SNew(SEditableTextBox)
 				.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont"))
 				.Text(GetFunctionDisplayName(ActionPtr->FunctionId))
-				.ColorAndOpacity(GetFunctionTextColor(ActionPtr->FunctionId))
+				.ForegroundColor(GetFunctionTextColor(ActionPtr->FunctionId))
+				.IsEnabled(false)
 			]
 		);
 	}
@@ -255,7 +278,7 @@ TSharedRef<SWidget> SActorIOActionListViewRow::GenerateWidgetForColumn(const FNa
 			.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont"))
 			.Text(FText::FromString(ActionPtr->FunctionArguments))
 			.OnTextCommitted(this, &SActorIOActionListViewRow::OnFunctionParametersChanged)
-			.IsEnabled(!bIsViewingInputActions)
+			.IsEnabled(!bIsInputAction)
 		);
 	}
 	else if (ColumnName == ColumnId::Delay)
@@ -273,7 +296,7 @@ TSharedRef<SWidget> SActorIOActionListViewRow::GenerateWidgetForColumn(const FNa
 			.Delta(0.01f)
 			.Value(this, &SActorIOActionListViewRow::OnGetActionDelay)
 			.OnValueCommitted(this, &SActorIOActionListViewRow::OnActionDelayChanged)
-			.IsEnabled(!bIsViewingInputActions)
+			.IsEnabled(!bIsInputAction)
 		);
 	}
 	else if (ColumnName == ColumnId::OnlyOnce)
@@ -288,7 +311,7 @@ TSharedRef<SWidget> SActorIOActionListViewRow::GenerateWidgetForColumn(const FNa
 				SNew(SCheckBox)
 				.IsChecked(this, &SActorIOActionListViewRow::IsExecuteOnlyOnceChecked)
 				.OnCheckStateChanged(this, &SActorIOActionListViewRow::OnExecuteOnlyOnceChecked)
-				.IsEnabled(!bIsViewingInputActions)
+				.IsEnabled(!bIsInputAction)
 			]
 			+ SHorizontalBox::Slot()
 			[
@@ -307,7 +330,7 @@ TSharedRef<SWidget> SActorIOActionListViewRow::GenerateWidgetForColumn(const FNa
 					.VAlign(VAlign_Center)
 					.ContentPadding(2.0f)
 					.OnClicked(this, &SActorIOActionListViewRow::OnClick_RemoveAction)
-					.IsEnabled(!bIsViewingInputActions)
+					.IsEnabled(!bIsInputAction)
 					[
 						SNew(SImage)
 						.Image(FAppStyle::GetBrush("Icons.Delete"))
@@ -322,20 +345,20 @@ TSharedRef<SWidget> SActorIOActionListViewRow::GenerateWidgetForColumn(const FNa
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
-bool SActorIOActionListViewRow::IsOwnerViewingInputActions() const
+TSharedPtr<SActorIOActionListView> SActorIOActionListViewRow::GetOwnerActionListView() const
 {
 	if (OwnerTablePtr.IsValid())
 	{
 		TSharedRef<SActorIOActionListView> ActionListView = StaticCastSharedRef<SActorIOActionListView>(OwnerTablePtr.Pin()->AsWidget());
-		return ActionListView->IsViewingInputActions();
+		return ActionListView.ToSharedPtr();
 	}
 
-	return false;
+	return nullptr;
 }
 
 const FSlateBrush* SActorIOActionListViewRow::OnGetActionIcon() const
 {
-	const FName BrushName = IsOwnerViewingInputActions() ? TEXT("Action.InputIcon") : TEXT("Action.OutputIcon");
+	const FName BrushName = bIsInputAction ? TEXT("Action.InputIcon") : TEXT("Action.OutputIcon");
 	return FActorIOEditorStyle::Get().GetBrush(BrushName);
 }
 

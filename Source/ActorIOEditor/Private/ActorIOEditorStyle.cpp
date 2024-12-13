@@ -46,20 +46,6 @@ void FActorIOEditorStyle::Initialize()
 
 	StyleSet->Set("ToggleButtonCheckbox", ToggleButtonStyle);
 
-	const FButtonStyle ComboButtonStyle = FButtonStyle()
-		.SetNormal(FSlateRoundedBoxBrush(FStyleColors::Input, 4.0f, FStyleColors::InputOutline, 1.0f))
-		.SetHovered(FSlateRoundedBoxBrush(FStyleColors::Input, 4.0f, FStyleColors::Hover, 1.0f))
-		.SetPressed(FSlateRoundedBoxBrush(FStyleColors::Input, 4.0f, FStyleColors::Hover, 1.0f))
-		.SetDisabled(FSlateRoundedBoxBrush(FStyleColors::Input, 4.0f, FStyleColors::InputOutline, 1.0f))
-		.SetNormalForeground(FStyleColors::Foreground)
-		.SetHoveredForeground(FStyleColors::ForegroundHover)
-		.SetPressedForeground(FStyleColors::ForegroundHover)
-		.SetDisabledForeground(FStyleColors::Foreground)
-		.SetNormalPadding(FMargin(8.0f, 1.0f, 8.0f, 1.0f))
-		.SetPressedPadding(FMargin(8.0f, 2.0f, 8.0f, 0.0f));
-
-	StyleSet->Set("ComboButton", ComboButtonStyle);
-
 	const FButtonStyle ImageButtonStyle = FButtonStyle()
 		.SetNormal(FSlateRoundedBoxBrush(FStyleColors::Secondary, 4.0f, FStyleColors::Input, 1.0f))
 		.SetHovered(FSlateRoundedBoxBrush(FStyleColors::Hover, 4.0f, FStyleColors::Input, 1.0f))

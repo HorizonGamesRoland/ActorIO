@@ -32,7 +32,7 @@ public:
         : _ViewInputActions(false)
     {}
 
-    SLATE_ATTRIBUTE(bool, ViewInputActions)
+    SLATE_ARGUMENT(bool, ViewInputActions)
 
     SLATE_END_ARGS()
 
@@ -64,18 +64,24 @@ class SActorIOActionListViewRow : public SMultiColumnTableRow<TWeakObjectPtr<UAc
 public:
 
     SLATE_BEGIN_ARGS(SActorIOActionListViewRow)
+        : _IsInputAction(false)
     {}
+
+     SLATE_ARGUMENT(bool, IsInputAction)
+
     SLATE_END_ARGS()
 
     void Construct(const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTableView, TWeakObjectPtr<UActorIOAction> InActionPtr);
 
     virtual TSharedRef<SWidget> GenerateWidgetForColumn(const FName& ColumnName) override;
 
-    bool IsOwnerViewingInputActions() const;
+    TSharedPtr<SActorIOActionListView> GetOwnerActionListView() const;
 
 protected:
 
     TWeakObjectPtr<UActorIOAction> ActionPtr;
+
+    bool bIsInputAction;
 
     TArray<FActorIOEvent> ValidEvents;
 
