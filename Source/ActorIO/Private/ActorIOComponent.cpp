@@ -29,7 +29,7 @@ void UActorIOComponent::OnRegister()
 
 UActorIOAction* UActorIOComponent::CreateNewAction()
 {
-	UActorIOAction* NewAction = NewObject<UActorIOAction>(this);
+	UActorIOAction* NewAction = NewObject<UActorIOAction>(this, TEXT("ActorIOAction"), RF_Transactional);
 	Actions.Add(NewAction);
 	return NewAction;
 }
