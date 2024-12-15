@@ -125,7 +125,7 @@ void SActorIOEditor::Construct(const FArguments& InArgs)
                     SNew(SBox)
                     .HeightOverride(FActorIOEditorStyle::ToolButtonHeight)
                     [
-                        SNew(SPositiveActionButton)
+                        SAssignNew(NewActionButton, SPositiveActionButton)
                         .Text(LOCTEXT("NewAction", "New Action"))
                         .OnClicked(this, &SActorIOEditor::OnClick_NewAction)
                     ]
@@ -164,6 +164,9 @@ void SActorIOEditor::Refresh()
     const int32 NumInputActions = UActorIOSystem::GetNumInputActionsForObject(SelectedActor);
     InputsButtonText->SetText(FText::FormatNamed(LOCTEXT("InputsButton", "Inputs ({Count})"),
         TEXT("Count"), NumInputActions));
+
+    // Only allow create new action button if viewing output actions.
+    NewActionButton->SetEnabled(!bViewInputActions);
 
     if (bActionListNeedsRegenerate)
     {

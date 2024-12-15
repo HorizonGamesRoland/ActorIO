@@ -27,6 +27,8 @@ protected:
 
     TSharedPtr<class STextBlock> InputsButtonText;
 
+    TSharedPtr<class SPositiveActionButton> NewActionButton;
+
     TSharedPtr<class SBorder> ActionListContainer;
 
     TSharedPtr<class SActorIOActionListView> ActionListView;
