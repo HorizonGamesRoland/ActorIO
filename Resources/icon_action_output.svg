@@ -18,7 +18,7 @@
      borderopacity="0.25"
      inkscape:showpageshadow="2"
      inkscape:pageopacity="0.0"
-     inkscape:pagecheckerboard="false"
+     inkscape:pagecheckerboard="0"
      inkscape:deskcolor="#d1d1d1"
      inkscape:document-units="mm"><inkscape:page
        x="0"
@@ -29,10 +29,10 @@
        margin="0"
        bleed="0" /></sodipodi:namedview><defs
      id="defs1" /><g
-     inkscape:label="Réteg 1"
+     inkscape:label="Icon"
      inkscape:groupmode="layer"
      id="layer1"
      transform="translate(-83.100334,-126.75658)"><path
-       style="display:inline;fill:#ffffff"
+       style="fill:#ffffff"
        d="m 115.10433,155.50091 v -4.02167 H 99.102333 83.100334 v -3.00566 -3.00567 h 16.001186 16.00119 l 0.022,-4.07744 0.022,-4.07744 5.63033,5.53402 c 3.09668,3.04371 5.63033,5.57388 5.63033,5.62261 0,0.10572 -11.12128,11.05291 -11.22869,11.05291 -0.0416,0 -0.0743,-1.77066 -0.0743,-4.02166 z"
        id="path1" /></g></svg>
