@@ -1,0 +1,40 @@
+// Copyright 2024 Horizon Games. All Rights Reserved.
+
+#include "LogicActors/LogicActorBase.h"
+#include "Components/BillboardComponent.h"
+
+ALogicActorBase::ALogicActorBase()
+{
+#if WITH_EDITORONLY_DATA
+	SpriteComponent = CreateEditorOnlyDefaultSubobject<UBillboardComponent>(TEXT("Sprite"));
+	RootComponent = SpriteComponent;
+
+	if (!IsRunningCommandlet() && (SpriteComponent != nullptr))
+	{
+		// Structure to hold one-time initialization.
+		struct FConstructorStatics
+		{
+			ConstructorHelpers::FObjectFinderOptional<UTexture2D> SpriteTexture;
+			FName ID_LogicActor;
+			FText NAME_LogicActor;
+			FConstructorStatics()
+				: SpriteTexture(TEXT("/Engine/EditorResources/S_Actor"))
+				, ID_LogicActor(TEXT("LogicActor"))
+				, NAME_LogicActor(NSLOCTEXT("SpriteCategory", "LogicActor", "Logic Actors"))
+			{}
+		};
+		static FConstructorStatics ConstructorStatics;
+
+		SpriteComponent->Sprite = ConstructorStatics.SpriteTexture.Get();
+		SpriteComponent->SpriteInfo.Category = ConstructorStatics.ID_LogicActor;
+		SpriteComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_LogicActor;
+		SpriteComponent->bIsScreenSizeScaled = true;
+	}
+#endif
+
+	PrimaryActorTick.bCanEverTick = false;
+	bReplicates = false;
+	bNetLoadOnClient = true;
+	bEnableAutoLODGeneration = false;
+	SetCanBeDamaged(false);
+}

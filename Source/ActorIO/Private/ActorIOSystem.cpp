@@ -84,13 +84,13 @@ void UActorIOSystem::RegisterIOFunction(UObject* WorldContextObject, TArray<FAct
 void UActorIOSystem::GetNativeEventsForObject(AActor* InObject, TArray<FActorIOEvent>& RegisteredEvents)
 {
     RegisteredEvents.Add(FActorIOEvent()
-        .SetId(TEXT("OnActorBeginOverlap"))
+        .SetId(TEXT("AActor::OnActorBeginOverlap"))
         .SetDisplayName(FText::FromString(TEXT("OnActorBeginOverlap")))
         .SetTooltipText(FText::FromString(TEXT("Event when something overlaps with the actor.")))
         .SetSparseDelegate(InObject, TEXT("OnActorBeginOverlap")));
 
     RegisteredEvents.Add(FActorIOEvent()
-        .SetId(TEXT("OnActorEndOverlap"))
+        .SetId(TEXT("AActor::OnActorEndOverlap"))
         .SetDisplayName(FText::FromString(TEXT("OnActorEndOverlap")))
         .SetTooltipText(FText::FromString(TEXT("Event when something no longer overlaps with the actor.")))
         .SetSparseDelegate(InObject, TEXT("OnActorEndOverlap")));
