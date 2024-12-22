@@ -41,10 +41,10 @@ void ALogicBranch::RegisterIOFunctions_Implementation(TArray<FActorIOFunction>& 
 		.SetFunction(TEXT("SetValue")));
 
 	RegisteredFunctions.Add(FActorIOFunction()
-		.SetId(TEXT("ALogicBranch::SetValueAndEvaluate"))
-		.SetDisplayName(LOCTEXT("LogicBranch.SetValueAndEvaluate", "SetValueAndEvaluate"))
-		.SetTooltipText(LOCTEXT("LogicBranch.SetValueAndEvaluateTooltip", "Set the boolean value and test it, firing OnTrue or OnFalse based on the new value."))
-		.SetFunction(TEXT("SetValueAndEvaluate")));
+		.SetId(TEXT("ALogicBranch::SetValueAndTest"))
+		.SetDisplayName(LOCTEXT("LogicBranch.SetValueAndTest", "SetValueAndTest"))
+		.SetTooltipText(LOCTEXT("LogicBranch.SetValueAndTestTooltip", "Set the boolean value and test it, firing OnTrue or OnFalse based on the new value."))
+		.SetFunction(TEXT("SetValueAndTest")));
 
 	RegisteredFunctions.Add(FActorIOFunction()
 		.SetId(TEXT("ALogicBranch::Toggle"))
@@ -53,16 +53,16 @@ void ALogicBranch::RegisterIOFunctions_Implementation(TArray<FActorIOFunction>& 
 		.SetFunction(TEXT("Toggle")));
 
 	RegisteredFunctions.Add(FActorIOFunction()
-		.SetId(TEXT("ALogicBranch::ToggleAndEvaluate"))
-		.SetDisplayName(LOCTEXT("LogicBranch.ToggleAndEvaluate", "ToggleAndEvaluate"))
-		.SetTooltipText(LOCTEXT("LogicBranch.ToggleAndEvaluateTooltip", "Toggle the boolean value and tests it, firing OnTrue or OnFalse based on the new value."))
-		.SetFunction(TEXT("ToggleAndEvaluate")));
+		.SetId(TEXT("ALogicBranch::ToggleAndTest"))
+		.SetDisplayName(LOCTEXT("LogicBranch.ToggleAndTest", "ToggleAndTest"))
+		.SetTooltipText(LOCTEXT("LogicBranch.ToggleAndTestTooltip", "Toggle the boolean value and tests it, firing OnTrue or OnFalse based on the new value."))
+		.SetFunction(TEXT("ToggleAndTest")));
 
 	RegisteredFunctions.Add(FActorIOFunction()
-		.SetId(TEXT("ALogicBranch::Evaluate"))
-		.SetDisplayName(LOCTEXT("LogicBranch.Evaluate", "Evaluate"))
-		.SetTooltipText(LOCTEXT("LogicBranch.EvaluateTooltip", "Test the input value and fire OnTrue or OnFalse based on the value."))
-		.SetFunction(TEXT("Evaluate")));
+		.SetId(TEXT("ALogicBranch::Test"))
+		.SetDisplayName(LOCTEXT("LogicBranch.Test", "Test"))
+		.SetTooltipText(LOCTEXT("LogicBranch.TestTooltip", "Test the input value and fire OnTrue or OnFalse based on the value."))
+		.SetFunction(TEXT("Test")));
 }
 
 void ALogicBranch::SetValue(bool bValue)
@@ -70,10 +70,10 @@ void ALogicBranch::SetValue(bool bValue)
 	bCurrentValue = bValue;
 }
 
-void ALogicBranch::SetValueAndEvaluate(bool bValue)
+void ALogicBranch::SetValueAndTest(bool bValue)
 {
 	bCurrentValue = bValue;
-	Evaluate();
+	Test();
 }
 
 void ALogicBranch::Toggle()
@@ -81,13 +81,13 @@ void ALogicBranch::Toggle()
 	bCurrentValue = !bCurrentValue;
 }
 
-void ALogicBranch::ToggleAndEvaluate()
+void ALogicBranch::ToggleAndTest()
 {
 	bCurrentValue = !bCurrentValue;
-	Evaluate();
+	Test();
 }
 
-void ALogicBranch::Evaluate()
+void ALogicBranch::Test()
 {
 	if (bCurrentValue)
 	{

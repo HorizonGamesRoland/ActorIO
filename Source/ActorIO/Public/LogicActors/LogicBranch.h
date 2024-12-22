@@ -6,7 +6,7 @@
 #include "LogicActors/LogicActorBase.h"
 #include "LogicBranch.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnEvaluateBranch);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnTestBranch);
 
 UCLASS()
 class ACTORIO_API ALogicBranch : public ALogicActorBase
@@ -32,9 +32,9 @@ protected:
 
     bool bCurrentValue;
 
-    FOnEvaluateBranch TrueEvent;
+    FOnTestBranch TrueEvent;
 
-    FOnEvaluateBranch FalseEvent;
+    FOnTestBranch FalseEvent;
 
 public:
 
@@ -42,21 +42,21 @@ public:
     void SetValue(bool bValue);
 
     UFUNCTION(BlueprintCallable, Category = "Branch")
-    void SetValueAndEvaluate(bool bValue);
+    void SetValueAndTest(bool bValue);
 
     UFUNCTION(BlueprintCallable, Category = "Branch")
     void Toggle();
 
     UFUNCTION(BlueprintCallable, Category = "Branch")
-    void ToggleAndEvaluate();
+    void ToggleAndTest();
 
     UFUNCTION(BlueprintCallable, Category = "Branch")
-    void Evaluate();
+    void Test();
 
     UFUNCTION(BlueprintPure, Category = "Branch")
     bool GetValue() const { return bCurrentValue; }
 
-    FOnEvaluateBranch& OnTrue() { return TrueEvent; }
+    FOnTestBranch& OnTrue() { return TrueEvent; }
 
-    FOnEvaluateBranch& OnFalse() { return FalseEvent; }
+    FOnTestBranch& OnFalse() { return FalseEvent; }
 };
