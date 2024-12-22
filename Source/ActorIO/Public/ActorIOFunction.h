@@ -53,8 +53,8 @@ struct ACTORIO_API FActorIOFunction
 		return *this;
 	}
 
-	bool operator==(const FName InFunctionName) const
+	bool operator==(const FName InFunctionId) const
 	{
-		return FunctionId == InFunctionName;
+		return FunctionId == InFunctionId;
 	}
 };

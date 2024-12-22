@@ -7,6 +7,14 @@
 ALogicBranch::ALogicBranch()
 {
 	bInitialValue = false;
+	bCurrentValue = false;
+}
+
+void ALogicBranch::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+
+	bCurrentValue = bInitialValue;
 }
 
 void ALogicBranch::RegisterIOEvents_Implementation(TArray<FActorIOEvent>& RegisteredEvents)
