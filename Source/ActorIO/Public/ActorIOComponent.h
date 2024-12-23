@@ -20,7 +20,7 @@ public:
 
 protected:
 
-	UPROPERTY(Instanced, EditAnywhere) // <--- #TEMP: edit anywhere for debugging
+	UPROPERTY(Instanced, VisibleInstanceOnly)
 	TArray<TObjectPtr<UActorIOAction>> Actions;
 
 public:
@@ -34,6 +34,8 @@ public:
 	TArray<TWeakObjectPtr<UActorIOAction>> GetActions() const;
 
 	int32 GetNumActions() const { return Actions.Num(); }
+
+	float GetDurationOfLongestDelay() const;
 
 protected:
 
