@@ -6,8 +6,6 @@
 #include "LogicActors/LogicActorBase.h"
 #include "LogicRelay.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnRelayTrigger);
-
 UCLASS()
 class ACTORIO_API ALogicRelay : public ALogicActorBase
 {
@@ -29,7 +27,7 @@ protected:
 
     bool bWasTriggered;
 
-    FOnRelayTrigger TriggerEvent;
+    FSimpleActionDelegate TriggerEvent;
 
 public:
 
@@ -50,5 +48,5 @@ public:
     UFUNCTION(BlueprintPure, Category = "Relay")
     bool IsEnabled() const;
 
-    FOnRelayTrigger& OnTrigger() { return TriggerEvent; }
+    FSimpleActionDelegate& OnTrigger() { return TriggerEvent; }
 };

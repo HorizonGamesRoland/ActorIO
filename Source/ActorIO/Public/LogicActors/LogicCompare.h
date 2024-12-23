@@ -17,6 +17,45 @@ public:
 
 public:
 
+    UPROPERTY(EditInstanceOnly, Category = "Compare")
+    FString InitialValue;
+
+    UPROPERTY(EditInstanceOnly, Category = "Compare")
+    FString CompareValue;
+
+private:
+
+    FString CurrentValue;
+
+    FSimpleActionDelegate EqualsEvent;
+
+    FSimpleActionDelegate NotEqualsEvent;
+
+    FSimpleActionDelegate LessThenEvent;
+
+    FSimpleActionDelegate GreaterThenEvent;
+
+public:
+
+    virtual void PostInitializeComponents() override;
     virtual void RegisterIOEvents_Implementation(TArray<FActorIOEvent>& RegisteredEvents) override;
     virtual void RegisterIOFunctions_Implementation(TArray<FActorIOFunction>& RegisteredFunctions) override;
+
+public:
+
+    void SetValue(FString InValue);
+
+    void SetValueAndCompare(FString InValue);
+
+    void SetCompareValue(FString InValue);
+
+    void Compare();
+
+    FSimpleActionDelegate& OnEquals() { return EqualsEvent; }
+
+    FSimpleActionDelegate& OnNotEquals() { return NotEqualsEvent; }
+
+    FSimpleActionDelegate& OnLessThen() { return LessThenEvent; }
+
+    FSimpleActionDelegate& OnGreaterThen() { return GreaterThenEvent; }
 };
