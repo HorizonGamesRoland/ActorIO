@@ -150,13 +150,16 @@ void UActorIOAction::ExecuteAction()
 	FActorIOFunction* TargetFunction = ValidFunctions.FindByKey(FunctionId);
 	if (!TargetFunction)
 	{
-		UE_LOG(LogTemp, Error, TEXT("ActorIOLink: Function '%s' was not found on target actor '%s'"), *FunctionId.ToString(), *TargetActor->GetActorNameOrLabel());
+		UE_LOG(LogTemp, Error, TEXT("ActorIOAction: Function '%s' was not found on target actor '%s'"), *FunctionId.ToString(), *TargetActor->GetActorNameOrLabel());
 		return;
 	}
 
 	FString Command = TargetFunction->FunctionToExec;
-	Command.Append(TEXT(" "));
-	Command.Append(FunctionArguments);
+	if (!FunctionArguments.IsEmpty())
+	{
+		Command.Append(TEXT(" "));
+		Command.Append(FunctionArguments);
+	}
 
 	UE_LOG(LogTemp, Warning, TEXT("Executing action: %s"), *Command);
 
