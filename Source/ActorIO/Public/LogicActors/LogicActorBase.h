@@ -7,7 +7,7 @@
 #include "GameFramework/Actor.h"
 #include "LogicActorBase.generated.h"
 
-UCLASS(Abstract, NotBlueprintable, HideCategories = (Rendering, Input, Networking, Replication, Physics, Collision, HLOD))
+UCLASS(Abstract, NotBlueprintable, HideCategories = (Rendering, Input, Networking, Physics, Collision, HLOD))
 class ACTORIO_API ALogicActorBase : public AActor, public IActorIOInterface
 {
     GENERATED_BODY()
@@ -17,12 +17,12 @@ public:
     ALogicActorBase();
 
 #if WITH_EDITORONLY_DATA
-private:
+protected:
 	/** Billboard Component displayed in the editor. */
 	UPROPERTY()
 	TObjectPtr<class UBillboardComponent> SpriteComponent;
 public:
 	/** @return Billboard Component of the actor. */
-	class UBillboardComponent* GetSpriteComponent() const { return SpriteComponent; };
+	class UBillboardComponent* GetSpriteComponent() const { return SpriteComponent.Get(); };
 #endif
 };

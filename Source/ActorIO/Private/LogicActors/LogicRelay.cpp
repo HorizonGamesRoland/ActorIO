@@ -1,6 +1,7 @@
 // Copyright 2024 Horizon Games. All Rights Reserved.
 
 #include "LogicActors/LogicRelay.h"
+#include "Components/BillboardComponent.h"
 
 #define LOCTEXT_NAMESPACE "ActorIO"
 
@@ -9,6 +10,15 @@ ALogicRelay::ALogicRelay()
 	bIsEnabled = true;
 	bOnlyOnce = false;
 	bWasTriggered = false;
+
+#if WITH_EDITORONLY_DATA
+	ConstructorHelpers::FObjectFinderOptional<UTexture2D> SpriteTexture(TEXT("/ActorIO/S_Relay"));
+	if (SpriteComponent && SpriteTexture.Succeeded())
+	{
+		SpriteComponent->SetSprite(SpriteTexture.Get());
+		SpriteComponent->SetRelativeScale3D_Direct(FVector(3.0f));
+	}
+#endif
 }
 
 void ALogicRelay::RegisterIOEvents_Implementation(TArray<FActorIOEvent>& RegisteredEvents)
@@ -17,7 +27,7 @@ void ALogicRelay::RegisterIOEvents_Implementation(TArray<FActorIOEvent>& Registe
 		.SetId(TEXT("ALogicRelay::OnTrigger"))
 		.SetDisplayName(LOCTEXT("ALogicRelay.OnTrigger", "OnTrigger"))
 		.SetTooltipText(LOCTEXT("ALogicRelay.OnTriggerTooltip", "Event when the relay is triggered."))
-		.SetMulticastDelegate(this, &TriggerEvent));
+		.SetMulticastDelegate(this, &OnTrigger));
 }
 
 void ALogicRelay::RegisterIOFunctions_Implementation(TArray<FActorIOFunction>& RegisteredFunctions)
@@ -51,7 +61,7 @@ void ALogicRelay::Trigger()
 			return;
 		}
 
-		TriggerEvent.Broadcast();
+		OnTrigger.Broadcast();
 		bWasTriggered = true;
 	}
 }
