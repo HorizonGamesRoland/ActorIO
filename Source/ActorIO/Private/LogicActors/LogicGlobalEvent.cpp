@@ -62,7 +62,7 @@ void ALogicGlobalEvent::OnWorldInitializedCallback(const FActorsInitializedParam
 	OnWorldInitialized.Broadcast();
 }
 
-void ALogicGlobalEvent::OnWorldTeardownCallback()
+void ALogicGlobalEvent::OnWorldTeardownCallback(UWorld* World)
 {
 	OnWorldTeardown.Broadcast();
 }

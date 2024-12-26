@@ -45,5 +45,5 @@ protected:
 
     void OnWorldInitializedCallback(const FActorsInitializedParams& ActorInitParams);
 
-    void OnWorldTeardownCallback();
+    void OnWorldTeardownCallback(UWorld* World);
 };
