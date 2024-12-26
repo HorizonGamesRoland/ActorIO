@@ -3,5 +3,3 @@
 #pragma once
 
 #include "CoreMinimal.h"
-
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FSimpleActionDelegate);

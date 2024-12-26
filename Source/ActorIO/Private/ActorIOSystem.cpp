@@ -5,6 +5,7 @@
 #include "ActorIOInterface.h"
 #include "ActorIOAction.h"
 #include "GameFramework/Actor.h"
+#include "Engine/TriggerBase.h"
 #include "Particles/Emitter.h"
 
 TArray<FActorIOEvent> UActorIOSystem::GetEventsForObject(AActor* InObject)
@@ -83,17 +84,20 @@ void UActorIOSystem::RegisterIOFunction(UObject* WorldContextObject, TArray<FAct
 
 void UActorIOSystem::GetNativeEventsForObject(AActor* InObject, TArray<FActorIOEvent>& RegisteredEvents)
 {
-    RegisteredEvents.Add(FActorIOEvent()
-        .SetId(TEXT("AActor::OnActorBeginOverlap"))
-        .SetDisplayName(FText::FromString(TEXT("OnActorBeginOverlap")))
-        .SetTooltipText(FText::FromString(TEXT("Event when something overlaps with the actor.")))
-        .SetSparseDelegate(InObject, TEXT("OnActorBeginOverlap")));
+    if (InObject->IsA<ATriggerBase>())
+    {
+        RegisteredEvents.Add(FActorIOEvent()
+            .SetId(TEXT("AActor::OnActorBeginOverlap"))
+            .SetDisplayName(FText::FromString(TEXT("OnActorBeginOverlap")))
+            .SetTooltipText(FText::FromString(TEXT("Event when something overlaps with the actor.")))
+            .SetSparseDelegate(InObject, TEXT("OnActorBeginOverlap")));
 
-    RegisteredEvents.Add(FActorIOEvent()
-        .SetId(TEXT("AActor::OnActorEndOverlap"))
-        .SetDisplayName(FText::FromString(TEXT("OnActorEndOverlap")))
-        .SetTooltipText(FText::FromString(TEXT("Event when something no longer overlaps with the actor.")))
-        .SetSparseDelegate(InObject, TEXT("OnActorEndOverlap")));
+        RegisteredEvents.Add(FActorIOEvent()
+            .SetId(TEXT("AActor::OnActorEndOverlap"))
+            .SetDisplayName(FText::FromString(TEXT("OnActorEndOverlap")))
+            .SetTooltipText(FText::FromString(TEXT("Event when something no longer overlaps with the actor.")))
+            .SetSparseDelegate(InObject, TEXT("OnActorEndOverlap")));
+    }
 }
 
 void UActorIOSystem::GetNativeFunctionsForObject(AActor* InObject, TArray<FActorIOFunction>& RegisteredFunctions)
@@ -113,15 +117,15 @@ void UActorIOSystem::GetNativeFunctionsForObject(AActor* InObject, TArray<FActor
             .SetFunction(TEXT("Deactivate")));
     }
 
-    RegisteredFunctions.Add(FActorIOFunction()
-        .SetId(TEXT("AActor::SetActorHiddenInGame"))
-        .SetDisplayName(FText::FromString(TEXT("SetActorHiddenInGame")))
-        .SetTooltipText(FText::FromString(TEXT("Changes actor hidden state.")))
-        .SetFunction(TEXT("SetActorHiddenInGame")));
+    //RegisteredFunctions.Add(FActorIOFunction()
+    //    .SetId(TEXT("AActor::SetActorHiddenInGame"))
+    //    .SetDisplayName(FText::FromString(TEXT("SetActorHiddenInGame")))
+    //    .SetTooltipText(FText::FromString(TEXT("Changes actor hidden state.")))
+    //    .SetFunction(TEXT("SetActorHiddenInGame")));
 
     RegisteredFunctions.Add(FActorIOFunction()
-        .SetId(TEXT("AActor::DestroyActor"))
-        .SetDisplayName(FText::FromString(TEXT("DestroyActor")))
+        .SetId(TEXT("AActor::Destroy"))
+        .SetDisplayName(FText::FromString(TEXT("Destroy")))
         .SetTooltipText(FText::FromString(TEXT("Destroy the actor.")))
         .SetFunction(TEXT("K2_DestroyActor")));
 }

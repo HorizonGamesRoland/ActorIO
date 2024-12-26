@@ -74,7 +74,7 @@ float UActorIOComponent::GetDurationOfLongestDelay() const
 	float OutLongestDelay = 0.0f;
 	for (int32 ActionIdx = 0; ActionIdx != Actions.Num(); ++ActionIdx)
 	{
-		if (!Actions[ActionIdx].IsNull() && Actions[ActionIdx]->Delay > OutLongestDelay)
+		if (IsValid(Actions[ActionIdx]) && Actions[ActionIdx]->Delay > OutLongestDelay)
 		{
 			OutLongestDelay = Actions[ActionIdx]->Delay;
 		}

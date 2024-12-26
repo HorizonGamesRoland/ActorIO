@@ -6,6 +6,8 @@
 #include "LogicActors/LogicActorBase.h"
 #include "LogicBranch.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnTestBranch);
+
 UCLASS()
 class ACTORIO_API ALogicBranch : public ALogicActorBase
 {
@@ -30,9 +32,9 @@ protected:
 
     bool bCurrentValue;
 
-    FSimpleActionDelegate TrueEvent;
+    FOnTestBranch OnTrue;
 
-    FSimpleActionDelegate FalseEvent;
+    FOnTestBranch OnFalse;
 
 public:
 
@@ -54,7 +56,7 @@ public:
     UFUNCTION(BlueprintPure, Category = "Branch")
     bool GetValue() const { return bCurrentValue; }
 
-    FSimpleActionDelegate& OnTrue() { return TrueEvent; }
+    FOnTestBranch& GetOnTrue() { return OnTrue; }
 
-    FSimpleActionDelegate& OnFalse() { return FalseEvent; }
+    FOnTestBranch& GetOnFalse() { return OnFalse; }
 };

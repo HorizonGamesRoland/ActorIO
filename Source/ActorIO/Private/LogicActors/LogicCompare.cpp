@@ -24,25 +24,25 @@ void ALogicCompare::RegisterIOEvents_Implementation(TArray<FActorIOEvent>& Regis
 		.SetId(TEXT("ALogicCompare::OnEquals"))
 		.SetDisplayName(LOCTEXT("ALogicCompare.OnEquals", "OnEquals"))
 		.SetTooltipText(LOCTEXT("ALogicCompare.OnEqualsTooltip", "Event when the current value equals the compare value."))
-		.SetMulticastDelegate(this, &EqualsEvent));
+		.SetMulticastDelegate(this, &OnEquals));
 
 	RegisteredEvents.Add(FActorIOEvent()
 		.SetId(TEXT("ALogicCompare::OnNotEquals"))
 		.SetDisplayName(LOCTEXT("ALogicCompare.OnNotEquals", "OnNotEquals"))
 		.SetTooltipText(LOCTEXT("ALogicCompare.OnNotEqualsTooltip", "Event when the current value does not equal the compare value."))
-		.SetMulticastDelegate(this, &NotEqualsEvent));
+		.SetMulticastDelegate(this, &OnNotEquals));
 
 	RegisteredEvents.Add(FActorIOEvent()
 		.SetId(TEXT("ALogicCompare::OnLessThen"))
 		.SetDisplayName(LOCTEXT("ALogicCompare.OnLessThen", "OnLessThen"))
 		.SetTooltipText(LOCTEXT("ALogicCompare.OnLessThenTooltip", "Event when the current value is less than the compare value. Only works with numeric values!"))
-		.SetMulticastDelegate(this, &LessThenEvent));
+		.SetMulticastDelegate(this, &OnLessThen));
 
 	RegisteredEvents.Add(FActorIOEvent()
 		.SetId(TEXT("ALogicCompare::OnGreaterThen"))
 		.SetDisplayName(LOCTEXT("ALogicCompare.OnGreaterThen", "OnGreaterThen"))
 		.SetTooltipText(LOCTEXT("ALogicCompare.OnGreaterThenTooltip", "Event when the current value is greater than the compare value. Only works with numeric values!"))
-		.SetMulticastDelegate(this, &GreaterThenEvent));
+		.SetMulticastDelegate(this, &OnGreaterThen));
 }
 
 void ALogicCompare::RegisterIOFunctions_Implementation(TArray<FActorIOFunction>& RegisteredFunctions)
@@ -92,11 +92,11 @@ void ALogicCompare::Compare()
 {
 	if (CurrentValue == CompareValue)
 	{
-		EqualsEvent.Broadcast();
+		OnEquals.Broadcast();
 	}
 	else
 	{
-		NotEqualsEvent.Broadcast();
+		OnNotEquals.Broadcast();
 	}
 
 	if (CurrentValue.IsNumeric() && CompareValue.IsNumeric())
@@ -106,11 +106,11 @@ void ALogicCompare::Compare()
 
 		if (NumericCurrentValue < NumericCompareValue)
 		{
-			LessThenEvent.Broadcast();
+			OnLessThen.Broadcast();
 		}
 		else if (NumericCurrentValue > NumericCompareValue)
 		{
-			GreaterThenEvent.Broadcast();
+			OnGreaterThen.Broadcast();
 		}
 	}
 }

@@ -23,13 +23,13 @@ void ALogicBranch::RegisterIOEvents_Implementation(TArray<FActorIOEvent>& Regist
 		.SetId(TEXT("ALogicBranch::OnTrue"))
 		.SetDisplayName(LOCTEXT("LogicBranch.OnTrue", "OnTrue"))
 		.SetTooltipText(LOCTEXT("LogicBranch.OnTrueTooltip", "Event when the stored boolean value is true when 'Test' is called."))
-		.SetMulticastDelegate(this, &TrueEvent));
+		.SetMulticastDelegate(this, &OnTrue));
 
 	RegisteredEvents.Add(FActorIOEvent()
 		.SetId(TEXT("ALogicBranch::OnFalse"))
 		.SetDisplayName(LOCTEXT("LogicBranch.OnFalse", "OnFalse"))
 		.SetTooltipText(LOCTEXT("LogicBranch.OnFalseTooltip", "Event when the stored boolean value is false when 'Test' is called."))
-		.SetMulticastDelegate(this, &FalseEvent));
+		.SetMulticastDelegate(this, &OnFalse));
 }
 
 void ALogicBranch::RegisterIOFunctions_Implementation(TArray<FActorIOFunction>& RegisteredFunctions)
@@ -91,11 +91,11 @@ void ALogicBranch::Test()
 {
 	if (bCurrentValue)
 	{
-		TrueEvent.Broadcast();
+		OnTrue.Broadcast();
 	}
 	else
 	{
-		FalseEvent.Broadcast();
+		OnFalse.Broadcast();
 	}
 }
 

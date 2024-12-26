@@ -6,6 +6,8 @@
 #include "LogicActors/LogicActorBase.h"
 #include "LogicCompare.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnCompareValue);
+
 UCLASS()
 class ACTORIO_API ALogicCompare : public ALogicActorBase
 {
@@ -23,17 +25,17 @@ public:
     UPROPERTY(EditInstanceOnly, Category = "Compare")
     FString CompareValue;
 
-private:
+protected:
 
     FString CurrentValue;
 
-    FSimpleActionDelegate EqualsEvent;
+    FOnCompareValue OnEquals;
 
-    FSimpleActionDelegate NotEqualsEvent;
+    FOnCompareValue OnNotEquals;
 
-    FSimpleActionDelegate LessThenEvent;
+    FOnCompareValue OnLessThen;
 
-    FSimpleActionDelegate GreaterThenEvent;
+    FOnCompareValue OnGreaterThen;
 
 public:
 
@@ -51,11 +53,11 @@ public:
 
     void Compare();
 
-    FSimpleActionDelegate& OnEquals() { return EqualsEvent; }
+    FOnCompareValue& GetOnEquals() { return OnEquals; }
 
-    FSimpleActionDelegate& OnNotEquals() { return NotEqualsEvent; }
+    FOnCompareValue& GetOnNotEquals() { return OnNotEquals; }
 
-    FSimpleActionDelegate& OnLessThen() { return LessThenEvent; }
+    FOnCompareValue& GetOnLessThen() { return OnLessThen; }
 
-    FSimpleActionDelegate& OnGreaterThen() { return GreaterThenEvent; }
+    FOnCompareValue& GetOnGreaterThen() { return OnGreaterThen; }
 };
