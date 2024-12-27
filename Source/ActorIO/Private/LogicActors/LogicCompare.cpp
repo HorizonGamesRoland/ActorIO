@@ -15,6 +15,13 @@ void ALogicCompare::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
 
+	UWorld* MyWorld = GetWorld();
+	if (!MyWorld || !MyWorld->IsGameWorld())
+	{
+		// Do nothing in the editor.
+		return;
+	}
+
 	CurrentValue = InitialValue;
 }
 

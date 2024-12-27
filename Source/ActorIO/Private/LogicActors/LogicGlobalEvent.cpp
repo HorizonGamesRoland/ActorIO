@@ -12,6 +12,13 @@ void ALogicGlobalEvent::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
 
+	UWorld* MyWorld = GetWorld();
+	if (!MyWorld || !MyWorld->IsGameWorld())
+	{
+		// Do nothing in the editor.
+		return;
+	}
+
 	FWorldDelegates::OnWorldInitializedActors.AddUObject(this, &ThisClass::OnWorldInitializedCallback);
 	FWorldDelegates::OnWorldBeginTearDown.AddUObject(this, &ThisClass::OnWorldTeardownCallback);
 }
