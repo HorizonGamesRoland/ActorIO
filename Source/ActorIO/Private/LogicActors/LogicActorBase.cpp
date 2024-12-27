@@ -5,6 +5,13 @@
 
 ALogicActorBase::ALogicActorBase()
 {
+	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bStartWithTickEnabled = false;
+
+	bReplicates = false;
+	bNetLoadOnClient = true;
+	NetUpdateFrequency = 10.0f;
+
 #if WITH_EDITORONLY_DATA
 	SpriteComponent = CreateEditorOnlyDefaultSubobject<UBillboardComponent>(TEXT("Sprite"));
 	RootComponent = SpriteComponent;
@@ -32,9 +39,7 @@ ALogicActorBase::ALogicActorBase()
 	}
 #endif
 
-	PrimaryActorTick.bCanEverTick = false;
-	bReplicates = false;
-	bNetLoadOnClient = true;
 	bEnableAutoLODGeneration = false;
+	SetReplicatingMovement(false);
 	SetCanBeDamaged(false);
 }

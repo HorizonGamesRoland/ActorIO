@@ -40,22 +40,22 @@ void ALogicTimeline::PostInitializeComponents()
 		TimelineCurve = NewCurve;
 	}
 
-	Timeline.AddInterpFloat(TimelineCurve, FOnTimelineFloatStatic::CreateUObject(this, &ThisClass::OnTimelineFloatCallback));
+	Timeline.AddInterpFloat(TimelineCurve, FOnTimelineFloatStatic::CreateUObject(this, &ThisClass::OnTimelineValueChangedCallback));
 	Timeline.SetTimelineFinishedFunc(FOnTimelineEventStatic::CreateUObject(this, &ThisClass::OnTimelineFinishedCallback));
 }
 
 void ALogicTimeline::RegisterIOEvents_Implementation(TArray<FActorIOEvent>& RegisteredEvents)
 {
 	RegisteredEvents.Add(FActorIOEvent()
-		.SetId(TEXT("ALogicTimeline::OnTimelineFloat"))
-		.SetDisplayName(LOCTEXT("ALogicTimeline.OnTimelineFloat", "OnTimelineFloat"))
-		.SetTooltipText(LOCTEXT("ALogicTimeline.OnTimelineFloatTooltip", "Event when the timeline's value changes."))
+		.SetId(TEXT("ALogicTimeline::OnValueChanged"))
+		.SetDisplayName(LOCTEXT("ALogicTimeline.OnValueChanged", "OnValueChanged"))
+		.SetTooltipText(LOCTEXT("ALogicTimeline.OnValueChangedTooltip", "Event when the timeline's value is changed."))
 		.SetMulticastDelegate(this, &OnTimelineValueChanged));
 
 	RegisteredEvents.Add(FActorIOEvent()
-		.SetId(TEXT("ALogicTimeline::OnTimelineFinished"))
-		.SetDisplayName(LOCTEXT("ALogicTimeline.OnTimelineFinished", "OnTimelineFinished"))
-		.SetTooltipText(LOCTEXT("ALogicTimeline.OnTimelineFinishedTooltip", "Event when the timeline is finished."))
+		.SetId(TEXT("ALogicTimeline::OnFinished"))
+		.SetDisplayName(LOCTEXT("ALogicTimeline.OnFinished", "OnFinished"))
+		.SetTooltipText(LOCTEXT("ALogicTimeline.OnFinishedTooltip", "Event when the timeline is finished."))
 		.SetMulticastDelegate(this, &OnTimelineFinished));
 }
 
@@ -148,7 +148,7 @@ void ALogicTimeline::Stop()
 	Timeline.Stop();
 }
 
-void ALogicTimeline::OnTimelineFloatCallback(float Output)
+void ALogicTimeline::OnTimelineValueChangedCallback(float Output)
 {
 	OnTimelineValueChanged.Broadcast(Output);
 }

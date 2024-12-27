@@ -70,9 +70,13 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Timeline")
     void Stop();
 
+    FOnTimelineValueChanged& GetOnTimelineValueChanged() { return OnTimelineValueChanged; }
+
+    FOnTimelineFinished& GetOnTimelineFinished() { return OnTimelineFinished; }
+
 protected:
 
-    void OnTimelineFloatCallback(float Output);
+    void OnTimelineValueChangedCallback(float Output);
 
     void OnTimelineFinishedCallback();
 };
