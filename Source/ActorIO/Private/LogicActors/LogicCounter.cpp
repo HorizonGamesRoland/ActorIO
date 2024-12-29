@@ -1,6 +1,7 @@
 // Copyright 2024 Horizon Games. All Rights Reserved.
 
 #include "LogicActors/LogicCounter.h"
+#include "ActorIOSystem.h"
 
 #define LOCTEXT_NAMESPACE "ActorIO"
 
@@ -44,7 +45,8 @@ void ALogicCounter::RegisterIOEvents_Implementation(TArray<FActorIOEvent>& Regis
 		.SetId(TEXT("ALogicCounter::OnGetValue"))
 		.SetDisplayName(LOCTEXT("ALogicCounter.OnGetValue", "OnGetValue"))
 		.SetTooltipText(LOCTEXT("ALogicCounter.OnGetValueTooltip", "Event when the current value is read using the 'GetValue' function."))
-		.SetMulticastDelegate(this, &OnGetValue));
+		.SetMulticastDelegate(this, &OnGetValue)
+		.SetEventProcessor(this, TEXT("ProcessEvent_OnGetValue")));
 }
 
 void ALogicCounter::RegisterIOFunctions_Implementation(TArray<FActorIOFunction>& RegisteredFunctions)
@@ -154,6 +156,14 @@ int32 ALogicCounter::GetValue() const
 {
 	OnGetValue.Broadcast(CurrentValue);
 	return CurrentValue;
+}
+
+void ALogicCounter::ProcessEvent_OnGetValue(int32 Value)
+{
+	UActorIOSystem* IOSystem = GetWorld()->GetSubsystem<UActorIOSystem>();
+	FActionExecutionContext& Context = IOSystem->GetExecutionContext();
+
+	Context.AddNamedArgument(TEXT("$Value"), FString::FromInt(Value));
 }
 
 #undef LOCTEXT_NAMESPACE

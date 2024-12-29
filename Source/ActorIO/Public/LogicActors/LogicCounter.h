@@ -66,4 +66,9 @@ public:
     FOnCounterValue& GetOnTargetValueReached() { return OnTargetValueReached; }
 
     FOnCounterValue& GetOnGetValue() { return OnGetValue; }
+
+protected:
+
+    UFUNCTION()
+    void ProcessEvent_OnGetValue(int32 Value);
 };

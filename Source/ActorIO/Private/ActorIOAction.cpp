@@ -51,7 +51,7 @@ void UActorIOAction::BindAction()
 	UE_LOG(LogTemp, Warning, TEXT("Binding an action to: %s"), *TargetEvent->EventId.ToString());
 
 	ActionDelegate = FScriptDelegate();
-	ActionDelegate.BindUFunction(this, TEXT("ExecuteAction"));
+	ActionDelegate.BindUFunction(this, TEXT("OnEventDelegateTriggered"));
 
 	if (TargetEvent->MulticastDelegatePtr)
 	{
@@ -131,12 +131,32 @@ void UActorIOAction::UnbindAction()
 	}
 }
 
-void UActorIOAction::ExecuteAction()
+void UActorIOAction::ProcessEvent(UFunction* Function, void* Parms)
 {
- 	if (!IsValid(TargetActor))
+	if (Function->GetFName() == TEXT("OnEventDelegateTriggered"))
 	{
-		// The target actor was invalid.
-		// Actor was most likely destroyed.
+		FActionExecutionContext& ExecContext = FActionExecutionContext::Get(this);
+		ExecContext.EnterContext(this, Parms);
+
+		ExecuteAction(ExecContext);
+	}
+	else
+	{
+		Super::ProcessEvent(Function, Parms);
+	}
+}
+
+void UActorIOAction::OnEventDelegateTriggered()
+{
+	checkNoEntry();
+}
+
+void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
+{
+	AActor* ActionOwner = GetOwnerActor();
+ 	if (!IsValid(ActionOwner) || !IsValid(TargetActor))
+	{
+		// Do not attempt to execute action on an invalid actor.
 		return;
 	}
 
@@ -146,7 +166,9 @@ void UActorIOAction::ExecuteAction()
 		return;
 	}
 
+	TArray<FActorIOEvent> ValidEvents = UActorIOSystem::GetEventsForObject(ActionOwner);
 	TArray<FActorIOFunction> ValidFunctions = UActorIOSystem::GetFunctionsForObject(TargetActor);
+
 	FActorIOFunction* TargetFunction = ValidFunctions.FindByKey(FunctionId);
 	if (!TargetFunction)
 	{
@@ -154,11 +176,24 @@ void UActorIOAction::ExecuteAction()
 		return;
 	}
 
+	FActorIOEvent* BoundEvent = ValidEvents.FindByKey(EventId);
+	if (BoundEvent->EventProcessor.IsBound())
+	{
+		UFunction* Func_EventProcessor = BoundEvent->EventProcessor.GetUObject()->GetClass()->FindFunctionByName(BoundEvent->EventProcessor.GetFunctionName());
+		BoundEvent->EventProcessor.GetUObject()->ProcessEvent(Func_EventProcessor, ExecutionContext.ScriptParams);
+	}
+
+	FString Arguments = FunctionArguments;
+	for (const TPair<FString, FString>& NamedArgument : ExecutionContext.NamedArguments)
+	{
+		// #TODO: Parse arguments in form of $NamedArgument?
+	}
+
 	FString Command = TargetFunction->FunctionToExec;
-	if (!FunctionArguments.IsEmpty())
+	if (!Arguments.IsEmpty())
 	{
 		Command.Append(TEXT(" "));
-		Command.Append(FunctionArguments);
+		Command.Append(Arguments);
 	}
 
 	UE_LOG(LogTemp, Warning, TEXT("Executing action: %s"), *Command);
@@ -168,6 +203,8 @@ void UActorIOAction::ExecuteAction()
 		FOutputDeviceNull Ar;
 		TargetActor->CallFunctionByNameWithArguments(*Command, Ar, this, true);
 	});
+
+	ExecutionContext.LeaveContext();
 
 	if (Delay > 0.0f)
 	{

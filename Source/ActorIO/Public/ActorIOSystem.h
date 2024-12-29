@@ -5,15 +5,66 @@
 #include "ActorIO.h"
 #include "ActorIOEvent.h"
 #include "ActorIOFunction.h"
-#include "Kismet/BlueprintFunctionLibrary.h"
+#include "Subsystems/WorldSubsystem.h"
 #include "ActorIOSystem.generated.h"
 
 class UActorIOAction;
 
-UCLASS()
-class ACTORIO_API UActorIOSystem : public UBlueprintFunctionLibrary
+USTRUCT()
+struct ACTORIO_API FActionExecutionContext
 {
 	GENERATED_BODY()
+
+	UPROPERTY()
+	TObjectPtr<UActorIOAction> ActionPtr;
+
+	void* ScriptParams;
+
+	TMap<FString, FString> NamedArguments;
+
+	FActionExecutionContext() :
+		ActionPtr(nullptr),
+		ScriptParams(nullptr),
+		NamedArguments(TMap<FString, FString>())
+	{}
+
+	static FActionExecutionContext& Get(UObject* WorldContextObject);
+
+	void EnterContext(UActorIOAction* InAction, void* InScriptParams);
+
+	void LeaveContext();
+
+	bool HasContext() const;
+
+	void AddNamedArgument(const FString& InName, const FString& InValue)
+	{
+		FString Arg = NamedArguments.FindOrAdd(InName);
+		Arg = InValue;
+	}
+
+	void RemoveNamedArgument(const FString& InName)
+	{
+		NamedArguments.Remove(InName);
+	}
+};
+
+UCLASS()
+class ACTORIO_API UActorIOSystem : public UWorldSubsystem
+{
+	GENERATED_BODY()
+
+public:
+
+	UActorIOSystem();
+
+private:
+
+	UPROPERTY(Transient)
+	FActionExecutionContext ActionExecContext;
+
+public:
+
+	FActionExecutionContext& GetExecutionContext() { return ActionExecContext; }
 
 public:
 

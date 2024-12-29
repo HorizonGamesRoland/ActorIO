@@ -7,6 +7,7 @@
 #include "ActorIOAction.generated.h"
 
 class UActorIOComponent;
+struct FActionExecutionContext;
 
 UCLASS(DefaultToInstanced, EditInlineNew)
 class ACTORIO_API UActorIOAction : public UObject
@@ -58,5 +59,11 @@ public:
 protected:
 
 	UFUNCTION()
-	void ExecuteAction();
+	void OnEventDelegateTriggered();
+
+	void ExecuteAction(FActionExecutionContext& ExecutionContext);
+
+public:
+
+	virtual void ProcessEvent(UFunction* Function, void* Parms) override;
 };

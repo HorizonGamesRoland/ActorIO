@@ -5,6 +5,7 @@
 #include "ActorIO.h"
 #include "Delegates/Delegate.h"
 #include "UObject/SparseDelegate.h"
+//#include "UObject/ScriptDelegateFwd.h"
 #include "ActorIOEvent.generated.h"
 
 USTRUCT(BlueprintType)
@@ -30,6 +31,8 @@ struct ACTORIO_API FActorIOEvent
 
 	FName BlueprintDelegateName;
 
+	FScriptDelegate EventProcessor;
+
 	FActorIOEvent() :
 		EventId(NAME_None),
 		DisplayName(FText::GetEmpty()),
@@ -37,7 +40,8 @@ struct ACTORIO_API FActorIOEvent
 		DelegateOwner(nullptr),
 		MulticastDelegatePtr(nullptr),
 		SparseDelegateName(NAME_None),
-		BlueprintDelegateName(NAME_None)
+		BlueprintDelegateName(NAME_None),
+		EventProcessor(FScriptDelegate())
 	{}
 
 	FActorIOEvent& SetId(FName InEventId)
@@ -76,6 +80,12 @@ struct ACTORIO_API FActorIOEvent
 	{
 		DelegateOwner = InDelegateOwner;
 		BlueprintDelegateName = InBlueprintDelegateName;
+		return *this;
+	}
+
+	FActorIOEvent& SetEventProcessor(TObjectPtr<UObject> InFunctionOwner, FName InFunctionName)
+	{
+		EventProcessor.BindUFunction(InFunctionOwner.Get(), InFunctionName);
 		return *this;
 	}
 
