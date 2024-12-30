@@ -142,7 +142,7 @@ void UActorIOAction::ProcessEvent(UFunction* Function, void* Parms)
 
 		if (CanExecuteAction(ExecContext))
 		{
-			ProcessAction(ExecContext);
+			ExecuteAction(ExecContext);
 		}
 
 		if (ExecContext.HasContext())
@@ -177,12 +177,9 @@ bool UActorIOAction::CanExecuteAction(FActionExecutionContext& ExecutionContext)
 	return true;
 }
 
-void UActorIOAction::ProcessAction(FActionExecutionContext& ExecutionContext)
+void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 {
-	AActor* ActionOwner = GetOwnerActor();
-	TArray<FActorIOEvent> ValidEvents = UActorIOSystem::GetEventsForObject(ActionOwner);
 	TArray<FActorIOFunction> ValidFunctions = UActorIOSystem::GetFunctionsForObject(TargetActor);
-
 	FActorIOFunction* TargetFunction = ValidFunctions.FindByKey(FunctionId);
 	if (!TargetFunction)
 	{
@@ -190,6 +187,7 @@ void UActorIOAction::ProcessAction(FActionExecutionContext& ExecutionContext)
 		return;
 	}
 
+	TArray<FActorIOEvent> ValidEvents = UActorIOSystem::GetEventsForObject(GetOwnerActor());
 	FActorIOEvent* BoundEvent = ValidEvents.FindByKey(EventId);
 	if (BoundEvent->EventProcessor.IsBound())
 	{
@@ -214,27 +212,30 @@ void UActorIOAction::ProcessAction(FActionExecutionContext& ExecutionContext)
 		Command.Append(Arguments);
 	}
 
+	UE_LOG(LogTemp, Warning, TEXT("Executing action: %s"), *Command);
+
 	ExecutionContext.LeaveContext();
 	bWasExecuted = true;
 
 	if (Delay > 0.0f)
 	{
 		FTimerHandle UniqueHandle;
-		FTimerDelegate ExecuteActionDelegate = FTimerDelegate::CreateUObject(this, &ThisClass::ExecuteAction, Command);
-		GetWorld()->GetTimerManager().SetTimer(UniqueHandle, ExecuteActionDelegate, Delay, false);
+		FTimerDelegate SendCommandDelegate = FTimerDelegate::CreateUObject(this, &ThisClass::SendCommand, Command);
+		GetWorld()->GetTimerManager().SetTimer(UniqueHandle, SendCommandDelegate, Delay, false);
 	}
 	else
 	{
-		ExecuteAction(Command);
+		SendCommand(Command);
 	}
 }
 
-void UActorIOAction::ExecuteAction(FString Command)
+void UActorIOAction::SendCommand(FString Command)
 {
-	UE_LOG(LogTemp, Warning, TEXT("Executing action: %s"), *Command);
-
-	FOutputDeviceNull Ar;
-	TargetActor->CallFunctionByNameWithArguments(*Command, Ar, this, true);
+	if (IsValid(TargetActor))
+	{
+		FOutputDeviceNull Ar;
+		TargetActor->CallFunctionByNameWithArguments(*Command, Ar, this, true);
+	}
 }
 
 UActorIOComponent* UActorIOAction::GetOwnerIOComponent() const

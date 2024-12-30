@@ -67,9 +67,9 @@ protected:
 
 	bool CanExecuteAction(FActionExecutionContext& ExecutionContext);
 
-	void ProcessAction(FActionExecutionContext& ExecutionContext);
+	void ExecuteAction(FActionExecutionContext& ExecutionContext);
 
-	void ExecuteAction(FString Command);
+	void SendCommand(FString Command);
 
 public:
 
