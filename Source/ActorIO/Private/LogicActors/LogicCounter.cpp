@@ -160,10 +160,8 @@ int32 ALogicCounter::GetValue() const
 
 void ALogicCounter::ProcessEvent_OnGetValue(int32 Value)
 {
-	UActorIOSystem* IOSystem = GetWorld()->GetSubsystem<UActorIOSystem>();
-	FActionExecutionContext& Context = IOSystem->GetExecutionContext();
-
-	Context.AddNamedArgument(TEXT("$Value"), FString::FromInt(Value));
+	FActionExecutionContext& ExecContext = FActionExecutionContext::Get(this);
+	ExecContext.AddNamedArgument(TEXT("$Value"), FString::FromInt(Value));
 }
 
 #undef LOCTEXT_NAMESPACE

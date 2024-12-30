@@ -9,6 +9,8 @@
 #include "UObject/SparseDelegate.h"
 #include "Misc/OutputDeviceNull.h"
 
+FName UActorIOAction::ExecuteActionSignalName(TEXT("ReceiveExecuteAction"));
+
 UActorIOAction::UActorIOAction()
 {
 	EventId = NAME_None;
@@ -51,7 +53,7 @@ void UActorIOAction::BindAction()
 	UE_LOG(LogTemp, Warning, TEXT("Binding an action to: %s"), *TargetEvent->EventId.ToString());
 
 	ActionDelegate = FScriptDelegate();
-	ActionDelegate.BindUFunction(this, TEXT("OnEventDelegateTriggered"));
+	ActionDelegate.BindUFunction(this, ExecuteActionSignalName);
 
 	if (TargetEvent->MulticastDelegatePtr)
 	{
@@ -133,39 +135,51 @@ void UActorIOAction::UnbindAction()
 
 void UActorIOAction::ProcessEvent(UFunction* Function, void* Parms)
 {
-	if (Function->GetFName() == TEXT("OnEventDelegateTriggered"))
+	if (Function->GetFName() == ExecuteActionSignalName)
 	{
 		FActionExecutionContext& ExecContext = FActionExecutionContext::Get(this);
 		ExecContext.EnterContext(this, Parms);
 
-		ExecuteAction(ExecContext);
+		if (CanExecuteAction(ExecContext))
+		{
+			ProcessAction(ExecContext);
+		}
+
+		if (ExecContext.HasContext())
+		{
+			ExecContext.LeaveContext();
+		}
 	}
-	else
-	{
-		Super::ProcessEvent(Function, Parms);
-	}
+	
+	Super::ProcessEvent(Function, Parms);
 }
 
-void UActorIOAction::OnEventDelegateTriggered()
+void UActorIOAction::ReceiveExecuteAction()
 {
-	checkNoEntry();
+	// Empty on purpose.
 }
 
-void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
+bool UActorIOAction::CanExecuteAction(FActionExecutionContext& ExecutionContext)
 {
-	AActor* ActionOwner = GetOwnerActor();
- 	if (!IsValid(ActionOwner) || !IsValid(TargetActor))
+	const AActor* ActionOwner = GetOwnerActor();
+	if (!IsValid(ActionOwner) || !IsValid(TargetActor))
 	{
 		// Do not attempt to execute action on an invalid actor.
-		return;
+		return false;
 	}
 
 	if (bExecuteOnlyOnce && bWasExecuted)
 	{
 		// Action has already been executed once.
-		return;
+		return false;
 	}
 
+	return true;
+}
+
+void UActorIOAction::ProcessAction(FActionExecutionContext& ExecutionContext)
+{
+	AActor* ActionOwner = GetOwnerActor();
 	TArray<FActorIOEvent> ValidEvents = UActorIOSystem::GetEventsForObject(ActionOwner);
 	TArray<FActorIOFunction> ValidFunctions = UActorIOSystem::GetFunctionsForObject(TargetActor);
 
@@ -179,8 +193,12 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 	FActorIOEvent* BoundEvent = ValidEvents.FindByKey(EventId);
 	if (BoundEvent->EventProcessor.IsBound())
 	{
-		UFunction* Func_EventProcessor = BoundEvent->EventProcessor.GetUObject()->GetClass()->FindFunctionByName(BoundEvent->EventProcessor.GetFunctionName());
-		BoundEvent->EventProcessor.GetUObject()->ProcessEvent(Func_EventProcessor, ExecutionContext.ScriptParams);
+		UObject* EventProcessorObject = BoundEvent->EventProcessor.GetUObject();
+		if (IsValid(EventProcessorObject))
+		{
+			UFunction* Func_EventProcessor = EventProcessorObject->GetClass()->FindFunctionByName(BoundEvent->EventProcessor.GetFunctionName());
+			EventProcessorObject->ProcessEvent(Func_EventProcessor, ExecutionContext.ScriptParams);
+		}
 	}
 
 	FString Arguments = FunctionArguments;
@@ -196,27 +214,27 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 		Command.Append(Arguments);
 	}
 
-	UE_LOG(LogTemp, Warning, TEXT("Executing action: %s"), *Command);
-
-	FTimerDelegate ExecutionDelegate = FTimerDelegate::CreateLambda([this, Command]()
-	{
-		FOutputDeviceNull Ar;
-		TargetActor->CallFunctionByNameWithArguments(*Command, Ar, this, true);
-	});
-
 	ExecutionContext.LeaveContext();
+	bWasExecuted = true;
 
 	if (Delay > 0.0f)
 	{
-		FTimerHandle UnusedTimerHandle;
-		GetWorld()->GetTimerManager().SetTimer(UnusedTimerHandle, ExecutionDelegate, Delay, false);
+		FTimerHandle UniqueHandle;
+		FTimerDelegate ExecuteActionDelegate = FTimerDelegate::CreateUObject(this, &ThisClass::ExecuteAction, Command);
+		GetWorld()->GetTimerManager().SetTimer(UniqueHandle, ExecuteActionDelegate, Delay, false);
 	}
 	else
 	{
-		ExecutionDelegate.Execute();
+		ExecuteAction(Command);
 	}
+}
 
-	bWasExecuted = true;
+void UActorIOAction::ExecuteAction(FString Command)
+{
+	UE_LOG(LogTemp, Warning, TEXT("Executing action: %s"), *Command);
+
+	FOutputDeviceNull Ar;
+	TargetActor->CallFunctionByNameWithArguments(*Command, Ar, this, true);
 }
 
 UActorIOComponent* UActorIOAction::GetOwnerIOComponent() const

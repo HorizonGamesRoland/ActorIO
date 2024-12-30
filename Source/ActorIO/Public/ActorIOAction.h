@@ -38,6 +38,10 @@ public:
 	UPROPERTY(EditAnywhere)
 	bool bExecuteOnlyOnce;
 
+public:
+
+	static FName ExecuteActionSignalName;
+
 protected:
 
 	bool bWasExecuted;
@@ -59,9 +63,13 @@ public:
 protected:
 
 	UFUNCTION()
-	void OnEventDelegateTriggered();
+	void ReceiveExecuteAction();
 
-	void ExecuteAction(FActionExecutionContext& ExecutionContext);
+	bool CanExecuteAction(FActionExecutionContext& ExecutionContext);
+
+	void ProcessAction(FActionExecutionContext& ExecutionContext);
+
+	void ExecuteAction(FString Command);
 
 public:
 

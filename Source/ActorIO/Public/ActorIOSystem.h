@@ -38,13 +38,19 @@ struct ACTORIO_API FActionExecutionContext
 
 	void AddNamedArgument(const FString& InName, const FString& InValue)
 	{
-		FString Arg = NamedArguments.FindOrAdd(InName);
-		Arg = InValue;
+		if (HasContext())
+		{
+			FString Arg = NamedArguments.FindOrAdd(InName);
+			Arg = InValue;
+		}
 	}
 
 	void RemoveNamedArgument(const FString& InName)
 	{
-		NamedArguments.Remove(InName);
+		if (HasContext())
+		{
+			NamedArguments.Remove(InName);
+		}
 	}
 };
 
