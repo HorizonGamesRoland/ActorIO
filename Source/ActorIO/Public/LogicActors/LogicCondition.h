@@ -21,7 +21,7 @@ public:
     TObjectPtr<AActor> ObjectToTest;
 
     UPROPERTY(EditInstanceOnly, Category = "Condition")
-    FString FunctionName;
+    FName FunctionName;
 
     UPROPERTY(BlueprintAssignable, Category = "Condition")
     FSimpleActionDelegate OnPass;
@@ -38,4 +38,8 @@ public:
 
     UFUNCTION(BlueprintCallable, Category = "Condition", meta = (AutoCreateRefTerm = "Arguments"))
     void Test(const FString& Arguments) const;
+
+protected:
+
+    bool PerformConditionCheck(FName InFunctionName, const FString& Arguments) const;
 };

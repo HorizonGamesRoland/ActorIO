@@ -20,27 +20,23 @@ public:
 
 public:
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category = "Action")
 	FName EventId;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category = "Action")
 	TObjectPtr<AActor> TargetActor;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category = "Action")
 	FName FunctionId;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category = "Action")
 	FString FunctionArguments;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category = "Action")
 	float Delay;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category = "Action")
 	bool bExecuteOnlyOnce;
-
-public:
-
-	static FName ExecuteActionSignalName;
 
 protected:
 
@@ -59,6 +55,10 @@ public:
 	UActorIOComponent* GetOwnerIOComponent() const;
 
 	AActor* GetOwnerActor() const;
+
+public:
+
+	static FName ExecuteActionSignalName;
 
 protected:
 

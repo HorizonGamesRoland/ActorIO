@@ -7,7 +7,7 @@
 ALogicCondition::ALogicCondition()
 {
 	ObjectToTest = nullptr;
-	FunctionName = FString();
+	FunctionName = NAME_None;
 }
 
 void ALogicCondition::RegisterIOEvents_Implementation(TArray<FActorIOEvent>& RegisteredEvents)
@@ -36,35 +36,59 @@ void ALogicCondition::RegisterIOFunctions_Implementation(TArray<FActorIOFunction
 
 void ALogicCondition::Test(const FString& Arguments) const
 {
-	// #TODO: Figure out how to get return value.
+	if (!IsValid(ObjectToTest))
+	{
+		OnFail.Broadcast();
+		return;
+	}
 
-	//UFunction* Func_GetRemappedCurveName = RemapAsset->GetClass()->FindFunctionByName(FName("GetRemappedCurveName"));
-	//if (!Func_GetRemappedCurveName)
-	//{
-	//	return NAME_None;
-	//}
-	//
-	//FStructOnScope FuncParam(Func_GetRemappedCurveName);
-	//
-	//// Set input properties
-	//FNameProperty* InProp = CastField<FNameProperty>(Func_GetRemappedCurveName->FindPropertyByName(TEXT("CurveName")));
+	const bool bResult = PerformConditionCheck(FunctionName, Arguments);
+	if (bResult)
+	{
+		OnPass.Broadcast();
+	}
+	else
+	{
+		OnFail.Broadcast();
+	}
+}
+
+bool ALogicCondition::PerformConditionCheck(FName InFunctionName, const FString& Arguments) const
+{
+	UFunction* Function = ObjectToTest->GetClass()->FindFunctionByName(InFunctionName);
+	if (!Function)
+	{
+		return false;
+	}
+
+	FBoolProperty* ReturnProp = CastField<FBoolProperty>(Function->GetReturnProperty());
+	if (!ReturnProp)
+	{
+		return false;
+	}
+
+	FStructOnScope FuncParam(Function);
+
+	// Set input properties
+	//FNameProperty* InProp = CastField<FNameProperty>(Function->FindPropertyByName(TEXT("CurveName")));
 	//if (!InProp)
 	//{
 	//	return NAME_None;
 	//}
 	//InProp->SetPropertyValue_InContainer(FuncParam.GetStructMemory(), InCurveName);
-	//
-	//// Call function
-	//RemapAsset->ProcessEvent(Func_GetRemappedCurveName, FuncParam.GetStructMemory());
-	//
-	//// Get return property
-	//FNameProperty* OutProp = CastField<FNameProperty>(Func_GetRemappedCurveName->GetReturnProperty());
-	//if (!OutProp)
-	//{
-	//	return NAME_None;
-	//}
-	//
-	//return OutProp->GetPropertyValue_InContainer(FuncParam.GetStructMemory());
+
+	// Call function
+	ObjectToTest->ProcessEvent(Function, FuncParam.GetStructMemory());
+
+	const bool bResult = ReturnProp->GetPropertyValue_InContainer(FuncParam.GetStructMemory());
+
+	//!!destructframe see also UObject::ProcessEvent
+	for (TFieldIterator<FProperty> It(Function); It && It->HasAnyPropertyFlags(CPF_Parm); ++It)
+	{
+		It->DestroyValue_InContainer(FuncParam.GetStructMemory());
+	}
+
+	return bResult;
 }
 
 #undef LOCTEXT_NAMESPACE
