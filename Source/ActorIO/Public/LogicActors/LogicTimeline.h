@@ -10,8 +10,6 @@
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTimelineValueChanged, float, Value);
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnTimelineFinished);
-
 UCLASS()
 class ACTORIO_API ALogicTimeline : public ALogicActorBase
 {
@@ -35,16 +33,18 @@ public:
     UPROPERTY(EditInstanceOnly, Category = "Timeline")
     bool bIgnoreTimeDilation;
 
+    UPROPERTY(BlueprintAssignable, Category = "Timeline")
+    FOnTimelineValueChanged OnTimelineValueChanged;
+
+    UPROPERTY(BlueprintAssignable, Category = "Timeline")
+    FSimpleActionDelegate OnTimelineFinished;
+
 protected:
 
     FTimeline Timeline;
 
     UPROPERTY(Transient)
     TObjectPtr<UCurveFloat> TimelineCurve;
-
-    FOnTimelineValueChanged OnTimelineValueChanged;
-
-    FOnTimelineFinished OnTimelineFinished;
 
 public:
 
@@ -69,10 +69,6 @@ public:
 
     UFUNCTION(BlueprintCallable, Category = "Timeline")
     void Stop();
-
-    FOnTimelineValueChanged& GetOnTimelineValueChanged() { return OnTimelineValueChanged; }
-
-    FOnTimelineFinished& GetOnTimelineFinished() { return OnTimelineFinished; }
 
 protected:
 

@@ -28,15 +28,18 @@ public:
     UPROPERTY(EditInstanceOnly, Category = "Counter")
     bool bClampValue;
 
+    UPROPERTY(BlueprintAssignable, Category = "Counter")
+    FOnCounterValue OnValueChanged;
+
+    UPROPERTY(BlueprintAssignable, Category = "Counter")
+    FOnCounterValue OnTargetValueReached;
+
+    UPROPERTY(BlueprintAssignable, Category = "Counter")
+    FOnCounterValue OnGetValue;
+
 protected:
 
     int32 CurrentValue;
-
-    FOnCounterValue OnValueChanged;
-
-    FOnCounterValue OnTargetValueReached;
-
-    FOnCounterValue OnGetValue;
 
 public:
 
@@ -60,12 +63,6 @@ public:
 
     UFUNCTION(BlueprintPure, Category = "Counter")
     int32 GetValue() const;
-
-    FOnCounterValue& GetOnValueChanged() { return OnValueChanged; }
-
-    FOnCounterValue& GetOnTargetValueReached() { return OnTargetValueReached; }
-
-    FOnCounterValue& GetOnGetValue() { return OnGetValue; }
 
 protected:
 

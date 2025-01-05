@@ -6,8 +6,6 @@
 #include "LogicActors/LogicActorBase.h"
 #include "LogicCondition.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnTestCondition);
-
 UCLASS()
 class ACTORIO_API ALogicCondition : public ALogicActorBase
 {
@@ -25,11 +23,11 @@ public:
     UPROPERTY(EditInstanceOnly, Category = "Condition")
     FString FunctionName;
 
-protected:
+    UPROPERTY(BlueprintAssignable, Category = "Condition")
+    FSimpleActionDelegate OnPass;
 
-    FOnTestCondition OnPass;
-
-    FOnTestCondition OnFail;
+    UPROPERTY(BlueprintAssignable, Category = "Condition")
+    FSimpleActionDelegate OnFail;
 
 public:
 
@@ -38,10 +36,6 @@ public:
 
 public:
 
-    UFUNCTION(BlueprintCallable, Category = "Branch", meta = (AutoCreateRefTerm = "Arguments"))
+    UFUNCTION(BlueprintCallable, Category = "Condition", meta = (AutoCreateRefTerm = "Arguments"))
     void Test(const FString& Arguments) const;
-
-    FOnTestCondition& GetOnPass() { return OnPass; }
-
-    FOnTestCondition& GetOnFail() { return OnFail; }
 };

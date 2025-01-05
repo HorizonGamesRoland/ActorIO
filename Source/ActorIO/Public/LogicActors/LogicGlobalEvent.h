@@ -6,8 +6,6 @@
 #include "LogicActors/LogicActorBase.h"
 #include "LogicGlobalEvent.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnGlobalEvent);
-
 UCLASS()
 class ACTORIO_API ALogicGlobalEvent : public ALogicActorBase
 {
@@ -17,13 +15,16 @@ public:
 
     ALogicGlobalEvent();
 
-protected:
+public:
 
-    FOnGlobalEvent OnWorldInitialized;
+    UPROPERTY(BlueprintAssignable, Category = "Global Event")
+    FSimpleActionDelegate OnWorldInitialized;
 
-    FOnGlobalEvent OnBeginPlay;
+    UPROPERTY(BlueprintAssignable, Category = "Global Event")
+    FSimpleActionDelegate OnBeginPlay;
 
-    FOnGlobalEvent OnWorldTeardown;
+    UPROPERTY(BlueprintAssignable, Category = "Global Event")
+    FSimpleActionDelegate OnWorldTeardown;
 
 public:
 
@@ -32,14 +33,6 @@ public:
     virtual void RegisterIOFunctions_Implementation(TArray<FActorIOFunction>& RegisteredFunctions) override;
     virtual void BeginPlay() override;
     virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
-
-public:
-
-    FOnGlobalEvent& GetOnWorldInitialized() { return OnWorldInitialized; }
-
-    FOnGlobalEvent& GetOnBeginPlay() { return OnBeginPlay; }
-
-    FOnGlobalEvent& GetOnWorldTeardown() { return OnWorldTeardown; }
 
 protected:
 

@@ -6,8 +6,6 @@
 #include "LogicActors/LogicActorBase.h"
 #include "LogicTimer.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnTimerTrigger);
-
 UCLASS()
 class ACTORIO_API ALogicTimer : public ALogicActorBase
 {
@@ -28,11 +26,12 @@ public:
     UPROPERTY(EditInstanceOnly, Category = "Timer")
     bool bLoop;
 
+    UPROPERTY(BlueprintAssignable, Category = "Timer")
+    FSimpleActionDelegate OnTimer;
+
 protected:
 
     FTimerHandle CurrentTimerHandle;
-
-    FOnTimerTrigger OnTimer;
 
 public:
 
@@ -52,8 +51,6 @@ public:
 
     UFUNCTION(BlueprintPure, Category = "Timer")
     bool IsTimerActive() const;
-
-    FOnTimerTrigger& GetOnTimer() { return OnTimer; }
 
 protected:
 

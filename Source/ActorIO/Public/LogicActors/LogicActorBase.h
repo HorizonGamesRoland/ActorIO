@@ -7,6 +7,8 @@
 #include "GameFramework/Actor.h"
 #include "LogicActorBase.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FSimpleActionDelegate);
+
 UCLASS(Abstract, NotBlueprintable, HideCategories = (Rendering, Input, Networking, Physics, Collision, HLOD))
 class ACTORIO_API ALogicActorBase : public AActor, public IActorIOInterface
 {

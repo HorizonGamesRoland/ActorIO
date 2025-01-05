@@ -10,7 +10,7 @@ ALogicActorBase::ALogicActorBase()
 
 	bReplicates = false;
 	bNetLoadOnClient = true;
-	NetUpdateFrequency = 10.0f;
+	SetNetUpdateFrequency(10.0f);
 
 #if WITH_EDITORONLY_DATA
 	SpriteComponent = CreateEditorOnlyDefaultSubobject<UBillboardComponent>(TEXT("Sprite"));
