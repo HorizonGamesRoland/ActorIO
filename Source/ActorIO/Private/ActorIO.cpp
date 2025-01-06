@@ -1,1 +1,56 @@
 // Copyright 2024 Horizon Games. All Rights Reserved.
+
+#include "ActorIO.h"
+#include "ActorIOSystem.h"
+
+DEFINE_LOG_CATEGORY(LogActorIO)
+
+FActionExecutionContext& FActionExecutionContext::Get(UObject* WorldContextObject)
+{
+    if (UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull))
+    {
+        UActorIOSystem* IOSystem = World->GetSubsystem<UActorIOSystem>();
+        return IOSystem->GetExecutionContext();
+    }
+
+    checkNoEntry();
+    static FActionExecutionContext InvalidContext;
+    return InvalidContext;
+}
+
+void FActionExecutionContext::EnterContext(UActorIOAction* InAction, void* InScriptParams)
+{
+    check(!HasContext());
+    ActionPtr = InAction;
+    ScriptParams = InScriptParams;
+}
+
+void FActionExecutionContext::ExitContext()
+{
+    check(HasContext());
+    ActionPtr = nullptr;
+    ScriptParams = nullptr;
+    NamedArguments.Reset();
+}
+
+bool FActionExecutionContext::HasContext() const
+{
+    return ActionPtr.Get() != nullptr;
+}
+
+void FActionExecutionContext::AddNamedArgument(const FString& InName, const FString& InValue)
+{
+    if (HasContext())
+    {
+        FString Arg = NamedArguments.FindOrAdd(InName);
+        Arg = InValue;
+    }
+}
+
+void FActionExecutionContext::RemoveNamedArgument(const FString& InName)
+{
+    if (HasContext())
+    {
+        NamedArguments.Remove(InName);
+    }
+}

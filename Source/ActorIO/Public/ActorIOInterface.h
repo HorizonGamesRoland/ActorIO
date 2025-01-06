@@ -3,8 +3,6 @@
 #pragma once
 
 #include "ActorIO.h"
-#include "ActorIOEvent.h"
-#include "ActorIOFunction.h"
 #include "UObject/Interface.h"
 #include "ActorIOInterface.generated.h"
 

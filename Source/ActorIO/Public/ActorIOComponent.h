@@ -3,7 +3,6 @@
 #pragma once
 
 #include "ActorIO.h"
-#include "ActorIOMessage.h"
 #include "Components/ActorComponent.h"
 #include "ActorIOComponent.generated.h"
 

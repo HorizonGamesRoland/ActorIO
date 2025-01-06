@@ -8,39 +8,6 @@
 #include "Engine/TriggerBase.h"
 #include "Particles/Emitter.h"
 
-FActionExecutionContext& FActionExecutionContext::Get(UObject* WorldContextObject)
-{
-    if (UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull))
-    {
-        UActorIOSystem* IOSystem = World->GetSubsystem<UActorIOSystem>();
-        return IOSystem->GetExecutionContext();
-    }
-
-    checkNoEntry();
-    static FActionExecutionContext InvalidContext;
-    return InvalidContext;
-}
-
-void FActionExecutionContext::EnterContext(UActorIOAction* InAction, void* InScriptParams)
-{
-    check(!HasContext());
-    ActionPtr = InAction;
-    ScriptParams = InScriptParams;
-}
-
-void FActionExecutionContext::LeaveContext()
-{
-    check(HasContext());
-    ActionPtr = nullptr;
-    ScriptParams = nullptr;
-    NamedArguments.Reset();
-}
-
-bool FActionExecutionContext::HasContext() const
-{
-    return ActionPtr.Get() != nullptr;
-}
-
 UActorIOSystem::UActorIOSystem()
 {
     ActionExecContext = FActionExecutionContext();

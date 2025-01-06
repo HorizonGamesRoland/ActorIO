@@ -1,8 +1,6 @@
 // Copyright 2024 Horizon Games. All Rights Reserved.
 
 #include "ActorIOAction.h"
-#include "ActorIOEvent.h"
-#include "ActorIOFunction.h"
 #include "ActorIOSystem.h"
 #include "ActorIOComponent.h"
 #include "ActorIOInterface.h"
@@ -50,7 +48,7 @@ void UActorIOAction::BindAction()
 		return;
 	}
 
-	UE_LOG(LogTemp, Warning, TEXT("Binding an action to: %s"), *TargetEvent->EventId.ToString());
+	UE_LOG(LogActorIO, Warning, TEXT("Binding an action to: %s"), *TargetEvent->EventId.ToString());
 
 	ActionDelegate = FScriptDelegate();
 	ActionDelegate.BindUFunction(this, ExecuteActionSignalName);
@@ -82,7 +80,7 @@ void UActorIOAction::BindAction()
 
 	if (!bIsBound)
 	{
-		UE_LOG(LogTemp, Error, TEXT("Could not bind action to '%s'"), *TargetEvent->EventId.ToString());
+		UE_LOG(LogActorIO, Error, TEXT("Could not bind action to '%s'"), *TargetEvent->EventId.ToString());
 	}
 }
 
@@ -147,7 +145,7 @@ void UActorIOAction::ProcessEvent(UFunction* Function, void* Parms)
 
 		if (ExecContext.HasContext())
 		{
-			ExecContext.LeaveContext();
+			ExecContext.ExitContext();
 		}
 	}
 	
@@ -179,11 +177,13 @@ bool UActorIOAction::CanExecuteAction(FActionExecutionContext& ExecutionContext)
 
 void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 {
+	UE_LOG(LogActorIO, Warning, TEXT("Executing action: %s -> %s"), *EventId.ToString(), *FunctionId.ToString());
+
 	TArray<FActorIOFunction> ValidFunctions = UActorIOSystem::GetFunctionsForObject(TargetActor);
 	FActorIOFunction* TargetFunction = ValidFunctions.FindByKey(FunctionId);
 	if (!TargetFunction)
 	{
-		UE_LOG(LogTemp, Error, TEXT("ActorIOAction: Function '%s' was not found on target actor '%s'"), *FunctionId.ToString(), *TargetActor->GetActorNameOrLabel());
+		UE_LOG(LogActorIO, Error, TEXT("Failed to find function '%s' on target actor '%s'"), *FunctionId.ToString(), *TargetActor->GetActorNameOrLabel());
 		return;
 	}
 
@@ -212,9 +212,7 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 		Command.Append(Arguments);
 	}
 
-	UE_LOG(LogTemp, Warning, TEXT("Executing action: %s"), *Command);
-
-	ExecutionContext.LeaveContext();
+	ExecutionContext.ExitContext();
 	bWasExecuted = true;
 
 	if (Delay > 0.0f)
