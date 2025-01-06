@@ -7,12 +7,14 @@
 #include "SActorIOEditor.h"
 #include "Framework/Docking/TabManager.h"
 #include "Widgets/Docking/SDockTab.h"
+#include "GameFramework/Actor.h"
+#include "Selection.h"
 #include "WorkspaceMenuStructure.h"
 #include "WorkspaceMenuStructureModule.h"
 #include "UnrealEdGlobals.h"
 #include "Editor/UnrealEdEngine.h"
 
-#define LOCTEXT_NAMESPACE "FActorIOEditor"
+#define LOCTEXT_NAMESPACE "ActorIOEditor"
 
 void FActorIOEditor::StartupModule()
 {
@@ -20,11 +22,13 @@ void FActorIOEditor::StartupModule()
 	FActorIOEditorStyle::Initialize();
 
 	FGlobalTabmanager::Get()->RegisterNomadTabSpawner(TEXT("ActorIO"), FOnSpawnTab::CreateRaw(this, &FActorIOEditor::SpawnActorIOEditor))
-		.SetDisplayName(FText::FromString("Actor IO"))
-		.SetTooltipText(FText::FromString("Open the Actor IO tab. Use this for level scripting."))
+		.SetDisplayName(LOCTEXT("TabName", "Actor I/O"))
+		.SetTooltipText(LOCTEXT("TabTooltip", "Open the Actor I/O tab. Use this for level scripting."))
 		.SetGroup(WorkspaceMenu::GetMenuStructure().GetLevelEditorCategory())
 		.SetIcon(FSlateIcon(FAppStyle::GetAppStyleSetName(), "Icons.Event"));
 
+	SelectionChangeDelegateHandle = USelection::SelectionChangedEvent.AddRaw(this, &FActorIOEditor::OnObjectSelectionChanged);
+	
 	if (GUnrealEd)
 	{
 		TSharedPtr<FComponentVisualizer> IOComponentVisualizer = MakeShared<FActorIOComponentVisualizer>();
@@ -36,6 +40,8 @@ void FActorIOEditor::StartupModule()
 void FActorIOEditor::ShutdownModule()
 {
 	FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(TEXT("ActorIO"));
+
+	USelection::SelectionChangedEvent.Remove(SelectionChangeDelegateHandle);
 
 	if (GUnrealEd)
 	{
@@ -66,6 +72,14 @@ void FActorIOEditor::OnActorIOEditorClosed(TSharedRef<SDockTab> DockTab)
 	EditorWindow.Reset();
 }
 
+void FActorIOEditor::OnObjectSelectionChanged(UObject* NewSelection)
+{
+	USelection* SelectedActors = GEditor->GetSelectedActors();
+	SelectedActor = SelectedActors->GetBottom<AActor>();
+
+	UpdateEditorWindow();
+}
+
 void FActorIOEditor::UpdateEditorWindow()
 {
 	if (EditorWindow.IsValid())
@@ -77,6 +91,11 @@ void FActorIOEditor::UpdateEditorWindow()
 SActorIOEditor* FActorIOEditor::GetEditorWindow() const
 {
 	return EditorWindow.Get();
+}
+
+AActor* FActorIOEditor::GetSelectedActor() const
+{
+	return SelectedActor.Get();
 }
 
 #undef LOCTEXT_NAMESPACE

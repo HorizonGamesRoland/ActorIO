@@ -3,7 +3,6 @@
 #include "SActorIOEditor.h"
 #include "SActorIOActionList.h"
 #include "ActorIOEditor.h"
-#include "ActorIOEditorSubsystem.h"
 #include "ActorIOEditorStyle.h"
 #include "ActorIOSystem.h"
 #include "ActorIOComponent.h"
@@ -150,8 +149,8 @@ END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 void SActorIOEditor::Refresh()
 {
-    UActorIOEditorSubsystem* ActorIOEditorSubsystem = GEditor->GetEditorSubsystem<UActorIOEditorSubsystem>();
-    AActor* SelectedActor = ActorIOEditorSubsystem ? ActorIOEditorSubsystem->GetSelectedActor() : nullptr;
+    FActorIOEditor& ActorIOEditorModule = FModuleManager::GetModuleChecked<FActorIOEditor>("ActorIOEditor");
+    AActor* SelectedActor = ActorIOEditorModule.GetSelectedActor();
     UActorIOComponent* ActorIOComponent = SelectedActor ? SelectedActor->GetComponentByClass<UActorIOComponent>() : nullptr;
 
     const FString ActorName = SelectedActor ? SelectedActor->GetActorNameOrLabel() : TEXT("None");
@@ -165,8 +164,8 @@ void SActorIOEditor::Refresh()
     InputsButtonText->SetText(FText::FormatNamed(LOCTEXT("InputsButton", "Inputs ({Count})"),
         TEXT("Count"), NumInputActions));
 
-    // Only allow create new action button if viewing output actions.
-    NewActionButton->SetEnabled(!bViewInputActions);
+    const bool bCanAddAction = IsValid(SelectedActor) && !bViewInputActions;
+    NewActionButton->SetEnabled(bCanAddAction);
 
     if (bActionListNeedsRegenerate)
     {
@@ -215,8 +214,8 @@ void SActorIOEditor::OnInputsButtonChecked(ECheckBoxState InState)
 
 FReply SActorIOEditor::OnClick_NewAction()
 {
-    UActorIOEditorSubsystem* ActorIOEditorSubsystem = GEditor->GetEditorSubsystem<UActorIOEditorSubsystem>();
-    AActor* SelectedActor = ActorIOEditorSubsystem->GetSelectedActor();
+    FActorIOEditor& ActorIOEditorModule = FModuleManager::GetModuleChecked<FActorIOEditor>("ActorIOEditor");
+    AActor* SelectedActor = ActorIOEditorModule.GetSelectedActor();
     if (SelectedActor)
     {
         const FScopedTransaction Transaction(LOCTEXT("AddActorIOAction", "Add ActorIO Action"));

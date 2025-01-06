@@ -5,7 +5,6 @@
 #include "ActorIOComponent.h"
 #include "ActorIOAction.h"
 #include "ActorIOEditor.h"
-#include "ActorIOEditorSubsystem.h"
 #include "ActorIOEditorStyle.h"
 #include "Widgets/Input/SSpinBox.h"
 #include "Widgets/Layout/SWidgetSwitcher.h"
@@ -100,8 +99,8 @@ void SActorIOActionListView::Refresh()
 {
 	ActionListItems.Reset();
 
-	UActorIOEditorSubsystem* ActorIOEditorSubsystem = GEditor->GetEditorSubsystem<UActorIOEditorSubsystem>();
-	AActor* SelectedActor = ActorIOEditorSubsystem ? ActorIOEditorSubsystem->GetSelectedActor() : nullptr;
+	FActorIOEditor& ActorIOEditorModule = FModuleManager::GetModuleChecked<FActorIOEditor>("ActorIOEditor");
+	AActor* SelectedActor = ActorIOEditorModule.GetSelectedActor();
 
 	if (bViewInputActions)
 	{

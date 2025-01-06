@@ -67,7 +67,7 @@ public:
         : _IsInputAction(false)
     {}
 
-     SLATE_ARGUMENT(bool, IsInputAction)
+    SLATE_ARGUMENT(bool, IsInputAction)
 
     SLATE_END_ARGS()
 

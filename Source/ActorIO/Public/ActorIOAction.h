@@ -7,7 +7,6 @@
 #include "ActorIOAction.generated.h"
 
 class UActorIOComponent;
-struct FActionExecutionContext;
 
 UCLASS(DefaultToInstanced, EditInlineNew)
 class ACTORIO_API UActorIOAction : public UObject

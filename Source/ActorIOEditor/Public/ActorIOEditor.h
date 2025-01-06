@@ -7,12 +7,17 @@
 
 class SActorIOEditor;
 class SDockTab;
+class UObject;
 
 class FActorIOEditor : public IModuleInterface
 {
 private:
 
-	TSharedPtr<SActorIOEditor> EditorWindow;
+	TSharedPtr<SActorIOEditor> EditorWindow; 
+
+	TWeakObjectPtr<AActor> SelectedActor;
+
+	FDelegateHandle SelectionChangeDelegateHandle;
 
 public:
 
@@ -28,9 +33,14 @@ public:
 	/** @return The editor widget inside the Actor IO tab. */
 	SActorIOEditor* GetEditorWindow() const;
 
+	/** @return The actor that is currently selected in the editor. */
+	AActor* GetSelectedActor() const;
+
 private:
 
 	TSharedRef<SDockTab> SpawnActorIOEditor(const FSpawnTabArgs& TabSpawnArgs);
 
 	void OnActorIOEditorClosed(TSharedRef<SDockTab> DockTab);
+
+	void OnObjectSelectionChanged(UObject* NewSelection);
 };
