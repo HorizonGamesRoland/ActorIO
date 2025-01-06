@@ -191,7 +191,5 @@ struct ACTORIO_API FActionExecutionContext
 
 	bool HasContext() const;
 
-	void AddNamedArgument(const FString& InName, const FString& InValue);
-
-	void RemoveNamedArgument(const FString& InName);
+	void SetNamedArgument(const FString& InName, const FString& InValue);
 };

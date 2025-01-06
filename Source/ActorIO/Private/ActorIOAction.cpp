@@ -27,19 +27,15 @@ void UActorIOAction::BindAction()
 {
 	if (bIsBound)
 	{
+		UE_LOG(LogActorIO, Error, TEXT("Attempted to bind an action that was bound already!"));
 		return;
 	}
 
-	UActorIOComponent* OwnerIOComponent = GetOwnerIOComponent();
-	if (!OwnerIOComponent)
-	{
-		return;
-	}
-
-	const TArray<FActorIOEvent> ValidEvents = UActorIOSystem::GetEventsForObject(OwnerIOComponent->GetOwner());
+	const TArray<FActorIOEvent> ValidEvents = UActorIOSystem::GetEventsForObject(GetOwnerActor());
 	const FActorIOEvent* TargetEvent = ValidEvents.FindByKey(EventId);
 	if (!TargetEvent)
 	{
+		UE_LOG(LogActorIO, Error, TEXT("Could not bind !"));
 		return;
 	}
 
@@ -47,8 +43,6 @@ void UActorIOAction::BindAction()
 	{
 		return;
 	}
-
-	UE_LOG(LogActorIO, Warning, TEXT("Binding an action to: %s"), *TargetEvent->EventId.ToString());
 
 	ActionDelegate = FScriptDelegate();
 	ActionDelegate.BindUFunction(this, ExecuteActionSignalName);
@@ -160,9 +154,9 @@ void UActorIOAction::ReceiveExecuteAction()
 bool UActorIOAction::CanExecuteAction(FActionExecutionContext& ExecutionContext)
 {
 	const AActor* ActionOwner = GetOwnerActor();
-	if (!IsValid(ActionOwner) || !IsValid(TargetActor))
+	if (!IsValid(ActionOwner))
 	{
-		// Do not attempt to execute action on an invalid actor.
+		// Do not attempt to execute an action if we are about to be destroyed.
 		return false;
 	}
 
@@ -177,7 +171,14 @@ bool UActorIOAction::CanExecuteAction(FActionExecutionContext& ExecutionContext)
 
 void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 {
-	UE_LOG(LogActorIO, Warning, TEXT("Executing action: %s -> %s"), *EventId.ToString(), *FunctionId.ToString());
+	UE_LOG(LogActorIO, Log, TEXT("Executing action: %s -> %s"), *EventId.ToString(), *FunctionId.ToString());
+
+	if (!IsValid(TargetActor))
+	{
+		// Do nothing if the target actor is invalid.
+		// The actor was most likely destroyed at runtime.
+		return;
+	}
 
 	TArray<FActorIOFunction> ValidFunctions = UActorIOSystem::GetFunctionsForObject(TargetActor);
 	FActorIOFunction* TargetFunction = ValidFunctions.FindByKey(FunctionId);
@@ -189,6 +190,11 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 
 	TArray<FActorIOEvent> ValidEvents = UActorIOSystem::GetEventsForObject(GetOwnerActor());
 	FActorIOEvent* BoundEvent = ValidEvents.FindByKey(EventId);
+	check(BoundEvent);
+
+	// Let the event processor assign values to arbitrary named arguments.
+	// We are calling the event processor with the original script params memory that we received from the delegate that our action is bound to.
+	// This way the event processor will receive the proper values for its params given that its signature matches the delegate.
 	if (BoundEvent->EventProcessor.IsBound())
 	{
 		UObject* EventProcessorObject = BoundEvent->EventProcessor.GetUObject();
@@ -199,22 +205,35 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 		}
 	}
 
-	FString Arguments = FunctionArguments;
-	for (const TPair<FString, FString>& NamedArgument : ExecutionContext.NamedArguments)
+	// Break up the user defined arguments string from a single line into multiple elements.
+	// Then replace all named arguments with their actual value set by the 'EventProcessor' above.
+	// Everything stays in string form (including named argument values) until the very end when command is sent.
+	TArray<FString> Arguments;
+	if (FunctionArguments.ParseIntoArray(Arguments, TEXT(" "), true) > 0)
 	{
-		// #TODO: Parse arguments in form of $NamedArgument?
+		for (FString& Argument : Arguments)
+		{
+			if (Argument.StartsWith(TEXT("$")) && ExecutionContext.NamedArguments.Contains(Argument))
+			{
+				const FString NamedArgValue = ExecutionContext.NamedArguments[Argument];
+				Argument = NamedArgValue;
+			}
+		}
 	}
 
+	// Build the final command that's sent to the target actor.
+	// Format is: FunctionName Arg1 Arg2 Arg3 (...)
 	FString Command = TargetFunction->FunctionToExec;
-	if (!Arguments.IsEmpty())
+	for (const FString& Argument : Arguments)
 	{
 		Command.Append(TEXT(" "));
-		Command.Append(Arguments);
+		Command.Append(Argument);
 	}
 
 	ExecutionContext.ExitContext();
 	bWasExecuted = true;
 
+	// Send the final command to the target actor.
 	if (Delay > 0.0f)
 	{
 		FTimerHandle UniqueHandle;

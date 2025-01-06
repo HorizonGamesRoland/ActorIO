@@ -38,19 +38,11 @@ bool FActionExecutionContext::HasContext() const
     return ActionPtr.Get() != nullptr;
 }
 
-void FActionExecutionContext::AddNamedArgument(const FString& InName, const FString& InValue)
+void FActionExecutionContext::SetNamedArgument(const FString& InName, const FString& InValue)
 {
     if (HasContext())
     {
-        FString Arg = NamedArguments.FindOrAdd(InName);
+        FString& Arg = NamedArguments.FindOrAdd(InName);
         Arg = InValue;
-    }
-}
-
-void FActionExecutionContext::RemoveNamedArgument(const FString& InName)
-{
-    if (HasContext())
-    {
-        NamedArguments.Remove(InName);
     }
 }

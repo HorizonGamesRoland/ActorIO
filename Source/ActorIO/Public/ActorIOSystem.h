@@ -28,7 +28,7 @@ public:
 
 public:
 
-	static TArray<FActorIOEvent> GetEventsForObject(AActor* InObject);
+	static TArray<FActorIOEvent> GetEventsForObject(AActor* InObject); // #TODO: make object const?
 
 	static TArray<FActorIOFunction> GetFunctionsForObject(AActor* InObject);
 

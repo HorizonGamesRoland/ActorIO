@@ -161,7 +161,7 @@ int32 ALogicCounter::GetValue() const
 void ALogicCounter::ProcessEvent_OnGetValue(int32 Value)
 {
 	FActionExecutionContext& ExecContext = FActionExecutionContext::Get(this);
-	ExecContext.AddNamedArgument(TEXT("$Value"), FString::FromInt(Value));
+	ExecContext.SetNamedArgument(TEXT("$Value"), FString::FromInt(Value));
 }
 
 #undef LOCTEXT_NAMESPACE
