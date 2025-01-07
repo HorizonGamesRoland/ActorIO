@@ -65,9 +65,12 @@ public:
 
     SLATE_BEGIN_ARGS(SActorIOActionListViewRow)
         : _IsInputAction(false)
+        , _IsLastItemInList(false)
     {}
 
     SLATE_ARGUMENT(bool, IsInputAction)
+
+    SLATE_ARGUMENT(bool, IsLastItemInList)
 
     SLATE_END_ARGS()
 
@@ -86,6 +89,8 @@ protected:
     TArray<FActorIOEvent> ValidEvents;
 
     TArray<FActorIOFunction> ValidFunctions;
+
+    static FName NAME_ClearComboBox;
 
     TArray<FName> SelectableEventIds;
 

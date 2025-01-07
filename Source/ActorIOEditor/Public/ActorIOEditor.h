@@ -27,6 +27,11 @@ public:
 	/** Unregister the Actor IO editor module. */
 	virtual void ShutdownModule() override;
 
+	/** @return The editor module of the Actor IO plugin. */
+	static FActorIOEditor& Get();
+
+public:
+
 	/** Request an update with the editor widget. */
 	void UpdateEditorWindow();
 

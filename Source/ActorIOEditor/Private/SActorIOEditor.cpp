@@ -149,8 +149,8 @@ END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 void SActorIOEditor::Refresh()
 {
-    FActorIOEditor& ActorIOEditorModule = FModuleManager::GetModuleChecked<FActorIOEditor>("ActorIOEditor");
-    AActor* SelectedActor = ActorIOEditorModule.GetSelectedActor();
+    FActorIOEditor& ActorIOEditor = FActorIOEditor::Get();
+    AActor* SelectedActor = ActorIOEditor.GetSelectedActor();
     UActorIOComponent* ActorIOComponent = SelectedActor ? SelectedActor->GetComponentByClass<UActorIOComponent>() : nullptr;
 
     const FString ActorName = SelectedActor ? SelectedActor->GetActorNameOrLabel() : TEXT("None");
@@ -214,8 +214,8 @@ void SActorIOEditor::OnInputsButtonChecked(ECheckBoxState InState)
 
 FReply SActorIOEditor::OnClick_NewAction()
 {
-    FActorIOEditor& ActorIOEditorModule = FModuleManager::GetModuleChecked<FActorIOEditor>("ActorIOEditor");
-    AActor* SelectedActor = ActorIOEditorModule.GetSelectedActor();
+    FActorIOEditor& ActorIOEditor = FActorIOEditor::Get();
+    AActor* SelectedActor = ActorIOEditor.GetSelectedActor();
     if (SelectedActor)
     {
         const FScopedTransaction Transaction(LOCTEXT("AddActorIOAction", "Add ActorIO Action"));

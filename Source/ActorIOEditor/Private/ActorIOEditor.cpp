@@ -16,6 +16,11 @@
 
 #define LOCTEXT_NAMESPACE "ActorIOEditor"
 
+FActorIOEditor& FActorIOEditor::Get()
+{
+	return FModuleManager::GetModuleChecked<FActorIOEditor>("ActorIOEditor");
+}
+
 void FActorIOEditor::StartupModule()
 {
 	// Initialize the editor style of the plugin.

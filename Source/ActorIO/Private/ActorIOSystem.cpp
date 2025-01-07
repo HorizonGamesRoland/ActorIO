@@ -18,12 +18,12 @@ TArray<FActorIOEvent> UActorIOSystem::GetEventsForObject(AActor* InObject)
     TArray<FActorIOEvent> OutEvents = TArray<FActorIOEvent>();
     if (IsValid(InObject))
     {
-        GetNativeEventsForObject(InObject, OutEvents);
-    
         if (InObject->Implements<UActorIOInterface>())
         {
             IActorIOInterface::Execute_RegisterIOEvents(InObject, OutEvents);
         }
+
+        GetNativeEventsForObject(InObject, OutEvents);
     }
     
     return OutEvents;
@@ -34,12 +34,12 @@ TArray<FActorIOFunction> UActorIOSystem::GetFunctionsForObject(AActor* InObject)
     TArray<FActorIOFunction> OutFunctions = TArray<FActorIOFunction>();
     if (IsValid(InObject))
     {
-        GetNativeFunctionsForObject(InObject, OutFunctions);
-
         if (InObject->Implements<UActorIOInterface>())
         {
             IActorIOInterface::Execute_RegisterIOFunctions(InObject, OutFunctions);
         }
+
+        GetNativeFunctionsForObject(InObject, OutFunctions);
     }
 
     return OutFunctions;

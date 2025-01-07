@@ -99,8 +99,8 @@ void SActorIOActionListView::Refresh()
 {
 	ActionListItems.Reset();
 
-	FActorIOEditor& ActorIOEditorModule = FModuleManager::GetModuleChecked<FActorIOEditor>("ActorIOEditor");
-	AActor* SelectedActor = ActorIOEditorModule.GetSelectedActor();
+	FActorIOEditor& ActorIOEditor = FActorIOEditor::Get();
+	AActor* SelectedActor = ActorIOEditor.GetSelectedActor();
 
 	if (bViewInputActions)
 	{
@@ -115,19 +115,30 @@ void SActorIOActionListView::Refresh()
 		}
 	}
 
-	RequestListRefresh();
+	RebuildList();
 }
 
 TSharedRef<ITableRow> SActorIOActionListView::OnGenerateRowItem(TWeakObjectPtr<UActorIOAction> Item, const TSharedRef<STableViewBase>& OwnerTable)
 {
+	// Figure out if this is the last row so that we can add extra padding at the bottom.
+	// I couldn't find a better solution for this.
+	bool bIsLastItem = false;
+	if (Item.IsValid() && ActionListItems.Num() > 0)
+	{
+		bIsLastItem = Item.Get() == ActionListItems.Last().Get();
+	}
+
     return SNew(SActorIOActionListViewRow, OwnerTable, Item)
-		.IsInputAction(bViewInputActions);
+		.IsInputAction(bViewInputActions)
+		.IsLastItemInList(bIsLastItem);
 }
 
 
 //=======================================================
 //~ Begin SActorIOActionListViewRow
 //=======================================================
+
+FName SActorIOActionListViewRow::NAME_ClearComboBox = FName(TEXT("<Clear>"));
 
 SLATE_IMPLEMENT_WIDGET(SActorIOActionListViewRow)
 void SActorIOActionListViewRow::PrivateRegisterAttributes(FSlateAttributeInitializer& AttributeInitializer)
@@ -142,7 +153,10 @@ void SActorIOActionListViewRow::Construct(const FArguments& InArgs, const TShare
 	UpdateSelectableEvents();
 	UpdateSelectableFunctions();
 
-	FSuperRowType::Construct(FTableRowArgs(), InOwnerTableView);
+	FTableRowArgs RowArgs = FTableRowArgs()
+		.Padding(FMargin(0.0f, FActorIOEditorStyle::ActionSpacing, 0.0f, InArgs._IsLastItemInList ? FActorIOEditorStyle::ActionSpacing : 0.0f));
+
+	FSuperRowType::Construct(RowArgs, InOwnerTableView);
 }
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
@@ -160,7 +174,6 @@ TSharedRef<SWidget> SActorIOActionListViewRow::GenerateWidgetForColumn(const FNa
 	{
 		OutWidget->SetHAlign(HAlign_Center);
 		OutWidget->SetVAlign(VAlign_Center);
-		OutWidget->SetPadding(FMargin(0.0f, FActorIOEditorStyle::ActionSpacing, 0.0f, 0.0f));
 		OutWidget->SetContent
 		(
 			SNew(SImage)
@@ -169,7 +182,7 @@ TSharedRef<SWidget> SActorIOActionListViewRow::GenerateWidgetForColumn(const FNa
 	}
 	else if (ColumnName == ColumnId::Caller)
 	{
-		OutWidget->SetPadding(FMargin(0.0f, FActorIOEditorStyle::ActionSpacing, 2.0f, 0.0f));
+		OutWidget->SetPadding(FMargin(0.0f, 0.0f, 2.0f, 0.0f));
 		OutWidget->SetContent
 		(
 			SNew(SEditableTextBox)
@@ -180,7 +193,6 @@ TSharedRef<SWidget> SActorIOActionListViewRow::GenerateWidgetForColumn(const FNa
 	}
 	else if (ColumnName == ColumnId::Event)
 	{
-		OutWidget->SetPadding(FMargin(0.0f, FActorIOEditorStyle::ActionSpacing, 0.0f, 0.0f));
 		OutWidget->SetContent
 		(
 			SNew(SHorizontalBox)
@@ -223,7 +235,6 @@ TSharedRef<SWidget> SActorIOActionListViewRow::GenerateWidgetForColumn(const FNa
 	}
 	else if (ColumnName == ColumnId::Target)
 	{
-		OutWidget->SetPadding(FMargin(0.0f, FActorIOEditorStyle::ActionSpacing, 0.0f, 0.0f));
 		OutWidget->SetContent
 		(
 			SNew(SObjectPropertyEntryBox)
@@ -239,7 +250,7 @@ TSharedRef<SWidget> SActorIOActionListViewRow::GenerateWidgetForColumn(const FNa
 	}
 	else if (ColumnName == ColumnId::Action)
 	{
-		OutWidget->SetPadding(FMargin(0.0f, FActorIOEditorStyle::ActionSpacing, 1.0f, 0.0f));
+		OutWidget->SetPadding(FMargin(0.0f, 0.0f, 1.0f, 0.0f));
 		OutWidget->SetContent
 		(
 			SNew(SWidgetSwitcher)
@@ -270,7 +281,7 @@ TSharedRef<SWidget> SActorIOActionListViewRow::GenerateWidgetForColumn(const FNa
 	}
 	else if (ColumnName == ColumnId::Parameter)
 	{
-		OutWidget->SetPadding(FMargin(1.0f, FActorIOEditorStyle::ActionSpacing, 1.0f, 0.0f));
+		OutWidget->SetPadding(FMargin(1.0f, 0.0f, 1.0f, 0.0f));
 		OutWidget->SetContent
 		(
 			SNew(SEditableTextBox)
@@ -282,7 +293,7 @@ TSharedRef<SWidget> SActorIOActionListViewRow::GenerateWidgetForColumn(const FNa
 	}
 	else if (ColumnName == ColumnId::Delay)
 	{
-		OutWidget->SetPadding(FMargin(1.0f, FActorIOEditorStyle::ActionSpacing, 1.0f, 0.0f));
+		OutWidget->SetPadding(FMargin(1.0f, 0.0f, 1.0f, 0.0f));
 		OutWidget->SetContent
 		(
 			SNew(SSpinBox<float>)
@@ -300,7 +311,7 @@ TSharedRef<SWidget> SActorIOActionListViewRow::GenerateWidgetForColumn(const FNa
 	}
 	else if (ColumnName == ColumnId::OnlyOnce)
 	{
-		OutWidget->SetPadding(FMargin(3.0f, FActorIOEditorStyle::ActionSpacing, 0.0f, 0.0f));
+		OutWidget->SetPadding(FMargin(3.0f, 0.0f, 0.0f, 0.0f));
 		OutWidget->SetContent
 		(
 			SNew(SHorizontalBox)
@@ -387,7 +398,7 @@ void SActorIOActionListViewRow::OnEventComboBoxOpening()
 
 void SActorIOActionListViewRow::OnEventComboBoxSelectionChanged(FName InName, ESelectInfo::Type InSelectType)
 {
-	if (InName == FName(TEXT("<Clear>")))
+	if (InName == NAME_ClearComboBox)
 	{
 		InName = NAME_None;
 	}
@@ -427,7 +438,7 @@ void SActorIOActionListViewRow::OnTargetActorChanged(const FAssetData& InAssetDa
 	ActionPtr->FunctionId = NAME_None;
 	ActionPtr->FunctionArguments = FString();
 
-	UpdateSelectableFunctions();
+	GetOwnerActionListView()->Refresh();
 }
 
 TSharedRef<SWidget> SActorIOActionListViewRow::OnGenerateFunctionComboBoxWidget(FName InName) const
@@ -445,7 +456,7 @@ void SActorIOActionListViewRow::OnFunctionComboBoxOpening()
 
 void SActorIOActionListViewRow::OnFunctionComboBoxSelectionChanged(FName InName, ESelectInfo::Type InSelectType)
 {
-	if (InName == FName(TEXT("<Clear>")))
+	if (InName == NAME_ClearComboBox)
 	{
 		InName = NAME_None;
 	}
@@ -465,7 +476,7 @@ void SActorIOActionListViewRow::OnFunctionComboBoxSelectionChanged(FName InName,
 		ActionPtr->FunctionId = InName;
 		ActionPtr->FunctionArguments = FString();
 
-		//Refresh();
+		GetOwnerActionListView()->Refresh();
 	}
 }
 
@@ -520,8 +531,8 @@ FReply SActorIOActionListViewRow::OnClick_RemoveAction()
 	ActionOwner->Modify();
 	ActionOwner->RemoveAction(ActionPtr.Get());
 
-	FActorIOEditor& ActorIOEditorModule = FModuleManager::GetModuleChecked<FActorIOEditor>("ActorIOEditor");
-	ActorIOEditorModule.UpdateEditorWindow();
+	FActorIOEditor& ActorIOEditor = FActorIOEditor::Get();
+	ActorIOEditor.UpdateEditorWindow();
 
 	return FReply::Handled();
 }
@@ -529,7 +540,7 @@ FReply SActorIOActionListViewRow::OnClick_RemoveAction()
 void SActorIOActionListViewRow::UpdateSelectableEvents()
 {
 	SelectableEventIds.Reset();
-	SelectableEventIds.Add(TEXT("<Clear>"));
+	SelectableEventIds.Add(NAME_ClearComboBox);
 
 	ValidEvents = UActorIOSystem::GetEventsForObject(ActionPtr->GetOwnerActor());
 	for (const FActorIOEvent& IOEvent : ValidEvents)
@@ -541,7 +552,7 @@ void SActorIOActionListViewRow::UpdateSelectableEvents()
 void SActorIOActionListViewRow::UpdateSelectableFunctions()
 {
 	SelectableFunctionIds.Reset();
-	SelectableFunctionIds.Add(TEXT("<Clear>"));
+	SelectableFunctionIds.Add(NAME_ClearComboBox);
 
 	ValidFunctions = UActorIOSystem::GetFunctionsForObject(ActionPtr->TargetActor);
 	for (const FActorIOFunction& IOFunction : ValidFunctions)
