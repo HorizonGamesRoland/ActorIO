@@ -17,7 +17,8 @@ public class ActorIO : ModuleRules
 
 		PrivateDependencyModuleNames.AddRange(new string[]
 		{
-			"Engine"
+			"Engine",
+			"Niagara"
         });
 
 		// Required to have access to "Emitter.h" (Cascade effect actor)

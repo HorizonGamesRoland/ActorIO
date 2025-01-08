@@ -2,13 +2,11 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
+#include "ActorIO.h"
 #include "Widgets/Views/SListView.h"
 #include "Widgets/Views/STableRow.h"
 
 class UActorIOAction;
-struct FActorIOEvent;
-struct FActorIOFunction;
 
 namespace ColumnId
 {

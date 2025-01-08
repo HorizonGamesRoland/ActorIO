@@ -68,7 +68,7 @@ protected:
 
 	void ExecuteAction(FActionExecutionContext& ExecutionContext);
 
-	void SendCommand(FString Command);
+	void SendCommand(UObject* TargetObject, FString Command);
 
 public:
 

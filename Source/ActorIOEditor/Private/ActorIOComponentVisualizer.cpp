@@ -18,7 +18,7 @@ void FActorIOComponentVisualizer::DrawVisualization(const UActorComponent* Compo
 
 	for (const TWeakObjectPtr<UActorIOAction>& OutputAction : IOComponent->GetActions())
 	{
-		if (OutputAction.IsValid() && OutputAction->TargetActor)
+		if (OutputAction.IsValid() && IsValid(OutputAction->TargetActor))
 		{
 			const FVector Start = IOComponentOwner->GetActorLocation();
 			const FVector End = OutputAction->TargetActor->GetActorLocation();
@@ -31,7 +31,7 @@ void FActorIOComponentVisualizer::DrawVisualization(const UActorComponent* Compo
 		if (InputAction.IsValid())
 		{
 			const AActor* ActionOwner = InputAction->GetOwnerActor();
-			if (ActionOwner)
+			if (IsValid(ActionOwner))
 			{
 				const FVector Start = IOComponentOwner->GetActorLocation();
 				const FVector End = ActionOwner->GetActorLocation();

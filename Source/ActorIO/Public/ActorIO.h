@@ -123,11 +123,15 @@ struct ACTORIO_API FActorIOFunction
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Function")
 	FString FunctionToExec;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Function")
+	FName TargetSubobject;
+
 	FActorIOFunction() :
 		FunctionId(NAME_None),
 		DisplayName(FText::GetEmpty()),
 		TooltipText(FText::GetEmpty()),
-		FunctionToExec(FString())
+		FunctionToExec(FString()),
+		TargetSubobject(NAME_None)
 	{}
 
 	FActorIOFunction& SetId(FName InFunctionId)
@@ -151,6 +155,12 @@ struct ACTORIO_API FActorIOFunction
 	FActorIOFunction& SetFunction(const FString& InFunctionName)
 	{
 		FunctionToExec = InFunctionName;
+		return *this;
+	}
+
+	FActorIOFunction& SetSubobject(const FName& InSubobjectName)
+	{
+		TargetSubobject = InSubobjectName;
 		return *this;
 	}
 

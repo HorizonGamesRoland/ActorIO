@@ -97,12 +97,14 @@ void UActorIOComponent::BindActions()
 
 void UActorIOComponent::UnbindActions()
 {
+	FTimerManager& TimerManager = GetWorld()->GetTimerManager();
 	for (int32 ActionIdx = 0; ActionIdx != Actions.Num(); ++ActionIdx)
 	{
 		UActorIOAction* Action = Actions[ActionIdx].Get();
 		if (Action)
 		{
 			Action->UnbindAction();
+			TimerManager.ClearAllTimersForObject(Action);
 		}
 	}
 }

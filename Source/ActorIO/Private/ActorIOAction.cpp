@@ -188,6 +188,19 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 		return;
 	}
 
+	// Figure out the final object that the function will be executed on.
+	// The function may want it to be executed on a subobject of the target actor.
+	UObject* ObjectToSendCommandTo = TargetActor;
+	if (!TargetFunction->TargetSubobject.IsNone())
+	{
+		ObjectToSendCommandTo = TargetActor->GetDefaultSubobjectByName(TargetFunction->TargetSubobject);
+		if (!IsValid(ObjectToSendCommandTo))
+		{
+			UE_LOG(LogActorIO, Error, TEXT("Failed to find default subobject '%s' on target actor '%s'"), *TargetFunction->TargetSubobject.ToString(), *TargetActor->GetActorNameOrLabel());
+			return;
+		}
+	}
+
 	FActorIOEventList ValidEvents = UActorIOSystem::GetEventsForObject(GetOwnerActor());
 	FActorIOEvent* BoundEvent = ValidEvents.FindByKey(EventId);
 	check(BoundEvent);
@@ -237,21 +250,21 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 	if (Delay > 0.0f)
 	{
 		FTimerHandle UniqueHandle;
-		FTimerDelegate SendCommandDelegate = FTimerDelegate::CreateUObject(this, &ThisClass::SendCommand, Command);
+		FTimerDelegate SendCommandDelegate = FTimerDelegate::CreateUObject(this, &ThisClass::SendCommand, ObjectToSendCommandTo, Command);
 		GetWorld()->GetTimerManager().SetTimer(UniqueHandle, SendCommandDelegate, Delay, false);
 	}
 	else
 	{
-		SendCommand(Command);
+		SendCommand(ObjectToSendCommandTo, Command);
 	}
 }
 
-void UActorIOAction::SendCommand(FString Command)
+void UActorIOAction::SendCommand(UObject* TargetObject, FString Command)
 {
-	if (IsValid(TargetActor))
+	if (IsValid(TargetObject))
 	{
 		FOutputDeviceNull Ar;
-		TargetActor->CallFunctionByNameWithArguments(*Command, Ar, this, true);
+		TargetObject->CallFunctionByNameWithArguments(*Command, Ar, this, true);
 	}
 }
 

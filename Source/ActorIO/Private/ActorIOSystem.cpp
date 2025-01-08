@@ -7,6 +7,7 @@
 #include "GameFramework/Actor.h"
 #include "Engine/TriggerBase.h"
 #include "Particles/Emitter.h"
+#include "NiagaraActor.h"
 
 UActorIOSystem::UActorIOSystem()
 {
@@ -53,7 +54,7 @@ TArray<TWeakObjectPtr<UActorIOAction>> UActorIOSystem::GetInputActionsForObject(
         for (TObjectIterator<UActorIOAction> ActionItr; ActionItr; ++ActionItr)
         {
             UActorIOAction* Action = *ActionItr;
-            if (IsValid(Action) && Action->TargetActor == InObject)
+            if (IsValid(Action) && IsValid(Action->GetOwnerActor()) && Action->TargetActor == InObject)
             {
                 OutActions.Add(Action);
             }
@@ -113,13 +114,32 @@ void UActorIOSystem::GetNativeFunctionsForObject(AActor* InObject, FActorIOFunct
             .SetId(TEXT("AEmitter::Activate"))
             .SetDisplayName(FText::FromString(TEXT("Activate")))
             .SetTooltipText(FText::FromString(TEXT("Activate the particle system.")))
-            .SetFunction(TEXT("Activate")));
+            .SetFunction(TEXT("Activate"))
+            .SetSubobject(TEXT("ParticleSystemComponent0")));
 
         RegisteredFunctions.Add(FActorIOFunction()
             .SetId(TEXT("AEmitter::Deactivate"))
             .SetDisplayName(FText::FromString(TEXT("Deactivate")))
             .SetTooltipText(FText::FromString(TEXT("Deactivate the particle system.")))
-            .SetFunction(TEXT("Deactivate")));
+            .SetFunction(TEXT("Deactivate"))
+            .SetSubobject(TEXT("ParticleSystemComponent0")));
+    }
+
+    if (InObject->IsA<ANiagaraActor>())
+    {
+        RegisteredFunctions.Add(FActorIOFunction()
+            .SetId(TEXT("ANiagaraActor::Activate"))
+            .SetDisplayName(FText::FromString(TEXT("Activate")))
+            .SetTooltipText(FText::FromString(TEXT("Activate the particle system.")))
+            .SetFunction(TEXT("Activate"))
+            .SetSubobject(TEXT("NiagaraComponent0")));
+
+        RegisteredFunctions.Add(FActorIOFunction()
+            .SetId(TEXT("ANiagaraActor::Deactivate"))
+            .SetDisplayName(FText::FromString(TEXT("Deactivate")))
+            .SetTooltipText(FText::FromString(TEXT("Deactivate the particle system.")))
+            .SetFunction(TEXT("Deactivate"))
+            .SetSubobject(TEXT("NiagaraComponent0")));
     }
 
     //RegisteredFunctions.Add(FActorIOFunction()
