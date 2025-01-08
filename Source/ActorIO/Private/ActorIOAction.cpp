@@ -31,7 +31,7 @@ void UActorIOAction::BindAction()
 		return;
 	}
 
-	const TArray<FActorIOEvent> ValidEvents = UActorIOSystem::GetEventsForObject(GetOwnerActor());
+	const FActorIOEventList ValidEvents = UActorIOSystem::GetEventsForObject(GetOwnerActor());
 	const FActorIOEvent* TargetEvent = ValidEvents.FindByKey(EventId);
 	if (!TargetEvent)
 	{
@@ -91,7 +91,7 @@ void UActorIOAction::UnbindAction()
 		return;
 	}
 
-	const TArray<FActorIOEvent> ValidEvents = UActorIOSystem::GetEventsForObject(OwnerIOComponent->GetOwner());
+	const FActorIOEventList ValidEvents = UActorIOSystem::GetEventsForObject(OwnerIOComponent->GetOwner());
 	const FActorIOEvent* TargetEvent = ValidEvents.FindByKey(EventId);
 	if (!TargetEvent)
 	{
@@ -180,7 +180,7 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 		return;
 	}
 
-	TArray<FActorIOFunction> ValidFunctions = UActorIOSystem::GetFunctionsForObject(TargetActor);
+	FActorIOFunctionList ValidFunctions = UActorIOSystem::GetFunctionsForObject(TargetActor);
 	FActorIOFunction* TargetFunction = ValidFunctions.FindByKey(FunctionId);
 	if (!TargetFunction)
 	{
@@ -188,7 +188,7 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 		return;
 	}
 
-	TArray<FActorIOEvent> ValidEvents = UActorIOSystem::GetEventsForObject(GetOwnerActor());
+	FActorIOEventList ValidEvents = UActorIOSystem::GetEventsForObject(GetOwnerActor());
 	FActorIOEvent* BoundEvent = ValidEvents.FindByKey(EventId);
 	check(BoundEvent);
 

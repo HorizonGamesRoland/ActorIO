@@ -24,7 +24,7 @@ void ALogicBranch::PostInitializeComponents()
 	bCurrentValue = bInitialValue;
 }
 
-void ALogicBranch::RegisterIOEvents_Implementation(TArray<FActorIOEvent>& RegisteredEvents)
+void ALogicBranch::RegisterIOEvents_Implementation(FActorIOEventList& RegisteredEvents)
 {
 	RegisteredEvents.Add(FActorIOEvent()
 		.SetId(TEXT("ALogicBranch::OnTrue"))
@@ -39,7 +39,7 @@ void ALogicBranch::RegisterIOEvents_Implementation(TArray<FActorIOEvent>& Regist
 		.SetMulticastDelegate(this, &OnFalse));
 }
 
-void ALogicBranch::RegisterIOFunctions_Implementation(TArray<FActorIOFunction>& RegisteredFunctions)
+void ALogicBranch::RegisterIOFunctions_Implementation(FActorIOFunctionList& RegisteredFunctions)
 {
 	RegisteredFunctions.Add(FActorIOFunction()
 		.SetId(TEXT("ALogicBranch::SetValue"))

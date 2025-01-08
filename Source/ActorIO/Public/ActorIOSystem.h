@@ -28,9 +28,9 @@ public:
 
 public:
 
-	static TArray<FActorIOEvent> GetEventsForObject(AActor* InObject); // #TODO: make object const?
+	static FActorIOEventList GetEventsForObject(AActor* InObject); // #TODO: make object const?
 
-	static TArray<FActorIOFunction> GetFunctionsForObject(AActor* InObject);
+	static FActorIOFunctionList GetFunctionsForObject(AActor* InObject);
 
 	static TArray<TWeakObjectPtr<UActorIOAction>> GetInputActionsForObject(const AActor* InObject);
 
@@ -39,14 +39,14 @@ public:
 protected:
 
 	UFUNCTION(BlueprintCallable, Category = "Actor IO", meta = (WorldContext = "WorldContextObject", AutoCreateRefTerm = "DisplayName,TooltipText", AdvancedDisplay = "DisplayName,TooltipText"))
-	static void RegisterIOEvent(UObject* WorldContextObject, UPARAM(Ref) TArray<FActorIOEvent>& RegisterTo, FName EventId, FName EventDispatcherName, const FText& DisplayName, const FText& TooltipText);
+	static void RegisterIOEvent(UObject* WorldContextObject, UPARAM(Ref) FActorIOEventList& RegisterTo, FName EventId, FName EventDispatcherName, const FText& DisplayName, const FText& TooltipText);
 
 	UFUNCTION(BlueprintCallable, Category = "Actor IO", meta = (WorldContext = "WorldContextObject", AutoCreateRefTerm = "DisplayName,TooltipText", AdvancedDisplay = "DisplayName,TooltipText"))
-	static void RegisterIOFunction(UObject* WorldContextObject, UPARAM(Ref) TArray<FActorIOFunction>& RegisterTo, FName FunctionId, FString FunctionToExec, const FText& DisplayName, const FText& TooltipText);
+	static void RegisterIOFunction(UObject* WorldContextObject, UPARAM(Ref) FActorIOFunctionList& RegisterTo, FName FunctionId, FString FunctionToExec, const FText& DisplayName, const FText& TooltipText);
 
 private:
 
-	static void GetNativeEventsForObject(AActor* InObject, TArray<FActorIOEvent>& RegisteredEvents);
+	static void GetNativeEventsForObject(AActor* InObject, FActorIOEventList& RegisteredEvents);
 
-	static void GetNativeFunctionsForObject(AActor* InObject, TArray<FActorIOFunction>& RegisteredFunctions);
+	static void GetNativeFunctionsForObject(AActor* InObject, FActorIOFunctionList& RegisteredFunctions);
 };

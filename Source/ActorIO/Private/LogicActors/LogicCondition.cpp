@@ -10,7 +10,7 @@ ALogicCondition::ALogicCondition()
 	FunctionName = NAME_None;
 }
 
-void ALogicCondition::RegisterIOEvents_Implementation(TArray<FActorIOEvent>& RegisteredEvents)
+void ALogicCondition::RegisterIOEvents_Implementation(FActorIOEventList& RegisteredEvents)
 {
 	RegisteredEvents.Add(FActorIOEvent()
 		.SetId(TEXT("ALogicCondition::OnPass"))
@@ -25,7 +25,7 @@ void ALogicCondition::RegisterIOEvents_Implementation(TArray<FActorIOEvent>& Reg
 		.SetMulticastDelegate(this, &OnFail));
 }
 
-void ALogicCondition::RegisterIOFunctions_Implementation(TArray<FActorIOFunction>& RegisteredFunctions)
+void ALogicCondition::RegisterIOFunctions_Implementation(FActorIOFunctionList& RegisteredFunctions)
 {
 	RegisteredFunctions.Add(FActorIOFunction()
 		.SetId(TEXT("ALogicCondition::Test"))

@@ -13,9 +13,9 @@ UActorIOSystem::UActorIOSystem()
     ActionExecContext = FActionExecutionContext();
 }
 
-TArray<FActorIOEvent> UActorIOSystem::GetEventsForObject(AActor* InObject)
+FActorIOEventList UActorIOSystem::GetEventsForObject(AActor* InObject)
 {
-    TArray<FActorIOEvent> OutEvents = TArray<FActorIOEvent>();
+    FActorIOEventList OutEvents = FActorIOEventList();
     if (IsValid(InObject))
     {
         if (InObject->Implements<UActorIOInterface>())
@@ -29,9 +29,9 @@ TArray<FActorIOEvent> UActorIOSystem::GetEventsForObject(AActor* InObject)
     return OutEvents;
 }
 
-TArray<FActorIOFunction> UActorIOSystem::GetFunctionsForObject(AActor* InObject)
+FActorIOFunctionList UActorIOSystem::GetFunctionsForObject(AActor* InObject)
 {
-    TArray<FActorIOFunction> OutFunctions = TArray<FActorIOFunction>();
+    FActorIOFunctionList OutFunctions = FActorIOFunctionList();
     if (IsValid(InObject))
     {
         if (InObject->Implements<UActorIOInterface>())
@@ -69,7 +69,7 @@ int32 UActorIOSystem::GetNumInputActionsForObject(const AActor* InObject)
     return InputActions.Num();
 }
 
-void UActorIOSystem::RegisterIOEvent(UObject* WorldContextObject, TArray<FActorIOEvent>& RegisterTo, FName EventId, FName EventDispatcherName, const FText& DisplayName, const FText& TooltipText)
+void UActorIOSystem::RegisterIOEvent(UObject* WorldContextObject, FActorIOEventList& RegisterTo, FName EventId, FName EventDispatcherName, const FText& DisplayName, const FText& TooltipText)
 {
     RegisterTo.Add(FActorIOEvent()
         .SetId(EventId)
@@ -78,7 +78,7 @@ void UActorIOSystem::RegisterIOEvent(UObject* WorldContextObject, TArray<FActorI
         .SetBlueprintDelegate(WorldContextObject, EventDispatcherName));
 }
 
-void UActorIOSystem::RegisterIOFunction(UObject* WorldContextObject, TArray<FActorIOFunction>& RegisterTo, FName FunctionId, FString FunctionToExec, const FText& DisplayName, const FText& TooltipText)
+void UActorIOSystem::RegisterIOFunction(UObject* WorldContextObject, FActorIOFunctionList& RegisterTo, FName FunctionId, FString FunctionToExec, const FText& DisplayName, const FText& TooltipText)
 {
     RegisterTo.Add(FActorIOFunction()
         .SetId(FunctionId)
@@ -87,7 +87,7 @@ void UActorIOSystem::RegisterIOFunction(UObject* WorldContextObject, TArray<FAct
         .SetFunction(FunctionToExec));
 }
 
-void UActorIOSystem::GetNativeEventsForObject(AActor* InObject, TArray<FActorIOEvent>& RegisteredEvents)
+void UActorIOSystem::GetNativeEventsForObject(AActor* InObject, FActorIOEventList& RegisteredEvents)
 {
     if (InObject->IsA<ATriggerBase>())
     {
@@ -105,7 +105,7 @@ void UActorIOSystem::GetNativeEventsForObject(AActor* InObject, TArray<FActorIOE
     }
 }
 
-void UActorIOSystem::GetNativeFunctionsForObject(AActor* InObject, TArray<FActorIOFunction>& RegisteredFunctions)
+void UActorIOSystem::GetNativeFunctionsForObject(AActor* InObject, FActorIOFunctionList& RegisteredFunctions)
 {
     if (InObject->IsA<AEmitter>())
     {

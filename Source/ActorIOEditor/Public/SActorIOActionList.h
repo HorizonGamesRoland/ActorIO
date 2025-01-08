@@ -86,9 +86,9 @@ protected:
 
     bool bIsInputAction;
 
-    TArray<FActorIOEvent> ValidEvents;
+    FActorIOEventList ValidEvents;
 
-    TArray<FActorIOFunction> ValidFunctions;
+    FActorIOFunctionList ValidFunctions;
 
     static FName NAME_ClearComboBox;
 

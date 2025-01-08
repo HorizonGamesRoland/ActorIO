@@ -44,7 +44,7 @@ void ALogicTimeline::PostInitializeComponents()
 	Timeline.SetTimelineFinishedFunc(FOnTimelineEventStatic::CreateUObject(this, &ThisClass::OnTimelineFinishedCallback));
 }
 
-void ALogicTimeline::RegisterIOEvents_Implementation(TArray<FActorIOEvent>& RegisteredEvents)
+void ALogicTimeline::RegisterIOEvents_Implementation(FActorIOEventList& RegisteredEvents)
 {
 	RegisteredEvents.Add(FActorIOEvent()
 		.SetId(TEXT("ALogicTimeline::OnValueChanged"))
@@ -59,7 +59,7 @@ void ALogicTimeline::RegisterIOEvents_Implementation(TArray<FActorIOEvent>& Regi
 		.SetMulticastDelegate(this, &OnTimelineFinished));
 }
 
-void ALogicTimeline::RegisterIOFunctions_Implementation(TArray<FActorIOFunction>& RegisteredFunctions)
+void ALogicTimeline::RegisterIOFunctions_Implementation(FActorIOFunctionList& RegisteredFunctions)
 {
 	RegisteredFunctions.Add(FActorIOFunction()
 		.SetId(TEXT("ALogicTimeline::Play"))

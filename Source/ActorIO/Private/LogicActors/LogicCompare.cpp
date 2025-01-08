@@ -25,7 +25,7 @@ void ALogicCompare::PostInitializeComponents()
 	CurrentValue = InitialValue;
 }
 
-void ALogicCompare::RegisterIOEvents_Implementation(TArray<FActorIOEvent>& RegisteredEvents)
+void ALogicCompare::RegisterIOEvents_Implementation(FActorIOEventList& RegisteredEvents)
 {
 	RegisteredEvents.Add(FActorIOEvent()
 		.SetId(TEXT("ALogicCompare::OnEquals"))
@@ -52,7 +52,7 @@ void ALogicCompare::RegisterIOEvents_Implementation(TArray<FActorIOEvent>& Regis
 		.SetMulticastDelegate(this, &OnGreaterThen));
 }
 
-void ALogicCompare::RegisterIOFunctions_Implementation(TArray<FActorIOFunction>& RegisteredFunctions)
+void ALogicCompare::RegisterIOFunctions_Implementation(FActorIOFunctionList& RegisteredFunctions)
 {
 	RegisteredFunctions.Add(FActorIOFunction()
 		.SetId(TEXT("ALogicCompare::SetValue"))

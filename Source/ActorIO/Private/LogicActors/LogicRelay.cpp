@@ -21,7 +21,7 @@ ALogicRelay::ALogicRelay()
 #endif
 }
 
-void ALogicRelay::RegisterIOEvents_Implementation(TArray<FActorIOEvent>& RegisteredEvents)
+void ALogicRelay::RegisterIOEvents_Implementation(FActorIOEventList& RegisteredEvents)
 {
 	RegisteredEvents.Add(FActorIOEvent()
 		.SetId(TEXT("ALogicRelay::OnTrigger"))
@@ -30,7 +30,7 @@ void ALogicRelay::RegisterIOEvents_Implementation(TArray<FActorIOEvent>& Registe
 		.SetMulticastDelegate(this, &OnTrigger));
 }
 
-void ALogicRelay::RegisterIOFunctions_Implementation(TArray<FActorIOFunction>& RegisteredFunctions)
+void ALogicRelay::RegisterIOFunctions_Implementation(FActorIOFunctionList& RegisteredFunctions)
 {
 	RegisteredFunctions.Add(FActorIOFunction()
 		.SetId(TEXT("ALogicRelay::Trigger"))

@@ -38,7 +38,7 @@ void ALogicGlobalEvent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	Super::EndPlay(EndPlayReason);
 }
 
-void ALogicGlobalEvent::RegisterIOEvents_Implementation(TArray<FActorIOEvent>& RegisteredEvents)
+void ALogicGlobalEvent::RegisterIOEvents_Implementation(FActorIOEventList& RegisteredEvents)
 {
 	RegisteredEvents.Add(FActorIOEvent()
 		.SetId(TEXT("ALogicGlobalEvent::OnWorldInitialized"))
@@ -59,7 +59,7 @@ void ALogicGlobalEvent::RegisterIOEvents_Implementation(TArray<FActorIOEvent>& R
 		.SetMulticastDelegate(this, &OnWorldTeardown));
 }
 
-void ALogicGlobalEvent::RegisterIOFunctions_Implementation(TArray<FActorIOFunction>& RegisteredFunctions)
+void ALogicGlobalEvent::RegisterIOFunctions_Implementation(FActorIOFunctionList& RegisteredFunctions)
 {
 	// No functions.
 }

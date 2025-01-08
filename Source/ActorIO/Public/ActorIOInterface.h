@@ -19,10 +19,10 @@ class ACTORIO_API IActorIOInterface
 public:
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, CallInEditor, Category = "Actor IO", DisplayName = "Register IO Events", meta = (ForceAsFunction))
-	void RegisterIOEvents(UPARAM(Ref) TArray<FActorIOEvent>& RegisteredEvents);
-	virtual void RegisterIOEvents_Implementation(TArray<FActorIOEvent>& RegisteredEvents) {}
+	void RegisterIOEvents(UPARAM(Ref) FActorIOEventList& RegisteredEvents);
+	virtual void RegisterIOEvents_Implementation(FActorIOEventList& RegisteredEvents) {}
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, CallInEditor, Category = "Actor IO", DisplayName = "Register IO Functions", meta = (ForceAsFunction))
-	void RegisterIOFunctions(UPARAM(Ref) TArray<FActorIOFunction>& RegisteredFunctions);
-	virtual void RegisterIOFunctions_Implementation(TArray<FActorIOFunction>& RegisteredFunctions) {}
+	void RegisterIOFunctions(UPARAM(Ref) FActorIOFunctionList& RegisteredFunctions);
+	virtual void RegisterIOFunctions_Implementation(FActorIOFunctionList& RegisteredFunctions) {}
 };

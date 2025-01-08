@@ -165,6 +165,9 @@ struct ACTORIO_API FActorIOFunction
 	}
 };
 
+typedef TArray<FActorIOEvent> FActorIOEventList;
+typedef TArray<FActorIOFunction> FActorIOFunctionList;
+
 USTRUCT()
 struct ACTORIO_API FActionExecutionContext
 {
