@@ -55,4 +55,9 @@ public:
 
     UFUNCTION(BlueprintPure, Category = "Branch")
     bool GetValue() const { return bCurrentValue; }
+
+protected:
+
+    UFUNCTION()
+    void ProcessEvent_OnTest();
 };

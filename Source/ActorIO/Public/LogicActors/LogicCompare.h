@@ -54,4 +54,9 @@ public:
     void SetCompareValue(FString InValue);
 
     void Compare();
+
+protected:
+
+    UFUNCTION()
+    void ProcessEvent_OnCompare();
 };

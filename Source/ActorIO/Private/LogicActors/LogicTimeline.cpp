@@ -50,7 +50,8 @@ void ALogicTimeline::RegisterIOEvents_Implementation(FActorIOEventList& Register
 		.SetId(TEXT("ALogicTimeline::OnValueChanged"))
 		.SetDisplayName(LOCTEXT("ALogicTimeline.OnValueChanged", "OnValueChanged"))
 		.SetTooltipText(LOCTEXT("ALogicTimeline.OnValueChangedTooltip", "Event when the timeline's value is changed."))
-		.SetMulticastDelegate(this, &OnTimelineValueChanged));
+		.SetMulticastDelegate(this, &OnTimelineValueChanged)
+		.SetEventProcessor(this, TEXT("ProcessEvent_OnTimelineValueChanged")));
 
 	RegisteredEvents.Add(FActorIOEvent()
 		.SetId(TEXT("ALogicTimeline::OnFinished"))
@@ -156,6 +157,12 @@ void ALogicTimeline::OnTimelineValueChangedCallback(float Output)
 void ALogicTimeline::OnTimelineFinishedCallback()
 {
 	OnTimelineFinished.Broadcast();
+}
+
+void ALogicTimeline::ProcessEvent_OnTimelineValueChanged(float InValue)
+{
+	FActionExecutionContext& ExecContext = FActionExecutionContext::Get(this);
+	ExecContext.SetNamedArgument(TEXT("$Value"), FString::SanitizeFloat(InValue));
 }
 
 #undef LOCTEXT_NAMESPACE

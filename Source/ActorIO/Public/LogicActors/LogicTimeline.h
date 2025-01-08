@@ -75,4 +75,9 @@ protected:
     void OnTimelineValueChangedCallback(float Output);
 
     void OnTimelineFinishedCallback();
+
+protected:
+
+    UFUNCTION()
+    void ProcessEvent_OnTimelineValueChanged(float InValue);
 };
