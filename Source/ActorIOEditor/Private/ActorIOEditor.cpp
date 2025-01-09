@@ -2,15 +2,18 @@
 
 #include "ActorIOEditor.h"
 #include "ActorIOEditorStyle.h"
+#include "ActorIOAction.h"
 #include "ActorIOComponent.h"
 #include "ActorIOComponentVisualizer.h"
+#include "ActorIOSystem.h"
 #include "SActorIOEditor.h"
 #include "Framework/Docking/TabManager.h"
 #include "Widgets/Docking/SDockTab.h"
 #include "GameFramework/Actor.h"
-#include "Selection.h"
 #include "WorkspaceMenuStructure.h"
 #include "WorkspaceMenuStructureModule.h"
+#include "Selection.h"
+#include "Editor.h"
 #include "UnrealEdGlobals.h"
 #include "Editor/UnrealEdEngine.h"
 
@@ -32,8 +35,9 @@ void FActorIOEditor::StartupModule()
 		.SetGroup(WorkspaceMenu::GetMenuStructure().GetLevelEditorCategory())
 		.SetIcon(FSlateIcon(FAppStyle::GetAppStyleSetName(), "Icons.Event"));
 
-	SelectionChangeDelegateHandle = USelection::SelectionChangedEvent.AddRaw(this, &FActorIOEditor::OnObjectSelectionChanged);
-	
+	DelegateHandle_SelectionChange = USelection::SelectionChangedEvent.AddRaw(this, &FActorIOEditor::OnObjectSelectionChanged);
+	DelegateHandle_DeleteActorsBegin = FEditorDelegates::OnDeleteActorsBegin.AddRaw(this, &FActorIOEditor::OnDeleteActorsBegin);
+
 	if (GUnrealEd)
 	{
 		TSharedPtr<FComponentVisualizer> IOComponentVisualizer = MakeShared<FActorIOComponentVisualizer>();
@@ -46,7 +50,8 @@ void FActorIOEditor::ShutdownModule()
 {
 	FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(TEXT("ActorIO"));
 
-	USelection::SelectionChangedEvent.Remove(SelectionChangeDelegateHandle);
+	USelection::SelectionChangedEvent.Remove(DelegateHandle_SelectionChange);
+	FEditorDelegates::OnDeleteActorsBegin.Remove(DelegateHandle_DeleteActorsBegin);
 
 	if (GUnrealEd)
 	{
@@ -72,6 +77,14 @@ TSharedRef<SDockTab> FActorIOEditor::SpawnActorIOEditor(const FSpawnTabArgs& Tab
 	return SpawnedTab;
 }
 
+void FActorIOEditor::UpdateEditorWindow()
+{
+	if (EditorWindow.IsValid())
+	{
+		EditorWindow->Refresh();
+	}
+}
+
 void FActorIOEditor::OnActorIOEditorClosed(TSharedRef<SDockTab> DockTab)
 {
 	EditorWindow.Reset();
@@ -85,11 +98,20 @@ void FActorIOEditor::OnObjectSelectionChanged(UObject* NewSelection)
 	UpdateEditorWindow();
 }
 
-void FActorIOEditor::UpdateEditorWindow()
+void FActorIOEditor::OnDeleteActorsBegin()
 {
-	if (EditorWindow.IsValid())
+	for (FSelectionIterator It(GEditor->GetSelectedActorIterator()); It; ++It)
 	{
-		EditorWindow->Refresh();
+		const AActor* Actor = static_cast<AActor*>(*It);
+		TArray<TWeakObjectPtr<UActorIOAction>> InputActions = UActorIOSystem::GetInputActionsForObject(Actor);
+		for (int32 ActionIdx = 0; ActionIdx != InputActions.Num(); ++ActionIdx)
+		{
+			UActorIOAction* ActionPtr = InputActions[ActionIdx].Get();
+			if (IsValid(ActionPtr))
+			{
+				ActionPtr->Modify();
+			}
+		}
 	}
 }
 

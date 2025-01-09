@@ -111,7 +111,11 @@ void UActorIOComponent::UnbindActions()
 
 void UActorIOComponent::OnUnregister()
 {
-	UnbindActions();
+	UWorld* MyWorld = GetWorld();
+	if (MyWorld && MyWorld->IsGameWorld())
+	{
+		UnbindActions();
+	}
 
 	Super::OnUnregister();
 }

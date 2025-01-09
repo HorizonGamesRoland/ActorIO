@@ -17,7 +17,9 @@ private:
 
 	TWeakObjectPtr<AActor> SelectedActor;
 
-	FDelegateHandle SelectionChangeDelegateHandle;
+	FDelegateHandle DelegateHandle_SelectionChange;
+
+	FDelegateHandle DelegateHandle_DeleteActorsBegin;
 
 public:
 
@@ -48,4 +50,6 @@ private:
 	void OnActorIOEditorClosed(TSharedRef<SDockTab> DockTab);
 
 	void OnObjectSelectionChanged(UObject* NewSelection);
+
+	void OnDeleteActorsBegin();
 };

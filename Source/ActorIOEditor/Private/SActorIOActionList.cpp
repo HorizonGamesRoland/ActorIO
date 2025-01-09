@@ -416,8 +416,6 @@ void SActorIOActionListViewRow::OnEventComboBoxSelectionChanged(FName InName, ES
 		ActionOwner->Modify();
 
 		ActionPtr->EventId = InName;
-
-		//Refresh();
 	}
 }
 
