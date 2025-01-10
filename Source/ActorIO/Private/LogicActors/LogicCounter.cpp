@@ -11,6 +11,15 @@ ALogicCounter::ALogicCounter()
 	TargetValue = 0;
 	bClampValue = false;
 	CurrentValue = 0;
+
+#if WITH_EDITORONLY_DATA
+	ConstructorHelpers::FObjectFinderOptional<UTexture2D> SpriteTexture(TEXT("/ActorIO/S_Counter"));
+	if (SpriteComponent && SpriteTexture.Succeeded())
+	{
+		SpriteComponent->SetSprite(SpriteTexture.Get());
+		SpriteComponent->SetRelativeScale3D_Direct(FVector(1.0f));
+	}
+#endif
 }
 
 void ALogicCounter::PostInitializeComponents()

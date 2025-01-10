@@ -1,7 +1,6 @@
 // Copyright 2024 Horizon Games. All Rights Reserved.
 
 #include "LogicActors/LogicBranch.h"
-#include "Components/BillboardComponent.h"
 
 #define LOCTEXT_NAMESPACE "ActorIO"
 

@@ -6,6 +6,14 @@
 
 ALogicGlobalEvent::ALogicGlobalEvent()
 {
+#if WITH_EDITORONLY_DATA
+	ConstructorHelpers::FObjectFinderOptional<UTexture2D> SpriteTexture(TEXT("/ActorIO/S_GlobalEvent"));
+	if (SpriteComponent && SpriteTexture.Succeeded())
+	{
+		SpriteComponent->SetSprite(SpriteTexture.Get());
+		SpriteComponent->SetRelativeScale3D_Direct(FVector(1.0f));
+	}
+#endif
 }
 
 void ALogicGlobalEvent::PostInitializeComponents()

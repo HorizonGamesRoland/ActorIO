@@ -5,9 +5,8 @@
 #include "ActorIO.h"
 #include "ActorIOInterface.h"
 #include "GameFramework/Actor.h"
+#include "Components/BillboardComponent.h"
 #include "LogicActorBase.generated.h"
-
-class UBillboardComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FSimpleActionDelegate);
 

@@ -7,6 +7,15 @@
 ALogicTimer::ALogicTimer()
 {
 	CurrentTimerHandle = FTimerHandle();
+
+#if WITH_EDITORONLY_DATA
+	ConstructorHelpers::FObjectFinderOptional<UTexture2D> SpriteTexture(TEXT("/ActorIO/S_Timer"));
+	if (SpriteComponent && SpriteTexture.Succeeded())
+	{
+		SpriteComponent->SetSprite(SpriteTexture.Get());
+		SpriteComponent->SetRelativeScale3D_Direct(FVector(1.0f));
+	}
+#endif
 }
 
 void ALogicTimer::RegisterIOEvents_Implementation(FActorIOEventList& RegisteredEvents)

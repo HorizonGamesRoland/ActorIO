@@ -1,7 +1,6 @@
 // Copyright 2024 Horizon Games. All Rights Reserved.
 
 #include "LogicActors/LogicActorBase.h"
-#include "Components/BillboardComponent.h"
 
 ALogicActorBase::ALogicActorBase()
 {
@@ -25,7 +24,7 @@ ALogicActorBase::ALogicActorBase()
 			FName ID_LogicActor;
 			FText NAME_LogicActor;
 			FConstructorStatics()
-				: SpriteTexture(TEXT("/Engine/EditorResources/S_Actor"))
+				: SpriteTexture(TEXT("/ActorIO/S_LogicActor"))
 				, ID_LogicActor(TEXT("LogicActor"))
 				, NAME_LogicActor(NSLOCTEXT("SpriteCategory", "LogicActor", "Logic Actors"))
 			{}

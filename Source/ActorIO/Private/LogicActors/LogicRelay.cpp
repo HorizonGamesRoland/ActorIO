@@ -1,7 +1,6 @@
 // Copyright 2024 Horizon Games. All Rights Reserved.
 
 #include "LogicActors/LogicRelay.h"
-#include "Components/BillboardComponent.h"
 
 #define LOCTEXT_NAMESPACE "ActorIO"
 
@@ -16,7 +15,7 @@ ALogicRelay::ALogicRelay()
 	if (SpriteComponent && SpriteTexture.Succeeded())
 	{
 		SpriteComponent->SetSprite(SpriteTexture.Get());
-		SpriteComponent->SetRelativeScale3D_Direct(FVector(3.0f));
+		SpriteComponent->SetRelativeScale3D_Direct(FVector(1.0f));
 	}
 #endif
 }
