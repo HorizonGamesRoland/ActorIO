@@ -43,3 +43,12 @@ ALogicActorBase::ALogicActorBase()
 	SetReplicatingMovement(false);
 	SetCanBeDamaged(false);
 }
+
+UBillboardComponent* ALogicActorBase::GetEditorSpriteComponent() const
+{
+#if WITH_EDITORONLY_DATA
+	return SpriteComponent.Get();
+#else
+	return nullptr;
+#endif
+}

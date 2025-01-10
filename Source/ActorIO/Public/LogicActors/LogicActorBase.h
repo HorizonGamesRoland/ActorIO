@@ -7,9 +7,11 @@
 #include "GameFramework/Actor.h"
 #include "LogicActorBase.generated.h"
 
+class UBillboardComponent;
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FSimpleActionDelegate);
 
-UCLASS(Abstract, NotBlueprintable, HideCategories = (Rendering, Input, Networking, Physics, Collision, HLOD))
+UCLASS(Abstract, HideCategories = (Rendering, Input, Networking, Physics, Collision, HLOD))
 class ACTORIO_API ALogicActorBase : public AActor, public IActorIOInterface
 {
     GENERATED_BODY()
@@ -18,13 +20,17 @@ public:
 
     ALogicActorBase();
 
-#if WITH_EDITORONLY_DATA
 protected:
-	/** Billboard Component displayed in the editor. */
+
+#if WITH_EDITORONLY_DATA
+	/** Billboard component displayed in the editor. */
 	UPROPERTY()
-	TObjectPtr<class UBillboardComponent> SpriteComponent;
-public:
-	/** @return Billboard Component of the actor. */
-	class UBillboardComponent* GetSpriteComponent() const { return SpriteComponent.Get(); };
+	TObjectPtr<UBillboardComponent> SpriteComponent;
 #endif
+
+protected:
+
+	/** Get the editor only billboard component of the actor. */
+	UFUNCTION(BlueprintPure, Category = "Components", meta = (DevelopmentOnly))
+	UBillboardComponent* GetEditorSpriteComponent() const;
 };

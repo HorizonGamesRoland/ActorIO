@@ -7,13 +7,12 @@
 
 class SActorIOEditor;
 class SDockTab;
-class UObject;
 
 class FActorIOEditor : public IModuleInterface
 {
 private:
 
-	TSharedPtr<SActorIOEditor> EditorWindow; 
+	TSharedPtr<SActorIOEditor> EditorWindow;
 
 	TWeakObjectPtr<AActor> SelectedActor;
 

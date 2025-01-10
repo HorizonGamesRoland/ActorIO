@@ -70,24 +70,6 @@ int32 UActorIOSystem::GetNumInputActionsForObject(const AActor* InObject)
     return InputActions.Num();
 }
 
-void UActorIOSystem::RegisterIOEvent(UObject* WorldContextObject, FActorIOEventList& RegisterTo, FName EventId, FName EventDispatcherName, const FText& DisplayName, const FText& TooltipText)
-{
-    RegisterTo.Add(FActorIOEvent()
-        .SetId(EventId)
-        .SetDisplayName(DisplayName)
-        .SetTooltipText(TooltipText)
-        .SetBlueprintDelegate(WorldContextObject, EventDispatcherName));
-}
-
-void UActorIOSystem::RegisterIOFunction(UObject* WorldContextObject, FActorIOFunctionList& RegisterTo, FName FunctionId, FString FunctionToExec, const FText& DisplayName, const FText& TooltipText)
-{
-    RegisterTo.Add(FActorIOFunction()
-        .SetId(FunctionId)
-        .SetDisplayName(DisplayName)
-        .SetTooltipText(TooltipText)
-        .SetFunction(FunctionToExec));
-}
-
 void UActorIOSystem::GetNativeEventsForObject(AActor* InObject, FActorIOEventList& RegisteredEvents)
 {
     if (InObject->IsA<ATriggerBase>())
@@ -153,4 +135,23 @@ void UActorIOSystem::GetNativeFunctionsForObject(AActor* InObject, FActorIOFunct
         .SetDisplayName(FText::FromString(TEXT("Destroy")))
         .SetTooltipText(FText::FromString(TEXT("Destroy the actor.")))
         .SetFunction(TEXT("K2_DestroyActor")));
+}
+
+void UActorIOSystem::RegisterIOEvent(UObject* WorldContextObject, TArray<FActorIOEvent>& RegisterTo, FName EventId, const FText& DisplayName, const FText& TooltipText, FName EventDispatcherName)
+{
+    RegisterTo.Add(FActorIOEvent()
+        .SetId(EventId)
+        .SetDisplayName(DisplayName)
+        .SetTooltipText(TooltipText)
+        .SetBlueprintDelegate(WorldContextObject, EventDispatcherName));
+}
+
+void UActorIOSystem::RegisterIOFunction(UObject* WorldContextObject, TArray<FActorIOFunction>& RegisterTo, FName FunctionId, const FText& DisplayName, const FText& TooltipText, FString FunctionToExec, FName SubobjectName)
+{
+    RegisterTo.Add(FActorIOFunction()
+        .SetId(FunctionId)
+        .SetDisplayName(DisplayName)
+        .SetTooltipText(TooltipText)
+        .SetFunction(FunctionToExec)
+        .SetSubobject(SubobjectName));
 }

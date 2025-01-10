@@ -1,6 +1,7 @@
 // Copyright 2024 Horizon Games. All Rights Reserved.
 
 #include "LogicActors/LogicBranch.h"
+#include "Components/BillboardComponent.h"
 
 #define LOCTEXT_NAMESPACE "ActorIO"
 
@@ -8,6 +9,15 @@ ALogicBranch::ALogicBranch()
 {
 	bInitialValue = false;
 	bCurrentValue = false;
+
+#if WITH_EDITORONLY_DATA
+	ConstructorHelpers::FObjectFinderOptional<UTexture2D> SpriteTexture(TEXT("/ActorIO/S_Branch"));
+	if (SpriteComponent && SpriteTexture.Succeeded())
+	{
+		SpriteComponent->SetSprite(SpriteTexture.Get());
+		SpriteComponent->SetRelativeScale3D_Direct(FVector(1.0f));
+	}
+#endif
 }
 
 void ALogicBranch::PostInitializeComponents()
