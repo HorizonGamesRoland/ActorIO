@@ -7,9 +7,18 @@
 #include "ActorIOComponentVisualizer.h"
 #include "ActorIOSystem.h"
 #include "SActorIOEditor.h"
+#include "LogicActors/LogicBranch.h"
+#include "LogicActors/LogicCompare.h"
+#include "LogicActors/LogicCondition.h"
+#include "LogicActors/LogicCounter.h"
+#include "LogicActors/LogicGlobalEvent.h"
+#include "LogicActors/LogicRelay.h"
+#include "LogicActors/LogicTimeline.h"
+#include "LogicActors/LogicTimer.h"
 #include "Framework/Docking/TabManager.h"
 #include "Widgets/Docking/SDockTab.h"
 #include "GameFramework/Actor.h"
+#include "IPlacementModeModule.h"
 #include "WorkspaceMenuStructure.h"
 #include "WorkspaceMenuStructureModule.h"
 #include "Selection.h"
@@ -44,6 +53,25 @@ void FActorIOEditor::StartupModule()
 		GUnrealEd->RegisterComponentVisualizer(UActorIOComponent::StaticClass()->GetFName(), IOComponentVisualizer);
 		IOComponentVisualizer->OnRegister();
 	}
+
+	if (IPlacementModeModule::IsAvailable())
+	{
+		FPlacementCategoryInfo Info(LOCTEXT("ActorIOPlaceCategoryName", "Logic Actors"),
+			FSlateIcon(FAppStyle::GetAppStyleSetName(), "Icons.Event"), "ActorIOPlaceCategory", TEXT("PMActorIOPlaceCategory"), 45);
+
+		Info.ShortDisplayName = LOCTEXT("ActorIOPlaceCategoryShortName", "Logic");
+
+		IPlacementModeModule& PlacementModeModule = IPlacementModeModule::Get();
+		PlacementModeModule.RegisterPlacementCategory(Info);
+		PlacementModeModule.RegisterPlaceableItem(Info.UniqueHandle, MakeShared<FPlaceableItem>(*UActorFactory::StaticClass(), FAssetData(ALogicBranch::StaticClass())));
+		PlacementModeModule.RegisterPlaceableItem(Info.UniqueHandle, MakeShared<FPlaceableItem>(*UActorFactory::StaticClass(), FAssetData(ALogicCompare::StaticClass())));
+		PlacementModeModule.RegisterPlaceableItem(Info.UniqueHandle, MakeShared<FPlaceableItem>(*UActorFactory::StaticClass(), FAssetData(ALogicCondition::StaticClass())));
+		PlacementModeModule.RegisterPlaceableItem(Info.UniqueHandle, MakeShared<FPlaceableItem>(*UActorFactory::StaticClass(), FAssetData(ALogicCounter::StaticClass())));
+		PlacementModeModule.RegisterPlaceableItem(Info.UniqueHandle, MakeShared<FPlaceableItem>(*UActorFactory::StaticClass(), FAssetData(ALogicGlobalEvent::StaticClass())));
+		PlacementModeModule.RegisterPlaceableItem(Info.UniqueHandle, MakeShared<FPlaceableItem>(*UActorFactory::StaticClass(), FAssetData(ALogicRelay::StaticClass())));
+		PlacementModeModule.RegisterPlaceableItem(Info.UniqueHandle, MakeShared<FPlaceableItem>(*UActorFactory::StaticClass(), FAssetData(ALogicTimeline::StaticClass())));
+		PlacementModeModule.RegisterPlaceableItem(Info.UniqueHandle, MakeShared<FPlaceableItem>(*UActorFactory::StaticClass(), FAssetData(ALogicTimer::StaticClass())));
+	}
 }
 
 void FActorIOEditor::ShutdownModule()
@@ -56,6 +84,12 @@ void FActorIOEditor::ShutdownModule()
 	if (GUnrealEd)
 	{
 		GUnrealEd->UnregisterComponentVisualizer(UActorIOComponent::StaticClass()->GetFName());
+	}
+
+	if (IPlacementModeModule::IsAvailable())
+	{
+		IPlacementModeModule& PlacementModeModule = IPlacementModeModule::Get();
+		PlacementModeModule.UnregisterPlacementCategory("ActorIOPlaceCategory");
 	}
 
 	FActorIOEditorStyle::Shutdown();
