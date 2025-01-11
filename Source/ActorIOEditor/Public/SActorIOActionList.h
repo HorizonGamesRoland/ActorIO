@@ -130,7 +130,11 @@ protected:
 
     void OnExecuteOnlyOnceChecked(ECheckBoxState InState);
 
-    FReply OnClick_RemoveAction();
+    const FSlateBrush* OnGetRemoveOrViewIcon() const;
+
+    FText OnGetRemoveOrViewTooltip() const;
+
+    FReply OnClick_RemoveOrViewAction();
 
 protected:
 

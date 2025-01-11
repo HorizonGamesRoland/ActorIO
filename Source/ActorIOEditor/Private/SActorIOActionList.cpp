@@ -1,6 +1,7 @@
 // Copyright 2024 Horizon Games. All Rights Reserved.
 
 #include "SActorIOActionList.h"
+#include "SActorIOEditor.h"
 #include "ActorIOSystem.h"
 #include "ActorIOComponent.h"
 #include "ActorIOAction.h"
@@ -211,6 +212,7 @@ TSharedRef<SWidget> SActorIOActionListViewRow::GenerateWidgetForColumn(const FNa
 						SAssignNew(EventText, STextBlock)
 						.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont")) // PropertyEditorConstants::PropertyFontStyle
 						.Text(GetEventDisplayName(ActionPtr->EventId))
+						.ToolTipText(GetEventTooltipText(ActionPtr->EventId))
 						.ColorAndOpacity(GetEventTextColor(ActionPtr->EventId))
 					]
 				]
@@ -266,6 +268,7 @@ TSharedRef<SWidget> SActorIOActionListViewRow::GenerateWidgetForColumn(const FNa
 					SAssignNew(FunctionText, STextBlock)
 					.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont"))
 					.Text(GetFunctionDisplayName(ActionPtr->FunctionId))
+					.ToolTipText(GetFunctionTooltipText(ActionPtr->FunctionId))
 					.ColorAndOpacity(GetFunctionTextColor(ActionPtr->FunctionId))
 				]
 			]
@@ -336,14 +339,14 @@ TSharedRef<SWidget> SActorIOActionListViewRow::GenerateWidgetForColumn(const FNa
 				[
 					SNew(SButton)
 					.ButtonStyle(&FActorIOEditorStyle::Get().GetWidgetStyle<FButtonStyle>("ImageButton"))
+					.ToolTipText(OnGetRemoveOrViewTooltip())
 					.HAlign(HAlign_Center)
 					.VAlign(VAlign_Center)
 					.ContentPadding(2.0f)
-					.OnClicked(this, &SActorIOActionListViewRow::OnClick_RemoveAction)
-					.IsEnabled(!bIsInputAction)
+					.OnClicked(this, &SActorIOActionListViewRow::OnClick_RemoveOrViewAction)
 					[
 						SNew(SImage)
-						.Image(FAppStyle::GetBrush("Icons.Delete"))
+						.Image(OnGetRemoveOrViewIcon())
 						.Visibility(EVisibility::HitTestInvisible)
 					]
 				]
@@ -521,16 +524,50 @@ void SActorIOActionListViewRow::OnExecuteOnlyOnceChecked(ECheckBoxState InState)
 	ActionPtr->bExecuteOnlyOnce = InState == ECheckBoxState::Checked;
 }
 
-FReply SActorIOActionListViewRow::OnClick_RemoveAction()
+const FSlateBrush* SActorIOActionListViewRow::OnGetRemoveOrViewIcon() const
 {
-	const FScopedTransaction Transaction(LOCTEXT("RemoveActorIOAction", "Remove ActorIO Action"));
+	const FName BrushName = bIsInputAction ? TEXT("Icons.Find") : TEXT("Icons.Delete");
+	return FAppStyle::GetBrush(BrushName);
+}
 
-	UActorIOComponent* ActionOwner = ActionPtr->GetOwnerIOComponent();
-	ActionOwner->Modify();
-	ActionOwner->RemoveAction(ActionPtr.Get());
+FText SActorIOActionListViewRow::OnGetRemoveOrViewTooltip() const
+{
+	if (!bIsInputAction)
+	{
+		return LOCTEXT("RemoveActionTooltip", "Delete this action.");
+	}
+	else
+	{
+		return LOCTEXT("ViewActionTooltip", "Select the actor that calls this action.");
+	}
+}
 
-	FActorIOEditor& ActorIOEditor = FActorIOEditor::Get();
-	ActorIOEditor.UpdateEditorWindow();
+FReply SActorIOActionListViewRow::OnClick_RemoveOrViewAction()
+{
+	if (!bIsInputAction)
+	{
+		const FScopedTransaction Transaction(LOCTEXT("RemoveActorIOAction", "Remove ActorIO Action"));
+
+		UActorIOComponent* ActionOwner = ActionPtr->GetOwnerIOComponent();
+		ActionOwner->Modify();
+		ActionOwner->RemoveAction(ActionPtr.Get());
+
+		FActorIOEditor& ActorIOEditor = FActorIOEditor::Get();
+		ActorIOEditor.UpdateEditorWindow();
+	}
+	else
+	{
+		AActor* OwnerActor = ActionPtr->GetOwnerActor();
+		if (GEditor && IsValid(OwnerActor))
+		{
+			GEditor->SelectNone(false, true);
+			GEditor->SelectActor(OwnerActor, true, true);
+
+			FActorIOEditor& ActorIOEditor = FActorIOEditor::Get();
+			SActorIOEditor* EditorWidget = ActorIOEditor.GetEditorWindow();
+			EditorWidget->SetViewInputActions(false);
+		}
+	}
 
 	return FReply::Handled();
 }

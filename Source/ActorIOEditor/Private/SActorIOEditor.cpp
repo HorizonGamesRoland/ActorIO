@@ -182,6 +182,16 @@ void SActorIOEditor::Refresh()
     }
 }
 
+void SActorIOEditor::SetViewInputActions(bool bEnabled, bool bRefresh)
+{
+    bViewInputActions = bEnabled;
+    if (bRefresh)
+    {
+        bActionListNeedsRegenerate = true;
+        Refresh();
+    }
+}
+
 ECheckBoxState SActorIOEditor::IsOutputsButtonChecked() const
 {
     return bViewInputActions ? ECheckBoxState::Unchecked : ECheckBoxState::Checked;

@@ -56,7 +56,7 @@ void FActorIOEditorStyle::Initialize()
 		.SetPressedForeground(FStyleColors::ForegroundHover)
 		.SetDisabledForeground(FStyleColors::Foreground)
 		.SetNormalPadding(FMargin(0.0f))
-		.SetPressedPadding(FMargin(0.0f));
+		.SetPressedPadding(FMargin(0.0f, 2.5f, 0.0f, 0.5f));
 
 	StyleSet->Set("ImageButton", ImageButtonStyle);
 

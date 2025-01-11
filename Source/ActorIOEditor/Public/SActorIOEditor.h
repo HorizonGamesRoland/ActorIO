@@ -19,6 +19,8 @@ public:
 
     void Refresh();
 
+    void SetViewInputActions(bool bEnabled, bool bRefresh = true);
+
 protected:
 
     TSharedPtr<class STextBlock> SelectedActorText;
