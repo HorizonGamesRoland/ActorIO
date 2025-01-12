@@ -55,11 +55,9 @@ public:
 
 	AActor* GetOwnerActor() const;
 
-public:
+protected:
 
 	static FName ExecuteActionSignalName;
-
-protected:
 
 	UFUNCTION()
 	void ReceiveExecuteAction();

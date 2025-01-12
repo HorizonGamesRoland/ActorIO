@@ -27,8 +27,6 @@ protected:
 	TObjectPtr<UBillboardComponent> SpriteComponent;
 #endif
 
-protected:
-
 	/** Get the editor only billboard component of the actor. */
 	UFUNCTION(BlueprintPure, Category = "Components", meta = (DevelopmentOnly))
 	UBillboardComponent* GetEditorSpriteComponent() const;

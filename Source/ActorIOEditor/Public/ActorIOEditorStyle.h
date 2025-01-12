@@ -6,7 +6,7 @@
 #include "Styling/SlateStyle.h"
 
 /**
- * ActorIOEditorStyle is a custom style set used by the plugin's editor module.
+ * Custom style set used by the Actor IO editor module.
  */
 class ACTORIOEDITOR_API FActorIOEditorStyle
 {
