@@ -67,10 +67,30 @@ void FActorIOEditorStyle::Initialize()
 	StyleSet->Set("ActionListView.Border", new FSlateRoundedBoxBrush(FStyleColors::Recessed, FVector4(0.0f, 0.0f, 4.0f, 4.0f), FStyleColors::Input, 1.0f));
 
 	const FVector2D Icon16x16(16.0f, 16.0f);
+	const FVector2D Icon64x64(64.0f, 64.0f);
 
-	StyleSet->Set("Action.OutputIcon", new IMAGE_BRUSH_SVG("icon_action_output", Icon16x16, FColor(0, 215, 255).ReinterpretAsLinear()));
-	StyleSet->Set("Action.InputIcon", new IMAGE_BRUSH_SVG("icon_action_input", Icon16x16, FColor(255, 25, 0).ReinterpretAsLinear()));
-	StyleSet->Set("Action.TargetIcon", new IMAGE_BRUSH_SVG("icon_action_target", Icon16x16));
+	StyleSet->Set("Action.OutputIcon", new IMAGE_BRUSH_SVG("Icons/Editor/OutputAction", Icon16x16, FColor(0, 215, 255).ReinterpretAsLinear()));
+	StyleSet->Set("Action.InputIcon", new IMAGE_BRUSH_SVG("Icons/Editor/InputAction", Icon16x16, FColor(255, 25, 0).ReinterpretAsLinear()));
+	StyleSet->Set("Action.TargetIcon", new IMAGE_BRUSH_SVG("Icons/Editor/ActionTargetArrow", Icon16x16));
+
+	StyleSet->Set("ClassIcon.LogicActorBase", new IMAGE_BRUSH("Icons/AssetIcons/LogicActorBase_64", Icon64x64));
+	StyleSet->Set("ClassThumbnail.LogicActorBase", new IMAGE_BRUSH("Icons/AssetIcons/LogicActorBase_64", Icon16x16));
+	StyleSet->Set("ClassIcon.LogicBranch", new IMAGE_BRUSH("Icons/AssetIcons/LogicBranch_64", Icon64x64));
+	StyleSet->Set("ClassThumbnail.LogicBranch", new IMAGE_BRUSH("Icons/AssetIcons/LogicBranch_64", Icon16x16));
+	StyleSet->Set("ClassIcon.LogicCompare", new IMAGE_BRUSH("Icons/AssetIcons/LogicCompare_64", Icon64x64));
+	StyleSet->Set("ClassThumbnail.LogicCompare", new IMAGE_BRUSH("Icons/AssetIcons/LogicCompare_64", Icon16x16));
+	StyleSet->Set("ClassIcon.LogicCondition", new IMAGE_BRUSH("Icons/AssetIcons/LogicCondition_64", Icon64x64));
+	StyleSet->Set("ClassThumbnail.LogicCondition", new IMAGE_BRUSH("Icons/AssetIcons/LogicCondition_64", Icon16x16));
+	StyleSet->Set("ClassIcon.LogicCounter", new IMAGE_BRUSH("Icons/AssetIcons/LogicCounter_64", Icon64x64));
+	StyleSet->Set("ClassThumbnail.LogicCounter", new IMAGE_BRUSH("Icons/AssetIcons/LogicCounter_64", Icon16x16));
+	StyleSet->Set("ClassIcon.LogicGlobalEvent", new IMAGE_BRUSH("Icons/AssetIcons/LogicGlobalEvent_64", Icon64x64));
+	StyleSet->Set("ClassThumbnail.LogicGlobalEvent", new IMAGE_BRUSH("Icons/AssetIcons/LogicGlobalEvent_64", Icon16x16));
+	StyleSet->Set("ClassIcon.LogicRelay", new IMAGE_BRUSH("Icons/AssetIcons/LogicRelay_64", Icon64x64));
+	StyleSet->Set("ClassThumbnail.LogicRelay", new IMAGE_BRUSH("Icons/AssetIcons/LogicRelay_64", Icon16x16));
+	StyleSet->Set("ClassIcon.LogicTimeline", new IMAGE_BRUSH("Icons/AssetIcons/LogicTimeline_64", Icon64x64));
+	StyleSet->Set("ClassThumbnail.LogicTimeline", new IMAGE_BRUSH("Icons/AssetIcons/LogicTimeline_64", Icon16x16));
+	StyleSet->Set("ClassIcon.LogicTimer", new IMAGE_BRUSH("Icons/AssetIcons/LogicTimer_64", Icon64x64));
+	StyleSet->Set("ClassThumbnail.LogicTimer", new IMAGE_BRUSH("Icons/AssetIcons/LogicTimer_64", Icon16x16));
 
 	FSlateStyleRegistry::RegisterSlateStyle(*StyleSet.Get());
 }
