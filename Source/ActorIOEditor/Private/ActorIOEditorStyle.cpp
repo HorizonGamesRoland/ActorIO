@@ -73,24 +73,24 @@ void FActorIOEditorStyle::Initialize()
 	StyleSet->Set("Action.InputIcon", new IMAGE_BRUSH_SVG("Icons/Editor/InputAction", Icon16x16, FColor(255, 25, 0).ReinterpretAsLinear()));
 	StyleSet->Set("Action.TargetIcon", new IMAGE_BRUSH_SVG("Icons/Editor/ActionTargetArrow", Icon16x16));
 
-	StyleSet->Set("ClassIcon.LogicActorBase", new IMAGE_BRUSH("Icons/AssetIcons/LogicActorBase_64", Icon64x64));
-	StyleSet->Set("ClassThumbnail.LogicActorBase", new IMAGE_BRUSH("Icons/AssetIcons/LogicActorBase_64", Icon16x16));
-	StyleSet->Set("ClassIcon.LogicBranch", new IMAGE_BRUSH("Icons/AssetIcons/LogicBranch_64", Icon64x64));
-	StyleSet->Set("ClassThumbnail.LogicBranch", new IMAGE_BRUSH("Icons/AssetIcons/LogicBranch_64", Icon16x16));
-	StyleSet->Set("ClassIcon.LogicCompare", new IMAGE_BRUSH("Icons/AssetIcons/LogicCompare_64", Icon64x64));
-	StyleSet->Set("ClassThumbnail.LogicCompare", new IMAGE_BRUSH("Icons/AssetIcons/LogicCompare_64", Icon16x16));
-	StyleSet->Set("ClassIcon.LogicCondition", new IMAGE_BRUSH("Icons/AssetIcons/LogicCondition_64", Icon64x64));
-	StyleSet->Set("ClassThumbnail.LogicCondition", new IMAGE_BRUSH("Icons/AssetIcons/LogicCondition_64", Icon16x16));
-	StyleSet->Set("ClassIcon.LogicCounter", new IMAGE_BRUSH("Icons/AssetIcons/LogicCounter_64", Icon64x64));
-	StyleSet->Set("ClassThumbnail.LogicCounter", new IMAGE_BRUSH("Icons/AssetIcons/LogicCounter_64", Icon16x16));
-	StyleSet->Set("ClassIcon.LogicGlobalEvent", new IMAGE_BRUSH("Icons/AssetIcons/LogicGlobalEvent_64", Icon64x64));
-	StyleSet->Set("ClassThumbnail.LogicGlobalEvent", new IMAGE_BRUSH("Icons/AssetIcons/LogicGlobalEvent_64", Icon16x16));
-	StyleSet->Set("ClassIcon.LogicRelay", new IMAGE_BRUSH("Icons/AssetIcons/LogicRelay_64", Icon64x64));
-	StyleSet->Set("ClassThumbnail.LogicRelay", new IMAGE_BRUSH("Icons/AssetIcons/LogicRelay_64", Icon16x16));
-	StyleSet->Set("ClassIcon.LogicTimeline", new IMAGE_BRUSH("Icons/AssetIcons/LogicTimeline_64", Icon64x64));
-	StyleSet->Set("ClassThumbnail.LogicTimeline", new IMAGE_BRUSH("Icons/AssetIcons/LogicTimeline_64", Icon16x16));
-	StyleSet->Set("ClassIcon.LogicTimer", new IMAGE_BRUSH("Icons/AssetIcons/LogicTimer_64", Icon64x64));
-	StyleSet->Set("ClassThumbnail.LogicTimer", new IMAGE_BRUSH("Icons/AssetIcons/LogicTimer_64", Icon16x16));
+	StyleSet->Set("ClassIcon.LogicActorBase", new IMAGE_BRUSH("Icons/AssetIcons/LogicActorBase_16", Icon16x16));
+	StyleSet->Set("ClassThumbnail.LogicActorBase", new IMAGE_BRUSH("Icons/AssetIcons/LogicActorBase_64", Icon64x64));
+	StyleSet->Set("ClassIcon.LogicBranch", new IMAGE_BRUSH("Icons/AssetIcons/LogicBranch_16", Icon16x16));
+	StyleSet->Set("ClassThumbnail.LogicBranch", new IMAGE_BRUSH("Icons/AssetIcons/LogicBranch_64", Icon64x64));
+	StyleSet->Set("ClassIcon.LogicCompare", new IMAGE_BRUSH("Icons/AssetIcons/LogicCompare_16", Icon16x16));
+	StyleSet->Set("ClassThumbnail.LogicCompare", new IMAGE_BRUSH("Icons/AssetIcons/LogicCompare_64", Icon64x64));
+	StyleSet->Set("ClassIcon.LogicCondition", new IMAGE_BRUSH("Icons/AssetIcons/LogicCondition_16", Icon16x16));
+	StyleSet->Set("ClassThumbnail.LogicCondition", new IMAGE_BRUSH("Icons/AssetIcons/LogicCondition_64", Icon64x64));
+	StyleSet->Set("ClassIcon.LogicCounter", new IMAGE_BRUSH("Icons/AssetIcons/LogicCounter_16", Icon16x16));
+	StyleSet->Set("ClassThumbnail.LogicCounter", new IMAGE_BRUSH("Icons/AssetIcons/LogicCounter_64", Icon64x64));
+	StyleSet->Set("ClassIcon.LogicGlobalEvent", new IMAGE_BRUSH("Icons/AssetIcons/LogicGlobalEvent_16", Icon16x16));
+	StyleSet->Set("ClassThumbnail.LogicGlobalEvent", new IMAGE_BRUSH("Icons/AssetIcons/LogicGlobalEvent_64", Icon64x64));
+	StyleSet->Set("ClassIcon.LogicRelay", new IMAGE_BRUSH("Icons/AssetIcons/LogicRelay_16", Icon16x16));
+	StyleSet->Set("ClassThumbnail.LogicRelay", new IMAGE_BRUSH("Icons/AssetIcons/LogicRelay_64", Icon64x64));
+	StyleSet->Set("ClassIcon.LogicTimeline", new IMAGE_BRUSH("Icons/AssetIcons/LogicTimeline_16", Icon16x16));
+	StyleSet->Set("ClassThumbnail.LogicTimeline", new IMAGE_BRUSH("Icons/AssetIcons/LogicTimeline_64", Icon64x64));
+	StyleSet->Set("ClassIcon.LogicTimer", new IMAGE_BRUSH("Icons/AssetIcons/LogicTimer_16", Icon16x16));
+	StyleSet->Set("ClassThumbnail.LogicTimer", new IMAGE_BRUSH("Icons/AssetIcons/LogicTimer_64", Icon64x64));
 
 	FSlateStyleRegistry::RegisterSlateStyle(*StyleSet.Get());
 }
