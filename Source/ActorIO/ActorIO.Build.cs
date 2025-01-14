@@ -2,7 +2,6 @@
 
 using System.IO;
 using UnrealBuildTool;
-
 public class ActorIO : ModuleRules
 {
 	public ActorIO(ReadOnlyTargetRules Target) : base(Target)

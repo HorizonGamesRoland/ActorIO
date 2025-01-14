@@ -5,6 +5,9 @@
 #include "ActorIO.h"
 #include "Modules/ModuleManager.h"
 
+/**
+ * Runtime module implementation of the Actor I/O plugin.
+ */
 class FActorIOModule : public IModuleInterface
 {
 };

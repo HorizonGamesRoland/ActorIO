@@ -29,11 +29,11 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Action")
 	FName EventId;
 
-	/** The execution target. The action will call the designated function on this actor. */
+	/** The execution target. The designated function will be called on this actor. */
 	UPROPERTY(EditAnywhere, Category = "Action")
 	TObjectPtr<AActor> TargetActor;
 
-	/** Id of the I/O function to execute on the target actor. */
+	/** Id of the I/O function to call on the target actor. */
 	UPROPERTY(EditAnywhere, Category = "Action")
 	FName FunctionId;
 

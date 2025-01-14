@@ -6,7 +6,7 @@
 #include "Styling/SlateStyle.h"
 
 /**
- * Custom style set used by the Actor IO editor module.
+ * Custom style set used by the Actor I/O editor module.
  */
 class ACTORIOEDITOR_API FActorIOEditorStyle
 {
@@ -17,7 +17,7 @@ private:
 
 public:
 
-	/** Height of header rows. */
+	/** Height of action list header row. */
 	static constexpr float HeaderRowHeight = 28.0f;
 	/** Height of primary tool buttons. */
 	static constexpr float ToolButtonHeight = 38.0f;

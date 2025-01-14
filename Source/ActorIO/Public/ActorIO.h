@@ -247,6 +247,7 @@ typedef TArray<FActorIOFunction> FActorIOFunctionList;
  * Context of an I/O action that the reflection system is about to execute.
  * Stores the original memory of the execute action call in case it is needed for named arguments.
  * Only valid between the action receiving the ProcessEvent call and sending the command to the target actor.
+ * Use FActionExecutionContext::Get() to get the current context.
  */
 USTRUCT()
 struct ACTORIO_API FActionExecutionContext

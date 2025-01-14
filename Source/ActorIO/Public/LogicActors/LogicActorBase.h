@@ -8,8 +8,12 @@
 #include "Components/BillboardComponent.h"
 #include "LogicActorBase.generated.h"
 
+/** A dynamic multicast delegate with no params. */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FSimpleActionDelegate);
 
+/**
+ * An actor that can be used to expose logic to the I/O system.
+ */
 UCLASS(Abstract, HideCategories = (Rendering, Input, Networking, Physics, Collision, HLOD))
 class ACTORIO_API ALogicActorBase : public AActor, public IActorIOInterface
 {
@@ -17,13 +21,14 @@ class ACTORIO_API ALogicActorBase : public AActor, public IActorIOInterface
 
 public:
 
+	/** Default constructor. */
     ALogicActorBase();
 
 protected:
 
 #if WITH_EDITORONLY_DATA
 	/** Billboard component displayed in the editor. */
-	UPROPERTY()
+	UPROPERTY(EditDefaultsOnly, Category = "Components")
 	TObjectPtr<UBillboardComponent> SpriteComponent;
 #endif
 
