@@ -40,9 +40,22 @@ bool FActionExecutionContext::HasContext() const
 
 void FActionExecutionContext::SetNamedArgument(const FString& InName, const FString& InValue)
 {
-    if (HasContext())
+    if (HasContext() && !InName.IsEmpty())
     {
-        FString& Arg = NamedArguments.FindOrAdd(InName);
-        Arg = InValue;
+        if (!InName.StartsWith(NAMEDARGUMENT_PREFIX))
+        {
+            UE_LOG(LogActorIO, Error, TEXT("ActionExecutionContext: Attempted to set named argument without the necessary '%s' prefix. Name was: %s"), NAMEDARGUMENT_PREFIX, *InName);
+            return;
+        }
+
+        if (!InValue.IsEmpty())
+        {
+            FString& Arg = NamedArguments.FindOrAdd(InName);
+            Arg = InValue;
+        }
+        else
+        {
+            NamedArguments.Remove(InName);
+        }
     }
 }

@@ -12,6 +12,9 @@
 class UActorIOAction;
 class UObject;
 
+/** Prefix to identify named arguments with. */
+#define NAMEDARGUMENT_PREFIX TEXT("$")
+
 /** Custom log category of the Actor IO plugin. */
 ACTORIO_API DECLARE_LOG_CATEGORY_EXTERN(LogActorIO, Log, All);
 

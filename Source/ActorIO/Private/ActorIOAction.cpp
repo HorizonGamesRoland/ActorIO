@@ -25,6 +25,8 @@ UActorIOAction::UActorIOAction()
 
 void UActorIOAction::BindAction()
 {
+	// #TODO: Rework error logs
+
 	if (bIsBound)
 	{
 		UE_LOG(LogActorIO, Error, TEXT("Attempted to bind an action that was bound already!"));
@@ -35,7 +37,7 @@ void UActorIOAction::BindAction()
 	const FActorIOEvent* TargetEvent = ValidEvents.FindByKey(EventId);
 	if (!TargetEvent)
 	{
-		UE_LOG(LogActorIO, Error, TEXT("Could not bind !"));
+		UE_LOG(LogActorIO, Error, TEXT("Could not find I/O event named '%s' on actor '%s'"), *EventId.ToString(), *GetOwnerActor()->GetActorNameOrLabel());
 		return;
 	}
 
@@ -226,7 +228,7 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 	{
 		for (FString& Argument : Arguments)
 		{
-			if (Argument.StartsWith(TEXT("$")) && ExecutionContext.NamedArguments.Contains(Argument))
+			if (Argument.StartsWith(NAMEDARGUMENT_PREFIX) && ExecutionContext.NamedArguments.Contains(Argument))
 			{
 				const FString NamedArgValue = ExecutionContext.NamedArguments[Argument];
 				Argument = NamedArgValue;
