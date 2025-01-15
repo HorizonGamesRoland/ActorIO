@@ -224,7 +224,7 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 	// Then replace all named arguments with their actual value set by the 'EventProcessor' above.
 	// Everything stays in string form (including named argument values) until the very end when command is sent.
 	TArray<FString> Arguments;
-	if (FunctionArguments.ParseIntoArray(Arguments, TEXT(" "), true) > 0)
+	if (FunctionArguments.ParseIntoArray(Arguments, ARGUMENT_SEPARATOR, true) > 0)
 	{
 		for (FString& Argument : Arguments)
 		{

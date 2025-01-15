@@ -12,11 +12,14 @@
 class UActorIOAction;
 class UObject;
 
-/** Prefix to identify named arguments with. */
-#define NAMEDARGUMENT_PREFIX TEXT("$")
-
 /** Custom log category of the Actor IO plugin. */
 ACTORIO_API DECLARE_LOG_CATEGORY_EXTERN(LogActorIO, Log, All);
+
+/** Character to use as a separator for I/O action arguments. */
+#define ARGUMENT_SEPARATOR TEXT(" ")
+
+/** Prefix to identify named arguments with. */
+#define NAMEDARGUMENT_PREFIX TEXT("$")
 
 /**
  * Exposes a dynamic delegate to the I/O system (e.g. OnTriggerEnter, OnValueChanged).
