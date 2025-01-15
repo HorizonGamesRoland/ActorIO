@@ -49,7 +49,7 @@ FActorIOFunctionList UActorIOSystem::GetFunctionsForObject(AActor* InObject)
     return OutFunctions;
 }
 
-TArray<TWeakObjectPtr<UActorIOAction>> UActorIOSystem::GetInputActionsForObject(const AActor* InObject)
+TArray<TWeakObjectPtr<UActorIOAction>> UActorIOSystem::GetInputActionsForObject(AActor* InObject)
 {
     TArray<TWeakObjectPtr<UActorIOAction>> OutActions = TArray<TWeakObjectPtr<UActorIOAction>>();
     if (IsValid(InObject))
@@ -67,7 +67,7 @@ TArray<TWeakObjectPtr<UActorIOAction>> UActorIOSystem::GetInputActionsForObject(
     return OutActions;
 }
 
-int32 UActorIOSystem::GetNumInputActionsForObject(const AActor* InObject)
+int32 UActorIOSystem::GetNumInputActionsForObject(AActor* InObject)
 {
     TArray<TWeakObjectPtr<UActorIOAction>> InputActions = GetInputActionsForObject(InObject);
     return InputActions.Num();

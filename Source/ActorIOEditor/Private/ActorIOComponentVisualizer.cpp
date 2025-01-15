@@ -13,8 +13,8 @@ void FActorIOComponentVisualizer::DrawVisualization(const UActorComponent* Compo
 		return;
 	}
 
-	const AActor* IOComponentOwner = IOComponent->GetOwner();
-	const float LineThickness = 3.0f;
+	AActor* IOComponentOwner = IOComponent->GetOwner();
+	constexpr float LineThickness = 3.0f;
 
 	for (const TWeakObjectPtr<UActorIOAction>& OutputAction : IOComponent->GetActions())
 	{

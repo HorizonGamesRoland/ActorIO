@@ -42,16 +42,16 @@ public:
 public:
 
 	/** @return List of registered I/O events of the given actor. */
-	static FActorIOEventList GetEventsForObject(AActor* InObject); // #TODO: make object const?
+	static FActorIOEventList GetEventsForObject(AActor* InObject);
 
 	/** @return List of registered I/O functions of the given actor. */
 	static FActorIOFunctionList GetFunctionsForObject(AActor* InObject);
 
 	/** @return List of I/O actions currently loaded in the world that are targeting the given actor. */
-	static TArray<TWeakObjectPtr<UActorIOAction>> GetInputActionsForObject(const AActor* InObject);
+	static TArray<TWeakObjectPtr<UActorIOAction>> GetInputActionsForObject(AActor* InObject);
 
 	/** @return Number of I/O actions currently loaded in the world that are targeting the given actor. */
-	static int32 GetNumInputActionsForObject(const AActor* InObject);
+	static int32 GetNumInputActionsForObject(AActor* InObject);
 
 private:
 
