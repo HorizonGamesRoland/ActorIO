@@ -7,14 +7,14 @@
 ALogicSpawner::ALogicSpawner()
 {
 	ActorsToSpawn = TArray<FLogicSpawnerEntry>();
-	bSpawnOnStart = true;
+	bSpawnActorsOnStart = true;
 }
 
 void ALogicSpawner::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (bSpawnOnStart)
+	if (bSpawnActorsOnStart)
 	{
 		Spawn();
 	}

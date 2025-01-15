@@ -34,6 +34,10 @@ void ALogicCounter::PostInitializeComponents()
 	}
 
 	CurrentValue = InitialValue;
+	if (bClampValue)
+	{
+		CurrentValue = FMath::Clamp(CurrentValue, 0, TargetValue);
+	}
 }
 
 void ALogicCounter::RegisterIOEvents_Implementation(FActorIOEventList& RegisteredEvents)

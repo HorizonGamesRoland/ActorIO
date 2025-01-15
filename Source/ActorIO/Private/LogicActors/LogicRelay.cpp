@@ -7,8 +7,6 @@
 ALogicRelay::ALogicRelay()
 {
 	bIsEnabled = true;
-	bOnlyOnce = false;
-	bWasTriggered = false;
 
 #if WITH_EDITORONLY_DATA
 	ConstructorHelpers::FObjectFinderOptional<UTexture2D> SpriteTexture(TEXT("/ActorIO/S_Relay"));
@@ -34,7 +32,7 @@ void ALogicRelay::RegisterIOFunctions_Implementation(FActorIOFunctionList& Regis
 	RegisteredFunctions.Add(FActorIOFunction()
 		.SetId(TEXT("ALogicRelay::Trigger"))
 		.SetDisplayName(LOCTEXT("ALogicRelay.Trigger", "Trigger"))
-		.SetTooltipText(LOCTEXT("ALogicRelay.TriggerTooltip", "Trigger the relay, causing the 'OnTrigger' event to fire if it is enabled."))
+		.SetTooltipText(LOCTEXT("ALogicRelay.TriggerTooltip", "Trigger the relay, causing the 'OnTrigger' event to fire if enabled."))
 		.SetFunction(TEXT("Trigger")));
 
 	RegisteredFunctions.Add(FActorIOFunction()
@@ -54,14 +52,7 @@ void ALogicRelay::Trigger()
 {
 	if (bIsEnabled)
 	{
-		if (bOnlyOnce && bWasTriggered)
-		{
-			// Do nothing if the relay was triggered once already and we only want it once.
-			return;
-		}
-
 		OnTrigger.Broadcast();
-		bWasTriggered = true;
 	}
 }
 

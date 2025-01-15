@@ -13,6 +13,7 @@
 #include "LogicActors/LogicCounter.h"
 #include "LogicActors/LogicGlobalEvent.h"
 #include "LogicActors/LogicRelay.h"
+#include "LogicActors/LogicSpawner.h"
 #include "LogicActors/LogicTimeline.h"
 #include "LogicActors/LogicTimer.h"
 #include "Framework/Docking/TabManager.h"
@@ -69,6 +70,7 @@ void FActorIOEditor::StartupModule()
 		PlacementModeModule.RegisterPlaceableItem(Info.UniqueHandle, MakeShared<FPlaceableItem>(*UActorFactory::StaticClass(), FAssetData(ALogicCounter::StaticClass())));
 		PlacementModeModule.RegisterPlaceableItem(Info.UniqueHandle, MakeShared<FPlaceableItem>(*UActorFactory::StaticClass(), FAssetData(ALogicGlobalEvent::StaticClass())));
 		PlacementModeModule.RegisterPlaceableItem(Info.UniqueHandle, MakeShared<FPlaceableItem>(*UActorFactory::StaticClass(), FAssetData(ALogicRelay::StaticClass())));
+		PlacementModeModule.RegisterPlaceableItem(Info.UniqueHandle, MakeShared<FPlaceableItem>(*UActorFactory::StaticClass(), FAssetData(ALogicSpawner::StaticClass())));
 		PlacementModeModule.RegisterPlaceableItem(Info.UniqueHandle, MakeShared<FPlaceableItem>(*UActorFactory::StaticClass(), FAssetData(ALogicTimeline::StaticClass())));
 		PlacementModeModule.RegisterPlaceableItem(Info.UniqueHandle, MakeShared<FPlaceableItem>(*UActorFactory::StaticClass(), FAssetData(ALogicTimer::StaticClass())));
 	}

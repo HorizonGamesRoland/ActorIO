@@ -50,20 +50,34 @@ void ALogicTimer::RegisterIOFunctions_Implementation(FActorIOFunctionList& Regis
 
 void ALogicTimer::StartTimer()
 {
-	const float TimerRate = Time + FMath::RandRange(-TimeRandomization, TimeRandomization);
-
 	FTimerDelegate TimerDelegate = FTimerDelegate::CreateUObject(this, &ThisClass::OnTimerCallback);
 	FTimerManager& TimerManager = GetWorld()->GetTimerManager();
-	TimerManager.SetTimer(CurrentTimerHandle, TimerDelegate, TimerRate, bLoop);
+
+	const float TimerRate = Time + FMath::RandRange(-TimeRandomization, TimeRandomization);
+	if (TimerRate > 0.0f)
+	{
+		TimerManager.SetTimer(CurrentTimerHandle, TimerDelegate, TimerRate, bLoop);
+	}
+	else
+	{
+		CurrentTimerHandle = TimerManager.SetTimerForNextTick(TimerDelegate);
+	}
 }
 
 void ALogicTimer::StartTimerWithParams(float InTime, float InTimeRandomization, bool bInLoop)
 {
-	const float TimerRate = InTime + FMath::RandRange(-InTimeRandomization, InTimeRandomization);
-
 	FTimerDelegate TimerDelegate = FTimerDelegate::CreateUObject(this, &ThisClass::OnTimerCallback);
 	FTimerManager& TimerManager = GetWorld()->GetTimerManager();
-	TimerManager.SetTimer(CurrentTimerHandle, TimerDelegate, TimerRate, bInLoop);
+	
+	const float TimerRate = InTime + FMath::RandRange(-InTimeRandomization, InTimeRandomization);
+	if (TimerRate > 0.0f)
+	{
+		TimerManager.SetTimer(CurrentTimerHandle, TimerDelegate, TimerRate, bLoop);
+	}
+	else
+	{
+		CurrentTimerHandle = TimerManager.SetTimerForNextTick(TimerDelegate);
+	}
 }
 
 void ALogicTimer::StopTimer()
