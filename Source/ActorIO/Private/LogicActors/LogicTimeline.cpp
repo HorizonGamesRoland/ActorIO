@@ -1,4 +1,4 @@
-// Copyright 2024 Horizon Games. All Rights Reserved.
+// Copyright 2025 Horizon Games. All Rights Reserved.
 
 #include "LogicActors/LogicTimeline.h"
 
