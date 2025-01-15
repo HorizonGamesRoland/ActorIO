@@ -273,6 +273,7 @@ struct ACTORIO_API FActionExecutionContext
 	/**
 	 * List of named arguments and their corresponding values.
 	 * Elements should only be assigned from within an I/O event processor.
+	 * Do not modify directly. Use SetNamedArgument() instead.
 	 */
 	TMap<FString, FString> NamedArguments;
 

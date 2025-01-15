@@ -17,6 +17,8 @@ public:
 
 public:
 
+    // #TODO: Add call on server to this?
+
     UPROPERTY(EditInstanceOnly, Category = "Relay")
     bool bIsEnabled;
 

@@ -12,7 +12,7 @@ class UActorIOAction;
  * World subsystem of the I/O system.
  * Implements global functions, and stores the current action execution context.
  */
-UCLASS()
+UCLASS(DisplayName = "Actor I/O System")
 class ACTORIO_API UActorIOSystem : public UWorldSubsystem
 {
 	GENERATED_BODY()
