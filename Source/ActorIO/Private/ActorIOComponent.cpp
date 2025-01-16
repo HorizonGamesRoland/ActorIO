@@ -29,8 +29,7 @@ void UActorIOComponent::OnRegister()
 
 UActorIOAction* UActorIOComponent::CreateNewAction()
 {
-	const FName ObjectName = MakeUniqueObjectName(this, UActorIOAction::StaticClass());
-	UActorIOAction* NewAction = NewObject<UActorIOAction>(this, ObjectName, RF_Transactional);
+	UActorIOAction* NewAction = NewObject<UActorIOAction>(this, NAME_None, RF_Transactional);
 	Actions.Add(NewAction);
 	return NewAction;
 }

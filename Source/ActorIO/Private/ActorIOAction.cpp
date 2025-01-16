@@ -5,7 +5,6 @@
 #include "ActorIOComponent.h"
 #include "ActorIOInterface.h"
 #include "UObject/SparseDelegate.h"
-#include "Misc/OutputDeviceNull.h"
 
 FName UActorIOAction::ExecuteActionSignalName(TEXT("ReceiveExecuteAction"));
 
@@ -25,35 +24,43 @@ UActorIOAction::UActorIOAction()
 
 void UActorIOAction::BindAction()
 {
-	// #TODO: Rework error logs
+	AActor* ActionOwner = GetOwnerActor();
+	check(ActionOwner);
 
 	if (bIsBound)
 	{
-		UE_LOG(LogActorIO, Error, TEXT("Attempted to bind an action that was bound already!"));
+		UE_LOG(LogActorIO, Error, TEXT("Actor '%s' could not bind action to '%s' - Action is already bound!"), *ActionOwner->GetActorNameOrLabel(), *EventId.ToString());
 		return;
 	}
 
-	const FActorIOEventList ValidEvents = UActorIOSystem::GetEventsForObject(GetOwnerActor());
+	const FActorIOEventList ValidEvents = UActorIOSystem::GetEventsForObject(ActionOwner);
 	const FActorIOEvent* TargetEvent = ValidEvents.FindByKey(EventId);
 	if (!TargetEvent)
 	{
-		UE_LOG(LogActorIO, Error, TEXT("Could not find I/O event named '%s' on actor '%s'"), *EventId.ToString(), *GetOwnerActor()->GetActorNameOrLabel());
+		UE_LOG(LogActorIO, Error, TEXT("Actor '%s' could not bind action to '%s' - Event was not found."), *ActionOwner->GetActorNameOrLabel(), *EventId.ToString());
 		return;
 	}
 
 	if (!IsValid(TargetEvent->DelegateOwner))
 	{
+		UE_LOG(LogActorIO, Error, TEXT("Actor '%s' could not bind action to '%s' - Delegate owner was invalid (destroyed?)."), *ActionOwner->GetActorNameOrLabel(), *EventId.ToString());
 		return;
 	}
 
 	ActionDelegate = FScriptDelegate();
 	ActionDelegate.BindUFunction(this, ExecuteActionSignalName);
 
+	// Binding to multicast delegate directly:
+	// Since we have a direct reference to the delegate, we can simply add to it.
 	if (TargetEvent->MulticastDelegatePtr)
 	{
 		TargetEvent->MulticastDelegatePtr->Add(ActionDelegate);
 		bIsBound = true;
 	}
+
+	// Binding to a sparse delegate.
+	// These delegates are stored in a global storage so we need to resolve it first.
+	// Then we have to use the interal add function because there's no other way to set the bIsBound param for it.
 	else if (!TargetEvent->SparseDelegateName.IsNone())
 	{
 		FSparseDelegate* SparseDelegate = FSparseDelegateStorage::ResolveSparseDelegate(TargetEvent->DelegateOwner, TargetEvent->SparseDelegateName);
@@ -62,7 +69,14 @@ void UActorIOAction::BindAction()
 			SparseDelegate->__Internal_AddUnique(TargetEvent->DelegateOwner, TargetEvent->SparseDelegateName, ActionDelegate);
 			bIsBound = true;
 		}
+		
+		UE_CLOG(!bIsBound, LogActorIO, Error, TEXT("Actor '%s' could not bind action to '%s' - Failed to resolve sparse delegate with name '%s'."),
+			*ActionOwner->GetActorNameOrLabel(), *EventId.ToString(), *TargetEvent->SparseDelegateName.ToString());
 	}
+
+	// Binding to blueprint delegate.
+	// These are the event dispatchers created in blueprints.
+	// Each event dispatcher is basically just an FMulticastDelegateProperty that we can add to.
 	else if (!TargetEvent->BlueprintDelegateName.IsNone())
 	{
 		UClass* DelegateOwnerClass = TargetEvent->DelegateOwner->GetClass();
@@ -72,16 +86,17 @@ void UActorIOAction::BindAction()
 			DelegateProp->AddDelegate(ActionDelegate, TargetEvent->DelegateOwner);
 			bIsBound = true;
 		}
-	}
 
-	if (!bIsBound)
-	{
-		UE_LOG(LogActorIO, Error, TEXT("Could not bind action to '%s'"), *TargetEvent->EventId.ToString());
+		UE_CLOG(!bIsBound, LogActorIO, Error, TEXT("Actor '%s' could not bind action to '%s' - No event dispatcher found with name '%s'."),
+			*ActionOwner->GetActorNameOrLabel(), *EventId.ToString(), *TargetEvent->BlueprintDelegateName.ToString());
 	}
 }
 
 void UActorIOAction::UnbindAction()
 {
+	AActor* ActionOwner = GetOwnerActor();
+	check(ActionOwner);
+
 	if (!bIsBound)
 	{
 		return;
@@ -97,15 +112,22 @@ void UActorIOAction::UnbindAction()
 	const FActorIOEvent* TargetEvent = ValidEvents.FindByKey(EventId);
 	if (!TargetEvent)
 	{
-		return;
+		// This should be impossible to reach.
+		// Basically the I/O event that the action is bound to was not found.
+		// Only case when this can happen is if your register IO events function does not always return the same list of events.
+		checkf(TargetEvent, TEXT("Could not unbind action because the I/O event that we were bound to was not found?!"));
 	}
+	
 
+	// Unbinding from multicast delegate directly.
 	FMulticastScriptDelegate* TargetDelegate = TargetEvent->MulticastDelegatePtr;
 	if (TargetDelegate)
 	{
 		TargetDelegate->Remove(ActionDelegate);
 		bIsBound = false;
 	}
+
+	// Unbinding from a sparse delegate.
 	else if (!TargetEvent->SparseDelegateName.IsNone())
 	{
 		FSparseDelegate* SparseDelegate = FSparseDelegateStorage::ResolveSparseDelegate(TargetEvent->DelegateOwner, TargetEvent->SparseDelegateName);
@@ -114,7 +136,12 @@ void UActorIOAction::UnbindAction()
 			SparseDelegate->__Internal_Remove(TargetEvent->DelegateOwner, TargetEvent->SparseDelegateName, ActionDelegate);
 			bIsBound = false;
 		}
+
+		UE_CLOG(bIsBound, LogActorIO, Error, TEXT("Actor '%s' could not unbind action from '%s' - Failed to resolve sparse delegate with name '%s'."),
+			*ActionOwner->GetActorNameOrLabel(), *EventId.ToString(), *TargetEvent->SparseDelegateName.ToString());
 	}
+
+	// Unbinding from a blueprint delegate.
 	else if (!TargetEvent->BlueprintDelegateName.IsNone())
 	{
 		UClass* DelegateOwnerClass = TargetEvent->DelegateOwner->GetClass();
@@ -124,12 +151,21 @@ void UActorIOAction::UnbindAction()
 			DelegateProp->RemoveDelegate(ActionDelegate, TargetEvent->DelegateOwner);
 			bIsBound = false;
 		}
+
+		UE_CLOG(bIsBound, LogActorIO, Error, TEXT("Actor '%s' could not unbind action from '%s' - No event dispatcher found with name '%s'."),
+			*ActionOwner->GetActorNameOrLabel(), *EventId.ToString(), *TargetEvent->BlueprintDelegateName.ToString());
 	}
 }
 
 void UActorIOAction::ProcessEvent(UFunction* Function, void* Parms)
 {
-	if (Function->GetFName() == ExecuteActionSignalName)
+	// This function is called whenever Unreal Script is executing a function on the object.
+	// We are going to use this to catch when 'execute action' was called by the I/O event delegate that we are bound to.
+	// The actual function bound to the delegate is empty as it's just used as an event signal here.
+	// Since we cannot know what parameters the I/O event delegate has, we will preserve the params memory here.
+	// Then we are going to execute the action manually so that we can have full control.
+
+	if (Function && Function->GetFName() == ExecuteActionSignalName)
 	{
 		FActionExecutionContext& ExecContext = FActionExecutionContext::Get(this);
 		ExecContext.EnterContext(this, Parms);
@@ -139,6 +175,7 @@ void UActorIOAction::ProcessEvent(UFunction* Function, void* Parms)
 			ExecuteAction(ExecContext);
 		}
 
+		// Make sure to leave the context in case 'ExecuteAction' didn't leave already.
 		if (ExecContext.HasContext())
 		{
 			ExecContext.ExitContext();
@@ -151,6 +188,8 @@ void UActorIOAction::ProcessEvent(UFunction* Function, void* Parms)
 void UActorIOAction::ReceiveExecuteAction()
 {
 	// Empty on purpose.
+	// This function is only used as an event signal.
+	// For more information see 'ProcessEvent' above.
 }
 
 bool UActorIOAction::CanExecuteAction(FActionExecutionContext& ExecutionContext)
@@ -168,12 +207,15 @@ bool UActorIOAction::CanExecuteAction(FActionExecutionContext& ExecutionContext)
 		return false;
 	}
 
+	// #TODO: Give actor a chance to decide execution?
+
 	return true;
 }
 
 void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 {
-	UE_LOG(LogActorIO, Log, TEXT("Executing action: %s -> %s"), *EventId.ToString(), *FunctionId.ToString());
+	AActor* ActionOwner = GetOwnerActor();
+	UE_LOG(LogActorIO, Log, TEXT("Actor '%s' executing action: %s -> %s"), *ActionOwner->GetActorNameOrLabel(), *EventId.ToString(), *FunctionId.ToString());
 
 	if (!IsValid(TargetActor))
 	{
@@ -186,19 +228,19 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 	FActorIOFunction* TargetFunction = ValidFunctions.FindByKey(FunctionId);
 	if (!TargetFunction)
 	{
-		UE_LOG(LogActorIO, Error, TEXT("Failed to find function '%s' on target actor '%s'"), *FunctionId.ToString(), *TargetActor->GetActorNameOrLabel());
+		UE_LOG(LogActorIO, Error, TEXT("Execute action failed. Failed to find function '%s' on target actor '%s'."), *FunctionId.ToString(), *TargetActor->GetActorNameOrLabel());
 		return;
 	}
 
-	// Figure out the final object that the function will be executed on.
-	// The function may want it to be executed on a subobject of the target actor.
+	// Figure out the object that the final command will be sent to.
+	// The I/O function may want it to be executed on a subobject rather then the target actor itself.
 	UObject* ObjectToSendCommandTo = TargetActor;
 	if (!TargetFunction->TargetSubobject.IsNone())
 	{
 		ObjectToSendCommandTo = TargetActor->GetDefaultSubobjectByName(TargetFunction->TargetSubobject);
 		if (!IsValid(ObjectToSendCommandTo))
 		{
-			UE_LOG(LogActorIO, Error, TEXT("Failed to find default subobject '%s' on target actor '%s'"), *TargetFunction->TargetSubobject.ToString(), *TargetActor->GetActorNameOrLabel());
+			UE_LOG(LogActorIO, Error, TEXT("Execute action failed. Failed to find default subobject '%s' on target actor '%s'."), *TargetFunction->TargetSubobject.ToString(), *TargetActor->GetActorNameOrLabel());
 			return;
 		}
 	}
@@ -208,7 +250,7 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 	check(BoundEvent);
 
 	// Let the event processor assign values to arbitrary named arguments.
-	// We are calling the event processor with the original script params memory that we received from the delegate that our action is bound to.
+	// We are calling the event processor with the original params memory that we received from the delegate our action is bound to.
 	// This way the event processor will receive the proper values for its params given that its signature matches the delegate.
 	if (BoundEvent->EventProcessor.IsBound())
 	{
@@ -222,7 +264,7 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 
 	// Break up the user defined arguments string from a single line into multiple elements.
 	// Then replace all named arguments with their actual value set by the 'EventProcessor' above.
-	// Everything stays in string form (including named argument values) until the very end when command is sent.
+	// Everything stays in string form (including named argument values) until the very end when the final command is sent.
 	TArray<FString> Arguments;
 	if (FunctionArguments.ParseIntoArray(Arguments, ARGUMENT_SEPARATOR, true) > 0)
 	{
@@ -265,7 +307,7 @@ void UActorIOAction::SendCommand(UObject* TargetObject, FString Command)
 {
 	if (IsValid(TargetObject))
 	{
-		FOutputDeviceNull Ar;
+		FStringOutputDevice Ar;
 		TargetObject->CallFunctionByNameWithArguments(*Command, Ar, this, true);
 	}
 }

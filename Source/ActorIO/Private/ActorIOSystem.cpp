@@ -5,12 +5,18 @@
 #include "ActorIOInterface.h"
 #include "ActorIOAction.h"
 #include "GameFramework/Actor.h"
-#include "GameFramework/Volume.h"
+#include "GameFramework/CameraBlockingVolume.h"
+#include "Engine/StaticMeshActor.h"
+#include "Engine/BlockingVolume.h"
+#include "Engine/TriggerVolume.h"
 #include "Engine/TriggerBase.h"
 #include "Engine/Light.h"
 #include "Particles/Emitter.h"
 #include "NiagaraActor.h"
 #include "Sound/AmbientSound.h"
+#include "Sound/AudioVolume.h"
+
+#define LOCTEXT_NAMESPACE "ActorIO"
 
 UActorIOSystem::UActorIOSystem()
 {
@@ -79,41 +85,45 @@ void UActorIOSystem::GetNativeEventsForObject(AActor* InObject, FActorIOEventLis
     {
         RegisteredEvents.Add(FActorIOEvent()
             .SetId(TEXT("ATriggerBase::OnTriggerEnter"))
-            .SetDisplayName(FText::FromString(TEXT("OnTriggerEnter")))
-            .SetTooltipText(FText::FromString(TEXT("Event when an actor enters the trigger area.")))
+            .SetDisplayName(LOCTEXT("TriggerBase.OnTriggerEnter", "OnTriggerEnter"))
+            .SetTooltipText(LOCTEXT("TriggerBase.OnTriggerEnterTooltip", "Event when an actor enters the trigger area."))
             .SetSparseDelegate(InObject, TEXT("OnActorBeginOverlap")));
 
         RegisteredEvents.Add(FActorIOEvent()
             .SetId(TEXT("ATriggerBase::OnTriggerExit"))
-            .SetDisplayName(FText::FromString(TEXT("OnTriggerExit")))
-            .SetTooltipText(FText::FromString(TEXT("Event when an actor leaves the trigger area.")))
+            .SetDisplayName(LOCTEXT("TriggerBase.OnTriggerExit", "OnTriggerExit"))
+            .SetTooltipText(LOCTEXT("TriggerBase.OnTriggerExitTooltip", "Event when an actor leaves the trigger area."))
             .SetSparseDelegate(InObject, TEXT("OnActorEndOverlap")));
     }
 }
 
 void UActorIOSystem::GetNativeFunctionsForObject(AActor* InObject, FActorIOFunctionList& RegisteredFunctions)
 {
+    //==================================
+    // Light Actors
+    //==================================
+
     if (InObject->IsA<ALight>())
     {
         RegisteredFunctions.Add(FActorIOFunction()
             .SetId(TEXT("ALight::SetLightIntensity"))
-            .SetDisplayName(FText::FromString(TEXT("SetLightIntensity")))
-            .SetTooltipText(FText::FromString(TEXT("Set intensity of the light.")))
+            .SetDisplayName(LOCTEXT("Light.SetLightIntensity", "SetLightIntensity"))
+            .SetTooltipText(LOCTEXT("Light.SetLightIntensityTooltip", "Set intensity of the light."))
             .SetFunction(TEXT("SetIntensity"))
             .SetSubobject(TEXT("LightComponent0")));
 
         // #TODO: Test how this works
         RegisteredFunctions.Add(FActorIOFunction()
             .SetId(TEXT("ALight::SetLightColor"))
-            .SetDisplayName(FText::FromString(TEXT("SetLightColor")))
-            .SetTooltipText(FText::FromString(TEXT("Set color of the light.")))
+            .SetDisplayName(LOCTEXT("Light.SetLightColor", "SetLightColor"))
+            .SetTooltipText(LOCTEXT("Light.SetLightColorTooltip", "Set color of the light."))
             .SetFunction(TEXT("SetLightFColor"))
             .SetSubobject(TEXT("LightComponent0")));
 
         RegisteredFunctions.Add(FActorIOFunction()
             .SetId(TEXT("ALight::SetVisibility"))
-            .SetDisplayName(FText::FromString(TEXT("SetVisibility")))
-            .SetTooltipText(FText::FromString(TEXT("Set visibility of the light. Use this to turn light on/off.")))
+            .SetDisplayName(LOCTEXT("Light.SetVisibility", "SetVisibility"))
+            .SetTooltipText(LOCTEXT("Light.SetVisibilityTooltip", "Set visibility of the light. Use this to turn light on/off."))
             .SetFunction(TEXT("SetVisibility"))
             .SetSubobject(TEXT("LightComponent0")));
 
@@ -125,19 +135,23 @@ void UActorIOSystem::GetNativeFunctionsForObject(AActor* InObject, FActorIOFunct
             .SetSubobject(TEXT("LightComponent0")));
     }
 
+    //==================================
+    // Effect Actors
+    //==================================
+
     if (InObject->IsA<AEmitter>())
     {
         RegisteredFunctions.Add(FActorIOFunction()
             .SetId(TEXT("AEmitter::Activate"))
-            .SetDisplayName(FText::FromString(TEXT("Activate")))
-            .SetTooltipText(FText::FromString(TEXT("Activate the particle system.")))
+            .SetDisplayName(LOCTEXT("Emitter.Activate", "Activate"))
+            .SetTooltipText(LOCTEXT("Emitter.ActivateTooltip", "Activate the particle system."))
             .SetFunction(TEXT("Activate"))
             .SetSubobject(TEXT("ParticleSystemComponent0")));
 
         RegisteredFunctions.Add(FActorIOFunction()
             .SetId(TEXT("AEmitter::Deactivate"))
-            .SetDisplayName(FText::FromString(TEXT("Deactivate")))
-            .SetTooltipText(FText::FromString(TEXT("Deactivate the particle system.")))
+            .SetDisplayName(LOCTEXT("Emitter.Deactivate", "Deactivate"))
+            .SetTooltipText(LOCTEXT("Emitter.DeactivateTooltip", "Deactivate the particle system."))
             .SetFunction(TEXT("Deactivate"))
             .SetSubobject(TEXT("ParticleSystemComponent0")));
     }
@@ -146,69 +160,117 @@ void UActorIOSystem::GetNativeFunctionsForObject(AActor* InObject, FActorIOFunct
     {
         RegisteredFunctions.Add(FActorIOFunction()
             .SetId(TEXT("ANiagaraActor::Activate"))
-            .SetDisplayName(FText::FromString(TEXT("Activate")))
-            .SetTooltipText(FText::FromString(TEXT("Activate the particle system.")))
+            .SetDisplayName(LOCTEXT("NiagaraActor.Activate", "Activate"))
+            .SetTooltipText(LOCTEXT("NiagaraActor.ActivateTooltip", "Activate the particle system."))
             .SetFunction(TEXT("Activate"))
             .SetSubobject(TEXT("NiagaraComponent0")));
 
         RegisteredFunctions.Add(FActorIOFunction()
             .SetId(TEXT("ANiagaraActor::Deactivate"))
-            .SetDisplayName(FText::FromString(TEXT("Deactivate")))
-            .SetTooltipText(FText::FromString(TEXT("Deactivate the particle system.")))
+            .SetDisplayName(LOCTEXT("NiagaraActor.Deactivate", "Deactivate"))
+            .SetTooltipText(LOCTEXT("NiagaraActor.DeactivateTooltip", "Deactivate the particle system."))
             .SetFunction(TEXT("Deactivate"))
             .SetSubobject(TEXT("NiagaraComponent0")));
     }
+
+    //==================================
+    // Sound Actors
+    //==================================
 
     if (InObject->IsA<AAmbientSound>())
     {
         RegisteredFunctions.Add(FActorIOFunction()
             .SetId(TEXT("AAmbientSound::FadeIn"))
-            .SetDisplayName(FText::FromString(TEXT("FadeIn")))
-            .SetTooltipText(FText::FromString(TEXT("Smoothly start playing the sound with a fade.")))
+            .SetDisplayName(LOCTEXT("AmbientSound.FadeIn", "FadeIn"))
+            .SetTooltipText(LOCTEXT("AmbientSound.FadeInTooltip", "Smoothly start playing the sound with a fade."))
             .SetFunction(TEXT("FadeIn"))
             .SetSubobject(TEXT("AudioComponent0")));
 
         RegisteredFunctions.Add(FActorIOFunction()
             .SetId(TEXT("AAmbientSound::FadeOut"))
-            .SetDisplayName(FText::FromString(TEXT("FadeOut")))
-            .SetTooltipText(FText::FromString(TEXT("Smoothly stop playing the sound with a fade.")))
+            .SetDisplayName(LOCTEXT("AmbientSound.FadeOut", "FadeOut"))
+            .SetTooltipText(LOCTEXT("AmbientSound.FadeOutTooltip", "Smoothly stop playing the sound with a fade."))
             .SetFunction(TEXT("FadeOut"))
             .SetSubobject(TEXT("AudioComponent0")));
 
         RegisteredFunctions.Add(FActorIOFunction()
             .SetId(TEXT("AAmbientSound::AdjustVolume"))
-            .SetDisplayName(FText::FromString(TEXT("AdjustVolume")))
-            .SetTooltipText(FText::FromString(TEXT("Smoothly adjust the volume of the sound with a fade.")))
+            .SetDisplayName(LOCTEXT("AmbientSound.AdjustVolume", "AdjustVolume"))
+            .SetTooltipText(LOCTEXT("AmbientSound.AdjustVolumeTooltip", "Smoothly adjust the volume of the sound with a fade."))
             .SetFunction(TEXT("AdjustVolume"))
             .SetSubobject(TEXT("AudioComponent0")));
 
         RegisteredFunctions.Add(FActorIOFunction()
             .SetId(TEXT("AAmbientSound::Play"))
-            .SetDisplayName(FText::FromString(TEXT("Play")))
-            .SetTooltipText(FText::FromString(TEXT("Start playing the sound. Start time can be given.")))
+            .SetDisplayName(LOCTEXT("AmbientSound.Play", "Play"))
+            .SetTooltipText(LOCTEXT("AmbientSound.PlayTooltip", "Start playing the sound. Start time can be given."))
             .SetFunction(TEXT("Play"))
             .SetSubobject(TEXT("AudioComponent0")));
 
         RegisteredFunctions.Add(FActorIOFunction()
             .SetId(TEXT("AAmbientSound::Stop"))
-            .SetDisplayName(FText::FromString(TEXT("Stop")))
-            .SetTooltipText(FText::FromString(TEXT("Stop playing the sound.")))
+            .SetDisplayName(LOCTEXT("AmbientSound.Stop", "Stop"))
+            .SetTooltipText(LOCTEXT("AmbientSound.StopTooltip", "Stop playing the sound."))
             .SetFunction(TEXT("Stop"))
             .SetSubobject(TEXT("AudioComponent0")));
     }
 
-    // #TODO: Add support for volumes
+    //==================================
+    // Volume Actors
+    //==================================
 
-    //RegisteredFunctions.Add(FActorIOFunction()
-    //    .SetId(TEXT("AActor::SetActorHiddenInGame"))
-    //    .SetDisplayName(FText::FromString(TEXT("SetActorHiddenInGame")))
-    //    .SetTooltipText(FText::FromString(TEXT("Changes actor hidden state.")))
-    //    .SetFunction(TEXT("SetActorHiddenInGame")));
+    if (InObject->IsA<ABlockingVolume>() || InObject->IsA<ACameraBlockingVolume>())
+    {
+        RegisteredFunctions.Add(FActorIOFunction()
+            .SetId(TEXT("ABlockingVolume::SetEnabled"))
+            .SetDisplayName(LOCTEXT("BlockingVolume.SetEnabled", "SetEnabled"))
+            .SetTooltipText(LOCTEXT("BlockingVolume.SetEnabledTooltip", "Change whether collision is enabled for the volume actor."))
+            .SetFunction(TEXT("SetActorEnableCollision")));
+    }
+
+    if (InObject->IsA<AAudioVolume>())
+    {
+        RegisteredFunctions.Add(FActorIOFunction()
+            .SetId(TEXT("AAudioVolume::SetEnabled"))
+            .SetDisplayName(LOCTEXT("AudioVolume.SetEnabled", "SetEnabled"))
+            .SetTooltipText(LOCTEXT("AudioVolume.SetEnabledTooltip", "Set whether the audio volume is enabled or not."))
+            .SetFunction(TEXT("SetEnabled")));
+    }
+
+    //==================================
+    // Mesh Actors
+    //==================================
+
+    if (InObject->IsA<AStaticMeshActor>())
+    {
+        RegisteredFunctions.Add(FActorIOFunction()
+            .SetId(TEXT("AStaticMeshActor::SetEnableCollision"))
+            .SetDisplayName(LOCTEXT("StaticMeshActor.SetEnableCollision", "SetEnableCollision"))
+            .SetTooltipText(LOCTEXT("StaticMeshActor.SetEnableCollisionTooltip", "Set whether collision is enabled for the actor."))
+            .SetFunction(TEXT("SetActorEnableCollision")));
+
+        RegisteredFunctions.Add(FActorIOFunction()
+            .SetId(TEXT("AStaticMeshActor::SetSimulatePhysics"))
+            .SetDisplayName(LOCTEXT("StaticMeshActor.SetSimulatePhysics", "SetSimulatePhysics"))
+            .SetTooltipText(LOCTEXT("StaticMeshActor.SetSimulatePhysicsTooltip", "Set physics simulation on/off."))
+            .SetFunction(TEXT("SetSimulatePhysics"))
+            .SetSubobject(TEXT("StaticMeshComponent0")));
+
+        RegisteredFunctions.Add(FActorIOFunction()
+            .SetId(TEXT("AStaticMeshActor::SetHiddenInGame"))
+            .SetDisplayName(LOCTEXT("StaticMeshActor.SetHiddenInGame", "SetHiddenInGame"))
+            .SetTooltipText(LOCTEXT("StaticMeshActor.SetHiddenInGameTooltip", "Set whether the actor is hidden or not."))
+            .SetFunction(TEXT("SetActorHiddenInGame")));
+    }
+
+    //==================================
+    // Base Actor
+    //==================================
 
     RegisteredFunctions.Add(FActorIOFunction()
         .SetId(TEXT("AActor::Destroy"))
-        .SetDisplayName(FText::FromString(TEXT("Destroy")))
-        .SetTooltipText(FText::FromString(TEXT("Destroy the actor.")))
+        .SetDisplayName(LOCTEXT("Actor.Destroy", "Destroy"))
+        .SetTooltipText(LOCTEXT("Actor.DestroyTooltip", "Destroy the actor."))
         .SetFunction(TEXT("K2_DestroyActor")));
 }
 
@@ -230,3 +292,5 @@ void UActorIOSystem::RegisterIOFunction(UObject* WorldContextObject, TArray<FAct
         .SetFunction(FunctionToExec)
         .SetSubobject(SubobjectName));
 }
+
+#undef LOCTEXT_NAMESPACE

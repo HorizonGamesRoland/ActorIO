@@ -74,8 +74,8 @@ public:
 	//#TODO: Rework? Custom nodes?
 
 	UFUNCTION(BlueprintCallable, Category = "Actor IO", meta = (WorldContext = "WorldContextObject", AutoCreateRefTerm = "DisplayName,TooltipText"))
-	void RegisterIOEvent(UObject* WorldContextObject, UPARAM(Ref) TArray<FActorIOEvent>& RegisterTo, FName EventId, const FText& DisplayName, const FText& TooltipText, FName EventDispatcherName);
+	static void RegisterIOEvent(UObject* WorldContextObject, UPARAM(Ref) TArray<FActorIOEvent>& RegisterTo, FName EventId, const FText& DisplayName, const FText& TooltipText, FName EventDispatcherName);
 
 	UFUNCTION(BlueprintCallable, Category = "Actor IO", meta = (WorldContext = "WorldContextObject", AutoCreateRefTerm = "DisplayName,TooltipText", AdvancedDisplay = "SubobjectName"))
-	void RegisterIOFunction(UObject* WorldContextObject, UPARAM(Ref) TArray<FActorIOFunction>& RegisterTo, FName FunctionId, const FText& DisplayName, const FText& TooltipText, FString FunctionToExec, FName SubobjectName);
+	static void RegisterIOFunction(UObject* WorldContextObject, UPARAM(Ref) TArray<FActorIOFunction>& RegisterTo, FName FunctionId, const FText& DisplayName, const FText& TooltipText, FString FunctionToExec, FName SubobjectName);
 };
