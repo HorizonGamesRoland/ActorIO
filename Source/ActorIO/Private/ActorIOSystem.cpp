@@ -81,19 +81,24 @@ int32 UActorIOSystem::GetNumInputActionsForObject(AActor* InObject)
 
 void UActorIOSystem::GetNativeEventsForObject(AActor* InObject, FActorIOEventList& RegisteredEvents)
 {
+    UWorld* ObjectWorld = InObject->GetWorld();
+    UActorIOSystem* IOSystem = ObjectWorld->GetSubsystem<UActorIOSystem>();
+
     if (InObject->IsA<ATriggerBase>())
     {
         RegisteredEvents.Add(FActorIOEvent()
             .SetId(TEXT("ATriggerBase::OnTriggerEnter"))
             .SetDisplayName(LOCTEXT("TriggerBase.OnTriggerEnter", "OnTriggerEnter"))
             .SetTooltipText(LOCTEXT("TriggerBase.OnTriggerEnterTooltip", "Event when an actor enters the trigger area."))
-            .SetSparseDelegate(InObject, TEXT("OnActorBeginOverlap")));
+            .SetSparseDelegate(InObject, TEXT("OnActorBeginOverlap"))
+            .SetEventProcessor(IOSystem, TEXT("ProcessEvent_OnActorOverlap")));
 
         RegisteredEvents.Add(FActorIOEvent()
             .SetId(TEXT("ATriggerBase::OnTriggerExit"))
             .SetDisplayName(LOCTEXT("TriggerBase.OnTriggerExit", "OnTriggerExit"))
             .SetTooltipText(LOCTEXT("TriggerBase.OnTriggerExitTooltip", "Event when an actor leaves the trigger area."))
-            .SetSparseDelegate(InObject, TEXT("OnActorEndOverlap")));
+            .SetSparseDelegate(InObject, TEXT("OnActorEndOverlap"))
+            .SetEventProcessor(IOSystem, TEXT("ProcessEvent_OnActorOverlap")));
     }
 }
 
@@ -272,6 +277,11 @@ void UActorIOSystem::GetNativeFunctionsForObject(AActor* InObject, FActorIOFunct
         .SetDisplayName(LOCTEXT("Actor.Destroy", "Destroy"))
         .SetTooltipText(LOCTEXT("Actor.DestroyTooltip", "Destroy the actor."))
         .SetFunction(TEXT("K2_DestroyActor")));
+}
+
+void UActorIOSystem::ProcessEvent_OnActorOverlap(AActor* OverlappedActor, AActor* OtherActor)
+{
+    ActionExecContext.SetNamedArgument(TEXT("$Actor"), IsValid(OtherActor) ? OtherActor->GetPathName() : FString());
 }
 
 void UActorIOSystem::RegisterIOEvent(UObject* WorldContextObject, TArray<FActorIOEvent>& RegisterTo, FName EventId, const FText& DisplayName, const FText& TooltipText, FName EventDispatcherName)
