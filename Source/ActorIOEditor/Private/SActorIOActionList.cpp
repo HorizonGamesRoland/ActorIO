@@ -435,9 +435,22 @@ void SActorIOActionListViewRow::OnTargetActorChanged(const FAssetData& InAssetDa
 	UActorIOComponent* ActionOwner = ActionPtr->GetOwnerIOComponent();
 	ActionOwner->Modify();
 
-	ActionPtr->TargetActor = Cast<AActor>(InAssetData.GetAsset());
+	AActor* NewTarget = Cast<AActor>(InAssetData.GetAsset());
+	ActionPtr->TargetActor = NewTarget;
 	ActionPtr->FunctionId = NAME_None;
 	ActionPtr->FunctionArguments = FString();
+
+	// Add an I/O component to the selected actor.
+	// This is needed for rendering the connection lines.
+	if (IsValid(NewTarget))
+	{
+		UActorIOComponent* TargetIOComponent = NewTarget->GetComponentByClass<UActorIOComponent>();
+		if (!TargetIOComponent)
+		{
+			FActorIOEditor& ActorIOEditor = FActorIOEditor::Get();
+			ActorIOEditor.AddIOComponenToActor(NewTarget, false);
+		}
+	}
 
 	GetOwnerActionListView()->Refresh();
 }

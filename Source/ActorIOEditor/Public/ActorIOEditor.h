@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Modules/ModuleManager.h"
 
+class UActorIOComponent;
 class SActorIOEditor;
 class SDockTab;
 
@@ -46,6 +47,9 @@ public:
 
 	/** @return The actor that is currently selected in the editor. */
 	AActor* GetSelectedActor() const;
+	
+	/** Add an actor I/O component to the given actor. */
+	UActorIOComponent* AddIOComponenToActor(AActor* TargetActor, bool bSelectActor);
 
 private:
 

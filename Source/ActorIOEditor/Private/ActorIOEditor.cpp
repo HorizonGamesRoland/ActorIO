@@ -161,6 +161,29 @@ AActor* FActorIOEditor::GetSelectedActor() const
 	return SelectedActor.Get();
 }
 
+UActorIOComponent* FActorIOEditor::AddIOComponenToActor(AActor* TargetActor, bool bSelectActor)
+{
+	// Modify the actor to support undo/redo.
+	// The transaction should already be defined prior to calling this function.
+	TargetActor->Modify();
+
+	UActorIOComponent* NewComponent = NewObject<UActorIOComponent>(TargetActor, TEXT("ActorIOComponent"), RF_Transactional);
+	NewComponent->OnComponentCreated();
+	NewComponent->RegisterComponent();
+
+	TargetActor->AddInstanceComponent(NewComponent);
+
+	// Re-select the actor so that the render state is created for the I/O visualizer.
+	// Also the component list of the actor gets updated.
+	if (bSelectActor && GEditor)
+	{
+		GEditor->SelectNone(true, false, false);
+		GEditor->SelectActor(TargetActor, true, true);
+	}
+
+	return NewComponent;
+}
+
 #undef LOCTEXT_NAMESPACE
 
 IMPLEMENT_MODULE(FActorIOEditor, ActorIOEditor)

@@ -8,7 +8,6 @@
 #include "ActorIOComponent.h"
 #include "ActorIOAction.h"
 #include "GameFramework/Actor.h"
-#include "LevelEditor.h"
 #include "SPositiveActionButton.h"
 #include "Styling/SlateTypes.h"
 #include "Misc/Optional.h"
@@ -226,23 +225,14 @@ FReply SActorIOEditor::OnClick_NewAction()
 {
     FActorIOEditor& ActorIOEditor = FActorIOEditor::Get();
     AActor* SelectedActor = ActorIOEditor.GetSelectedActor();
-    if (SelectedActor)
+    if (IsValid(SelectedActor))
     {
         const FScopedTransaction Transaction(LOCTEXT("AddActorIOAction", "Add ActorIO Action"));
 
         UActorIOComponent* ActorIOComponent = SelectedActor->GetComponentByClass<UActorIOComponent>();
         if (!ActorIOComponent)
         {
-            SelectedActor->Modify();
-
-            ActorIOComponent = NewObject<UActorIOComponent>(SelectedActor, TEXT("ActorIOComponent"), RF_Transactional);
-            ActorIOComponent->OnComponentCreated();
-            ActorIOComponent->RegisterComponent();
-
-            SelectedActor->AddInstanceComponent(ActorIOComponent);
-
-            FLevelEditorModule& LevelEditor = FModuleManager::LoadModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
-            LevelEditor.BroadcastComponentsEdited();
+            ActorIOComponent = ActorIOEditor.AddIOComponenToActor(SelectedActor, true);
         }
 
         if (ActorIOComponent)
