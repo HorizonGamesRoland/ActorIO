@@ -8,6 +8,7 @@
 #include "ActorIOSystem.h"
 #include "SActorIOEditor.h"
 #include "LogicActors/LogicBranch.h"
+#include "LogicActors/LogicCase.h"
 #include "LogicActors/LogicCompare.h"
 #include "LogicActors/LogicCondition.h"
 #include "LogicActors/LogicCounter.h"
@@ -65,6 +66,7 @@ void FActorIOEditor::StartupModule()
 		IPlacementModeModule& PlacementModeModule = IPlacementModeModule::Get();
 		PlacementModeModule.RegisterPlacementCategory(Info);
 		PlacementModeModule.RegisterPlaceableItem(Info.UniqueHandle, MakeShared<FPlaceableItem>(*UActorFactory::StaticClass(), FAssetData(ALogicBranch::StaticClass())));
+		PlacementModeModule.RegisterPlaceableItem(Info.UniqueHandle, MakeShared<FPlaceableItem>(*UActorFactory::StaticClass(), FAssetData(ALogicCase::StaticClass())));
 		PlacementModeModule.RegisterPlaceableItem(Info.UniqueHandle, MakeShared<FPlaceableItem>(*UActorFactory::StaticClass(), FAssetData(ALogicCompare::StaticClass())));
 		PlacementModeModule.RegisterPlaceableItem(Info.UniqueHandle, MakeShared<FPlaceableItem>(*UActorFactory::StaticClass(), FAssetData(ALogicCondition::StaticClass())));
 		PlacementModeModule.RegisterPlaceableItem(Info.UniqueHandle, MakeShared<FPlaceableItem>(*UActorFactory::StaticClass(), FAssetData(ALogicCounter::StaticClass())));
