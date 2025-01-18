@@ -77,6 +77,8 @@ void FActorIOEditorStyle::Initialize()
 	StyleSet->Set("ClassThumbnail.LogicActorBase", new IMAGE_BRUSH("Icons/AssetIcons/LogicActorBase_64", Icon64x64));
 	StyleSet->Set("ClassIcon.LogicBranch", new IMAGE_BRUSH("Icons/AssetIcons/LogicBranch_16", Icon16x16));
 	StyleSet->Set("ClassThumbnail.LogicBranch", new IMAGE_BRUSH("Icons/AssetIcons/LogicBranch_64", Icon64x64));
+	StyleSet->Set("ClassIcon.LogicCase", new IMAGE_BRUSH("Icons/AssetIcons/LogicCase_16", Icon16x16));
+	StyleSet->Set("ClassThumbnail.LogicCase", new IMAGE_BRUSH("Icons/AssetIcons/LogicCase_64", Icon64x64));
 	StyleSet->Set("ClassIcon.LogicCompare", new IMAGE_BRUSH("Icons/AssetIcons/LogicCompare_16", Icon16x16));
 	StyleSet->Set("ClassThumbnail.LogicCompare", new IMAGE_BRUSH("Icons/AssetIcons/LogicCompare_64", Icon64x64));
 	StyleSet->Set("ClassIcon.LogicCondition", new IMAGE_BRUSH("Icons/AssetIcons/LogicCondition_16", Icon16x16));
