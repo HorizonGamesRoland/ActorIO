@@ -18,30 +18,30 @@ ALogicTimer::ALogicTimer()
 #endif
 }
 
-void ALogicTimer::RegisterIOEvents_Implementation(FActorIOEventList& RegisteredEvents)
+void ALogicTimer::RegisterIOEvents_Implementation(FActorIOEventList& EventRegistry)
 {
-	RegisteredEvents.Add(FActorIOEvent()
+	EventRegistry.RegisterEvent(FActorIOEvent()
 		.SetId(TEXT("ALogicTimer::OnTimer"))
 		.SetDisplayName(LOCTEXT("ALogicTimer.OnTimer", "OnTimer"))
 		.SetTooltipText(LOCTEXT("ALogicTimer.OnTimerTooltip", "Event when the timer expires."))
 		.SetMulticastDelegate(this, &OnTimer));
 }
 
-void ALogicTimer::RegisterIOFunctions_Implementation(FActorIOFunctionList& RegisteredFunctions)
+void ALogicTimer::RegisterIOFunctions_Implementation(FActorIOFunctionList& FunctionRegistry)
 {
-	RegisteredFunctions.Add(FActorIOFunction()
+	FunctionRegistry.RegisterFunction(FActorIOFunction()
 		.SetId(TEXT("ALogicTimer::StartTimer"))
 		.SetDisplayName(LOCTEXT("ALogicTimer.StartTimer", "StartTimer"))
 		.SetTooltipText(LOCTEXT("ALogicTimer.StartTimerTooltip", "Start the timer. If the timer is already active then it will be restarted."))
 		.SetFunction(TEXT("StartTimer")));
 
-	RegisteredFunctions.Add(FActorIOFunction()
+	FunctionRegistry.RegisterFunction(FActorIOFunction()
 		.SetId(TEXT("ALogicTimer::StartTimerWithParams"))
 		.SetDisplayName(LOCTEXT("ALogicTimer.StartTimerWithParams", "StartTimerWithParams"))
 		.SetTooltipText(LOCTEXT("ALogicTimer.StartTimerWithParamsTooltip", "Start the timer with custom params. If the timer is already active then it will be restarted."))
 		.SetFunction(TEXT("StartTimerWithParams")));
 
-	RegisteredFunctions.Add(FActorIOFunction()
+	FunctionRegistry.RegisterFunction(FActorIOFunction()
 		.SetId(TEXT("ALogicTimer::StopTimer"))
 		.SetDisplayName(LOCTEXT("ALogicTimer.StopTimer", "StopTimer"))
 		.SetTooltipText(LOCTEXT("ALogicTimer.StopTimerTooltip", "Stop the timer if it is active."))

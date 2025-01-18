@@ -19,108 +19,108 @@ ALogicCase::ALogicCase()
 #endif
 }
 
-void ALogicCase::RegisterIOEvents_Implementation(FActorIOEventList& RegisteredEvents)
+void ALogicCase::RegisterIOEvents_Implementation(FActorIOEventList& EventRegistry)
 {
-	RegisteredEvents.Add(FActorIOEvent()
+	EventRegistry.RegisterEvent(FActorIOEvent()
 		.SetId(TEXT("ALogicCase::OnCase01"))
 		.SetDisplayName(LOCTEXT("LogicCase.OnCase01", "OnCase01"))
 		.SetTooltipText(LOCTEXT("LogicCase.OnCase01Tooltip", "Event when the input value equals the case value at index 0."))
 		.SetMulticastDelegate(this, &OnCase01));
 
-	RegisteredEvents.Add(FActorIOEvent()
+	EventRegistry.RegisterEvent(FActorIOEvent()
 		.SetId(TEXT("ALogicCase::OnCase02"))
 		.SetDisplayName(LOCTEXT("LogicCase.OnCase02", "OnCase02"))
 		.SetTooltipText(LOCTEXT("LogicCase.OnCase02Tooltip", "Event when the input value equals the case value at index 1."))
 		.SetMulticastDelegate(this, &OnCase02));
 
-	RegisteredEvents.Add(FActorIOEvent()
+	EventRegistry.RegisterEvent(FActorIOEvent()
 		.SetId(TEXT("ALogicCase::OnCase03"))
 		.SetDisplayName(LOCTEXT("LogicCase.OnCase03", "OnCase03"))
 		.SetTooltipText(LOCTEXT("LogicCase.OnCase03Tooltip", "Event when the input value equals the case value at index 2."))
 		.SetMulticastDelegate(this, &OnCase03));
 
-	RegisteredEvents.Add(FActorIOEvent()
+	EventRegistry.RegisterEvent(FActorIOEvent()
 		.SetId(TEXT("ALogicCase::OnCase04"))
 		.SetDisplayName(LOCTEXT("LogicCase.OnCase04", "OnCase04"))
 		.SetTooltipText(LOCTEXT("LogicCase.OnCase04Tooltip", "Event when the input value equals the case value at index 3."))
 		.SetMulticastDelegate(this, &OnCase04));
 
-	RegisteredEvents.Add(FActorIOEvent()
+	EventRegistry.RegisterEvent(FActorIOEvent()
 		.SetId(TEXT("ALogicCase::OnCase05"))
 		.SetDisplayName(LOCTEXT("LogicCase.OnCase05", "OnCase05"))
 		.SetTooltipText(LOCTEXT("LogicCase.OnCase05Tooltip", "Event when the input value equals the case value at index 4."))
 		.SetMulticastDelegate(this, &OnCase05));
 
-	RegisteredEvents.Add(FActorIOEvent()
+	EventRegistry.RegisterEvent(FActorIOEvent()
 		.SetId(TEXT("ALogicCase::OnCase06"))
 		.SetDisplayName(LOCTEXT("LogicCase.OnCase06", "OnCase06"))
 		.SetTooltipText(LOCTEXT("LogicCase.OnCase06Tooltip", "Event when the input value equals the case value at index 5."))
 		.SetMulticastDelegate(this, &OnCase06));
 
-	RegisteredEvents.Add(FActorIOEvent()
+	EventRegistry.RegisterEvent(FActorIOEvent()
 		.SetId(TEXT("ALogicCase::OnCase07"))
 		.SetDisplayName(LOCTEXT("LogicCase.OnCase07", "OnCase07"))
 		.SetTooltipText(LOCTEXT("LogicCase.OnCase07Tooltip", "Event when the input value equals the case value at index 6."))
 		.SetMulticastDelegate(this, &OnCase07));
 
-	RegisteredEvents.Add(FActorIOEvent()
+	EventRegistry.RegisterEvent(FActorIOEvent()
 		.SetId(TEXT("ALogicCase::OnCase08"))
 		.SetDisplayName(LOCTEXT("LogicCase.OnCase08", "OnCase08"))
 		.SetTooltipText(LOCTEXT("LogicCase.OnCase08Tooltip", "Event when the input value equals the case value at index 7."))
 		.SetMulticastDelegate(this, &OnCase08));
 
-	RegisteredEvents.Add(FActorIOEvent()
+	EventRegistry.RegisterEvent(FActorIOEvent()
 		.SetId(TEXT("ALogicCase::OnCase09"))
 		.SetDisplayName(LOCTEXT("LogicCase.OnCase09", "OnCase09"))
 		.SetTooltipText(LOCTEXT("LogicCase.OnCase09Tooltip", "Event when the input value equals the case value at index 8."))
 		.SetMulticastDelegate(this, &OnCase09));
 
-	RegisteredEvents.Add(FActorIOEvent()
+	EventRegistry.RegisterEvent(FActorIOEvent()
 		.SetId(TEXT("ALogicCase::OnCase10"))
 		.SetDisplayName(LOCTEXT("LogicCase.OnCase10", "OnCase10"))
 		.SetTooltipText(LOCTEXT("LogicCase.OnCase10Tooltip", "Event when the input value equals the case value at index 9."))
 		.SetMulticastDelegate(this, &OnCase10));
 
-	RegisteredEvents.Add(FActorIOEvent()
+	EventRegistry.RegisterEvent(FActorIOEvent()
 		.SetId(TEXT("ALogicCase::OnCase11"))
 		.SetDisplayName(LOCTEXT("LogicCase.OnCase11", "OnCase11"))
 		.SetTooltipText(LOCTEXT("LogicCase.OnCase11Tooltip", "Event when the input value equals the case value at index 10."))
 		.SetMulticastDelegate(this, &OnCase11));
 
-	RegisteredEvents.Add(FActorIOEvent()
+	EventRegistry.RegisterEvent(FActorIOEvent()
 		.SetId(TEXT("ALogicCase::OnCase12"))
 		.SetDisplayName(LOCTEXT("LogicCase.OnCase12", "OnCase12"))
 		.SetTooltipText(LOCTEXT("LogicCase.OnCase12Tooltip", "Event when the input value equals the case value at index 11."))
 		.SetMulticastDelegate(this, &OnCase12));
 
-	RegisteredEvents.Add(FActorIOEvent()
+	EventRegistry.RegisterEvent(FActorIOEvent()
 		.SetId(TEXT("ALogicCase::OnCase13"))
 		.SetDisplayName(LOCTEXT("LogicCase.OnCase13", "OnCase13"))
 		.SetTooltipText(LOCTEXT("LogicCase.OnCase13Tooltip", "Event when the input value equals the case value at index 12."))
 		.SetMulticastDelegate(this, &OnCase13));
 
-	RegisteredEvents.Add(FActorIOEvent()
+	EventRegistry.RegisterEvent(FActorIOEvent()
 		.SetId(TEXT("ALogicCase::OnCase14"))
 		.SetDisplayName(LOCTEXT("LogicCase.OnCase14", "OnCase14"))
 		.SetTooltipText(LOCTEXT("LogicCase.OnCase14Tooltip", "Event when the input value equals the case value at index 13."))
 		.SetMulticastDelegate(this, &OnCase14));
 
-	RegisteredEvents.Add(FActorIOEvent()
+	EventRegistry.RegisterEvent(FActorIOEvent()
 		.SetId(TEXT("ALogicCase::OnCase15"))
 		.SetDisplayName(LOCTEXT("LogicCase.OnCase15", "OnCase15"))
 		.SetTooltipText(LOCTEXT("LogicCase.OnCase15Tooltip", "Event when the input value equals the case value at index 14."))
 		.SetMulticastDelegate(this, &OnCase15));
 
-	RegisteredEvents.Add(FActorIOEvent()
+	EventRegistry.RegisterEvent(FActorIOEvent()
 		.SetId(TEXT("ALogicCase::OnCase16"))
 		.SetDisplayName(LOCTEXT("LogicCase.OnCase16", "OnCase16"))
 		.SetTooltipText(LOCTEXT("LogicCase.OnCase16Tooltip", "Event when the input value equals the case value at index 15."))
 		.SetMulticastDelegate(this, &OnCase16));
 }
 
-void ALogicCase::RegisterIOFunctions_Implementation(FActorIOFunctionList& RegisteredFunctions)
+void ALogicCase::RegisterIOFunctions_Implementation(FActorIOFunctionList& FunctionRegistry)
 {
-	RegisteredFunctions.Add(FActorIOFunction()
+	FunctionRegistry.RegisterFunction(FActorIOFunction()
 		.SetId(TEXT("ALogicCase::Test"))
 		.SetDisplayName(LOCTEXT("LogicCase.Test", "Test"))
 		.SetTooltipText(LOCTEXT("LogicCase.TestTooltip", "Compare the value to the case values, and fire the appropriate 'OnCase' event."))

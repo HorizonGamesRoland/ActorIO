@@ -33,16 +33,16 @@ void ALogicBranch::PostInitializeComponents()
 	bCurrentValue = bInitialValue;
 }
 
-void ALogicBranch::RegisterIOEvents_Implementation(FActorIOEventList& RegisteredEvents)
+void ALogicBranch::RegisterIOEvents_Implementation(FActorIOEventList& EventRegistry)
 {
-	RegisteredEvents.Add(FActorIOEvent()
+	EventRegistry.RegisterEvent(FActorIOEvent()
 		.SetId(TEXT("ALogicBranch::OnTrue"))
 		.SetDisplayName(LOCTEXT("LogicBranch.OnTrue", "OnTrue"))
 		.SetTooltipText(LOCTEXT("LogicBranch.OnTrueTooltip", "Event when the stored boolean value is true when 'Test' is called."))
 		.SetMulticastDelegate(this, &OnTrue)
 		.SetEventProcessor(this, TEXT("ProcessEvent_OnTest")));
 
-	RegisteredEvents.Add(FActorIOEvent()
+	EventRegistry.RegisterEvent(FActorIOEvent()
 		.SetId(TEXT("ALogicBranch::OnFalse"))
 		.SetDisplayName(LOCTEXT("LogicBranch.OnFalse", "OnFalse"))
 		.SetTooltipText(LOCTEXT("LogicBranch.OnFalseTooltip", "Event when the stored boolean value is false when 'Test' is called."))
@@ -50,33 +50,33 @@ void ALogicBranch::RegisterIOEvents_Implementation(FActorIOEventList& Registered
 		.SetEventProcessor(this, TEXT("ProcessEvent_OnTest")));
 }
 
-void ALogicBranch::RegisterIOFunctions_Implementation(FActorIOFunctionList& RegisteredFunctions)
+void ALogicBranch::RegisterIOFunctions_Implementation(FActorIOFunctionList& FunctionRegistry)
 {
-	RegisteredFunctions.Add(FActorIOFunction()
+	FunctionRegistry.RegisterFunction(FActorIOFunction()
 		.SetId(TEXT("ALogicBranch::SetValue"))
 		.SetDisplayName(LOCTEXT("LogicBranch.SetValue", "SetValue"))
 		.SetTooltipText(LOCTEXT("LogicBranch.SetValueTooltip", "Set the boolean value without performing the comparison. Use this to hold a value for a future test."))
 		.SetFunction(TEXT("SetValue")));
 
-	RegisteredFunctions.Add(FActorIOFunction()
+	FunctionRegistry.RegisterFunction(FActorIOFunction()
 		.SetId(TEXT("ALogicBranch::SetValueAndTest"))
 		.SetDisplayName(LOCTEXT("LogicBranch.SetValueAndTest", "SetValueAndTest"))
 		.SetTooltipText(LOCTEXT("LogicBranch.SetValueAndTestTooltip", "Set the boolean value and test it, firing 'OnTrue' or 'OnFalse' based on the new value."))
 		.SetFunction(TEXT("SetValueAndTest")));
 
-	RegisteredFunctions.Add(FActorIOFunction()
+	FunctionRegistry.RegisterFunction(FActorIOFunction()
 		.SetId(TEXT("ALogicBranch::Toggle"))
 		.SetDisplayName(LOCTEXT("LogicBranch.Toggle", "Toggle"))
 		.SetTooltipText(LOCTEXT("LogicBranch.ToggleTooltip", "Toggle the boolean value between true and false without performing the comparison."))
 		.SetFunction(TEXT("Toggle")));
 
-	RegisteredFunctions.Add(FActorIOFunction()
+	FunctionRegistry.RegisterFunction(FActorIOFunction()
 		.SetId(TEXT("ALogicBranch::ToggleAndTest"))
 		.SetDisplayName(LOCTEXT("LogicBranch.ToggleAndTest", "ToggleAndTest"))
 		.SetTooltipText(LOCTEXT("LogicBranch.ToggleAndTestTooltip", "Toggle the boolean value and test it, firing 'OnTrue' or 'OnFalse' based on the new value."))
 		.SetFunction(TEXT("ToggleAndTest")));
 
-	RegisteredFunctions.Add(FActorIOFunction()
+	FunctionRegistry.RegisterFunction(FActorIOFunction()
 		.SetId(TEXT("ALogicBranch::Test"))
 		.SetDisplayName(LOCTEXT("LogicBranch.Test", "Test"))
 		.SetTooltipText(LOCTEXT("LogicBranch.TestTooltip", "Test the boolean value and fire 'OnTrue' or 'OnFalse' based on the value."))

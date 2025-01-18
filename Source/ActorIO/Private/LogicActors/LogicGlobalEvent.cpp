@@ -46,28 +46,28 @@ void ALogicGlobalEvent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	Super::EndPlay(EndPlayReason);
 }
 
-void ALogicGlobalEvent::RegisterIOEvents_Implementation(FActorIOEventList& RegisteredEvents)
+void ALogicGlobalEvent::RegisterIOEvents_Implementation(FActorIOEventList& EventRegistry)
 {
-	RegisteredEvents.Add(FActorIOEvent()
+	EventRegistry.RegisterEvent(FActorIOEvent()
 		.SetId(TEXT("ALogicGlobalEvent::OnWorldInitialized"))
 		.SetDisplayName(LOCTEXT("ALogicGlobalEvent.OnWorldInitialized", "OnWorldInitialized"))
 		.SetTooltipText(LOCTEXT("ALogicGlobalEvent.OnWorldInitializedTooltip", "Event when the world has been initialized. Called after all actors have been initialized, but before 'BeginPlay'."))
 		.SetMulticastDelegate(this, &OnWorldInitialized));
 
-	RegisteredEvents.Add(FActorIOEvent()
+	EventRegistry.RegisterEvent(FActorIOEvent()
 		.SetId(TEXT("ALogicGlobalEvent::OnBeginPlay"))
 		.SetDisplayName(LOCTEXT("ALogicGlobalEvent.OnBeginPlay", "OnBeginPlay"))
 		.SetTooltipText(LOCTEXT("ALogicGlobalEvent.OnBeginPlayTooltip", "Event when play begins for this actor."))
 		.SetMulticastDelegate(this, &OnBeginPlay));
 
-	RegisteredEvents.Add(FActorIOEvent()
+	EventRegistry.RegisterEvent(FActorIOEvent()
 		.SetId(TEXT("ALogicGlobalEvent::OnWorldTeardown"))
 		.SetDisplayName(LOCTEXT("ALogicGlobalEvent.OnWorldTeardown", "OnWorldTeardown"))
 		.SetTooltipText(LOCTEXT("ALogicGlobalEvent.OnWorldTeardownTooltip", "Event when the world is being torn down. This means we are leaving the map. Called before 'EndPlay' is dispatched to all actors."))
 		.SetMulticastDelegate(this, &OnWorldTeardown));
 }
 
-void ALogicGlobalEvent::RegisterIOFunctions_Implementation(FActorIOFunctionList& RegisteredFunctions)
+void ALogicGlobalEvent::RegisterIOFunctions_Implementation(FActorIOFunctionList& FunctionRegistry)
 {
 	// No functions.
 }

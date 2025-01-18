@@ -26,21 +26,18 @@ ACTORIO_API DECLARE_LOG_CATEGORY_EXTERN(LogActorIO, Log, All);
  * Actions bound to this event will be executed when the assigned delegate is triggered.
  * In classic terms this is the "output" part of the Input/Output system.
  */
-USTRUCT(BlueprintType)
+USTRUCT()
 struct ACTORIO_API FActorIOEvent
 {
 	GENERATED_BODY()
 
 	/** Unique id of the event on a per class basis. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event")
 	FName EventId;
 
 	/** Display name to use in the editor. If empty, event id will be used. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event")
 	FText DisplayName;
 
 	/** Tooltip text to display in the editor. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event")
 	FText TooltipText;
 
 	/** The owner of the assigned delegate. */
@@ -146,39 +143,79 @@ struct ACTORIO_API FActorIOEvent
 };
 
 /**
+ * List of I/O events registered with an object.
+ * Use the register function to add elements to this.
+ */
+USTRUCT(BlueprintType)
+struct ACTORIO_API FActorIOEventList
+{
+	GENERATED_BODY()
+
+	/**
+	 * The internal list of I/O events.
+	 * Do not modify directly, use the register function instead.
+	 */
+	TArray<FActorIOEvent> EventRegistry;
+
+	/** Default constructor. */
+	FActorIOEventList() :
+		EventRegistry(TArray<FActorIOEvent>())
+	{}
+
+	/** Constructor starting with a list of I/O events. */
+	FActorIOEventList(const TArray<FActorIOEvent>& InEvents) :
+		EventRegistry(InEvents)
+	{}
+
+	/** Add a new I/O event to the list. */
+	void RegisterEvent(const FActorIOEvent& InEvent)
+	{
+		// #TODO: Raise error in editor if event already contained?
+		EventRegistry.Add(InEvent);
+	}
+
+	/** Attempt to get a registered I/O event by id. */
+	FActorIOEvent* GetEvent(FName InEventId)
+	{
+		return EventRegistry.FindByKey(InEventId);
+	}
+
+	/** Attempt to get a registered I/O event by id (const version). */
+	const FActorIOEvent* GetEvent(FName InEventId) const
+	{
+		return EventRegistry.FindByKey(InEventId);
+	}
+};
+
+/**
  * Exposes a callable function to the I/O system (e.g. SetValue, PlayEffect, DestroyActor).
  * These functions will be called by actions when their event is triggered.
  * In classic terms this is the "input" part of the Input/Output system.
  */
-USTRUCT(BlueprintType)
+USTRUCT()
 struct ACTORIO_API FActorIOFunction
 {
 	GENERATED_BODY()
 
 	/** Unique id of the function on a per class basis. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Function")
 	FName FunctionId;
 
 	/** Display name to use in the editor. If empty, function id will be used. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Function")
 	FText DisplayName;
 
 	/** Tooltip text to display in the editor. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Function")
 	FText TooltipText;
 
 	/**
 	 * The name of the function to execute.
 	 * The function must be marked as UFUNCTION in C++.
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Function")
 	FString FunctionToExec;
 
 	/**
 	 * Specific subobject to call the function on instead of the actor itself.
 	 * Can be used to avoid duplicating functions from components since the I/O system only communicates between actors.
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Function")
 	FName TargetSubobject;
 
 	/** Default constructor. */
@@ -246,8 +283,50 @@ struct ACTORIO_API FActorIOFunction
 	}
 };
 
-typedef TArray<FActorIOEvent> FActorIOEventList;
-typedef TArray<FActorIOFunction> FActorIOFunctionList;
+/**
+ * List of I/O functions registered with an object.
+ * Use the register function to add elements to this.
+ */
+USTRUCT(BlueprintType)
+struct ACTORIO_API FActorIOFunctionList
+{
+	GENERATED_BODY()
+
+	/**
+	 * The internal list of I/O functions.
+	 * Do not modify directly, use the register function instead.
+	 */
+	TArray<FActorIOFunction> FunctionRegistry;
+
+	/** Default constructor. */
+	FActorIOFunctionList() :
+		FunctionRegistry(TArray<FActorIOFunction>())
+	{}
+
+	/** Constructor starting with a list of I/O functions. */
+	FActorIOFunctionList(const TArray<FActorIOFunction>& InFunctions) :
+		FunctionRegistry(InFunctions)
+	{}
+
+	/** Add a new I/O function to the list. */
+	void RegisterFunction(const FActorIOFunction& InFunction)
+	{
+		// #TODO: Raise error in editor if function already contained?
+		FunctionRegistry.Add(InFunction);
+	}
+
+	/** Attempt to get a registered I/O function by id. */
+	FActorIOFunction* GetFunction(FName InFunctionId)
+	{
+		return FunctionRegistry.FindByKey(InFunctionId);
+	}
+
+	/** Attempt to get a registered I/O function by id (const version). */
+	const FActorIOFunction* GetFunction(FName InFunctionId) const
+	{
+		return FunctionRegistry.FindByKey(InFunctionId);
+	}
+};
 
 /**
  * Context of an I/O action that the reflection system is about to execute.

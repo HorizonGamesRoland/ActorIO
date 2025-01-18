@@ -31,8 +31,8 @@ public:
 
 public:
 
-    virtual void RegisterIOEvents_Implementation(FActorIOEventList& RegisteredEvents) override;
-    virtual void RegisterIOFunctions_Implementation(FActorIOFunctionList& RegisteredFunctions) override;
+    virtual void RegisterIOEvents_Implementation(FActorIOEventList& EventRegistry) override;
+    virtual void RegisterIOFunctions_Implementation(FActorIOFunctionList& FunctionRegistry) override;
 
 public:
 

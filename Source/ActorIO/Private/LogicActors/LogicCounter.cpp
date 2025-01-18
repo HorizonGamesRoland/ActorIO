@@ -40,21 +40,21 @@ void ALogicCounter::PostInitializeComponents()
 	}
 }
 
-void ALogicCounter::RegisterIOEvents_Implementation(FActorIOEventList& RegisteredEvents)
+void ALogicCounter::RegisterIOEvents_Implementation(FActorIOEventList& EventRegistry)
 {
-	RegisteredEvents.Add(FActorIOEvent()
+	EventRegistry.RegisterEvent(FActorIOEvent()
 		.SetId(TEXT("ALogicCounter::OnValueChanged"))
 		.SetDisplayName(LOCTEXT("ALogicCounter.OnValueChanged", "OnValueChanged"))
 		.SetTooltipText(LOCTEXT("ALogicCounter.OnValueChangedTooltip", "Event when the current value is changed."))
 		.SetMulticastDelegate(this, &OnValueChanged));
 
-	RegisteredEvents.Add(FActorIOEvent()
+	EventRegistry.RegisterEvent(FActorIOEvent()
 		.SetId(TEXT("ALogicCounter::OnTargetValueReached"))
 		.SetDisplayName(LOCTEXT("ALogicCounter.OnTargetValueReached", "OnTargetValueReached"))
 		.SetTooltipText(LOCTEXT("ALogicCounter.OnTargetValueReachedeTooltip", "Event when the current value equals or greater then the target value."))
 		.SetMulticastDelegate(this, &OnTargetValueReached));
 
-	RegisteredEvents.Add(FActorIOEvent()
+	EventRegistry.RegisterEvent(FActorIOEvent()
 		.SetId(TEXT("ALogicCounter::OnGetValue"))
 		.SetDisplayName(LOCTEXT("ALogicCounter.OnGetValue", "OnGetValue"))
 		.SetTooltipText(LOCTEXT("ALogicCounter.OnGetValueTooltip", "Event when the current value is read using the 'GetValue' function."))
@@ -62,33 +62,33 @@ void ALogicCounter::RegisterIOEvents_Implementation(FActorIOEventList& Registere
 		.SetEventProcessor(this, TEXT("ProcessEvent_OnGetValue")));
 }
 
-void ALogicCounter::RegisterIOFunctions_Implementation(FActorIOFunctionList& RegisteredFunctions)
+void ALogicCounter::RegisterIOFunctions_Implementation(FActorIOFunctionList& FunctionRegistry)
 {
-	RegisteredFunctions.Add(FActorIOFunction()
+	FunctionRegistry.RegisterFunction(FActorIOFunction()
 		.SetId(TEXT("ALogicCounter::Add"))
 		.SetDisplayName(LOCTEXT("ALogicCounter.Add", "Add"))
 		.SetTooltipText(LOCTEXT("ALogicCounter.AddTooltip", "Add to the current value."))
 		.SetFunction(TEXT("Add")));
 
-	RegisteredFunctions.Add(FActorIOFunction()
+	FunctionRegistry.RegisterFunction(FActorIOFunction()
 		.SetId(TEXT("ALogicCounter::Subtract"))
 		.SetDisplayName(LOCTEXT("ALogicCounter.Subtract", "Subtract"))
 		.SetTooltipText(LOCTEXT("ALogicCounter.SubtractTooltip", "Subtract from the current value."))
 		.SetFunction(TEXT("Subtract")));
 
-	RegisteredFunctions.Add(FActorIOFunction()
+	FunctionRegistry.RegisterFunction(FActorIOFunction()
 		.SetId(TEXT("ALogicCounter::SetValue"))
 		.SetDisplayName(LOCTEXT("ALogicCounter.SetValue", "SetValue"))
 		.SetTooltipText(LOCTEXT("ALogicCounter.SetValueTooltip", "Set the current value directly."))
 		.SetFunction(TEXT("SetValue")));
 
-	RegisteredFunctions.Add(FActorIOFunction()
+	FunctionRegistry.RegisterFunction(FActorIOFunction()
 		.SetId(TEXT("ALogicCounter::SetTargetValue"))
 		.SetDisplayName(LOCTEXT("ALogicCounter.SetTargetValue", "SetTargetValue"))
 		.SetTooltipText(LOCTEXT("ALogicCounter.SetTargetValueTooltip", "Set a new target value. Fires 'OnTargetValueReached' if current value equals or greater then the new target value."))
 		.SetFunction(TEXT("SetTargetValue")));
 
-	RegisteredFunctions.Add(FActorIOFunction()
+	FunctionRegistry.RegisterFunction(FActorIOFunction()
 		.SetId(TEXT("ALogicCounter::GetValue"))
 		.SetDisplayName(LOCTEXT("ALogicCounter.GetValue", "GetValue"))
 		.SetTooltipText(LOCTEXT("ALogicCounter.GetValueTooltip", "Fire the 'OnGetValue' event with the current value."))

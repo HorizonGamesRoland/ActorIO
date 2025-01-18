@@ -53,49 +53,49 @@ void ALogicTimeline::PostInitializeComponents()
 	Timeline.SetTimelineFinishedFunc(FOnTimelineEventStatic::CreateUObject(this, &ThisClass::OnTimelineFinishedCallback));
 }
 
-void ALogicTimeline::RegisterIOEvents_Implementation(FActorIOEventList& RegisteredEvents)
+void ALogicTimeline::RegisterIOEvents_Implementation(FActorIOEventList& EventRegistry)
 {
-	RegisteredEvents.Add(FActorIOEvent()
+	EventRegistry.RegisterEvent(FActorIOEvent()
 		.SetId(TEXT("ALogicTimeline::OnValueChanged"))
 		.SetDisplayName(LOCTEXT("ALogicTimeline.OnValueChanged", "OnValueChanged"))
 		.SetTooltipText(LOCTEXT("ALogicTimeline.OnValueChangedTooltip", "Event when the timeline's value is changed."))
 		.SetMulticastDelegate(this, &OnTimelineValueChanged)
 		.SetEventProcessor(this, TEXT("ProcessEvent_OnTimelineValueChanged")));
 
-	RegisteredEvents.Add(FActorIOEvent()
+	EventRegistry.RegisterEvent(FActorIOEvent()
 		.SetId(TEXT("ALogicTimeline::OnFinished"))
 		.SetDisplayName(LOCTEXT("ALogicTimeline.OnFinished", "OnFinished"))
 		.SetTooltipText(LOCTEXT("ALogicTimeline.OnFinishedTooltip", "Event when the timeline is finished."))
 		.SetMulticastDelegate(this, &OnTimelineFinished));
 }
 
-void ALogicTimeline::RegisterIOFunctions_Implementation(FActorIOFunctionList& RegisteredFunctions)
+void ALogicTimeline::RegisterIOFunctions_Implementation(FActorIOFunctionList& FunctionRegistry)
 {
-	RegisteredFunctions.Add(FActorIOFunction()
+	FunctionRegistry.RegisterFunction(FActorIOFunction()
 		.SetId(TEXT("ALogicTimeline::Play"))
 		.SetDisplayName(LOCTEXT("ALogicTimeline.Play", "Play"))
 		.SetTooltipText(LOCTEXT("ALogicTimeline.PlayTooltip", "Start the timeline."))
 		.SetFunction(TEXT("Play")));
 
-	RegisteredFunctions.Add(FActorIOFunction()
+	FunctionRegistry.RegisterFunction(FActorIOFunction()
 		.SetId(TEXT("ALogicTimeline::PlayFromStart"))
 		.SetDisplayName(LOCTEXT("ALogicTimeline.PlayFromStart", "PlayFromStart"))
 		.SetTooltipText(LOCTEXT("ALogicTimeline.PlayFromStartTooltip", "Start the timeline from the start."))
 		.SetFunction(TEXT("PlayFromStart")));
 
-	RegisteredFunctions.Add(FActorIOFunction()
+	FunctionRegistry.RegisterFunction(FActorIOFunction()
 		.SetId(TEXT("ALogicTimeline::Reverse"))
 		.SetDisplayName(LOCTEXT("ALogicTimeline.Reverse", "Reverse"))
 		.SetTooltipText(LOCTEXT("ALogicTimeline.ReverseTooltip", "Reverse the timeline."))
 		.SetFunction(TEXT("Reverse")));
 
-	RegisteredFunctions.Add(FActorIOFunction()
+	FunctionRegistry.RegisterFunction(FActorIOFunction()
 		.SetId(TEXT("ALogicTimeline::ReverseFromEnd"))
 		.SetDisplayName(LOCTEXT("ALogicTimeline.ReverseFromEnd", "ReverseFromEnd"))
 		.SetTooltipText(LOCTEXT("ALogicTimeline.ReverseFromEndTooltip", "Reverse the timeline from the end."))
 		.SetFunction(TEXT("ReverseFromEnd")));
 
-	RegisteredFunctions.Add(FActorIOFunction()
+	FunctionRegistry.RegisterFunction(FActorIOFunction()
 		.SetId(TEXT("ALogicTimeline::Stop"))
 		.SetDisplayName(LOCTEXT("ALogicTimeline.Stop", "Stop"))
 		.SetTooltipText(LOCTEXT("ALogicTimeline.StopTooltip", "Stop the timeline."))

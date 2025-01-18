@@ -29,18 +29,18 @@ public:
 	/**
 	 * Event when building list of registered I/O events for the actor.
 	 * 
-	 * @param RegisteredEvents Current list of registered events.
+	 * @param EventRegistry Current list of registered events.
 	 */
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, CallInEditor, Category = "Actor IO", DisplayName = "Register IO Events", meta = (ForceAsFunction))
-	void RegisterIOEvents(UPARAM(Ref) TArray<FActorIOEvent>& RegisteredEvents);
-	virtual void RegisterIOEvents_Implementation(TArray<FActorIOEvent>& RegisteredEvents) {}
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, CallInEditor, Category = "Actor IO", DisplayName = "Register I/O Events", meta = (ForceAsFunction))
+	void RegisterIOEvents(UPARAM(Ref) FActorIOEventList& EventRegistry);
+	virtual void RegisterIOEvents_Implementation(FActorIOEventList& EventRegistry) {}
 
 	/**
 	 * Event when building list of registered I/O functions for the actor.
 	 *
-	 * @param RegisteredFunctions Current list of registered functions.
+	 * @param FunctionRegistry Current list of registered functions.
 	 */
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, CallInEditor, Category = "Actor IO", DisplayName = "Register IO Functions", meta = (ForceAsFunction))
-	void RegisterIOFunctions(UPARAM(Ref) TArray<FActorIOFunction>& RegisteredFunctions);
-	virtual void RegisterIOFunctions_Implementation(TArray<FActorIOFunction>& RegisteredFunctions) {}
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, CallInEditor, Category = "Actor IO", DisplayName = "Register I/O Functions", meta = (ForceAsFunction))
+	void RegisterIOFunctions(UPARAM(Ref) FActorIOFunctionList& FunctionRegistry);
+	virtual void RegisterIOFunctions_Implementation(FActorIOFunctionList& FunctionRegistry) {}
 };

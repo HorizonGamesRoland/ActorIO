@@ -591,7 +591,7 @@ void SActorIOActionListViewRow::UpdateSelectableEvents()
 	SelectableEventIds.Add(NAME_ClearComboBox);
 
 	ValidEvents = UActorIOSystem::GetEventsForObject(ActionPtr->GetOwnerActor());
-	for (const FActorIOEvent& IOEvent : ValidEvents)
+	for (const FActorIOEvent& IOEvent : ValidEvents.EventRegistry)
 	{
 		SelectableEventIds.Emplace(IOEvent.EventId);
 	}
@@ -603,7 +603,7 @@ void SActorIOActionListViewRow::UpdateSelectableFunctions()
 	SelectableFunctionIds.Add(NAME_ClearComboBox);
 
 	ValidFunctions = UActorIOSystem::GetFunctionsForObject(ActionPtr->TargetActor);
-	for (const FActorIOFunction& IOFunction : ValidFunctions)
+	for (const FActorIOFunction& IOFunction : ValidFunctions.FunctionRegistry)
 	{
 		SelectableFunctionIds.Emplace(IOFunction.FunctionId);
 	}
@@ -611,7 +611,7 @@ void SActorIOActionListViewRow::UpdateSelectableFunctions()
 
 FText SActorIOActionListViewRow::GetEventDisplayName(FName InEventId) const
 {
-	const FActorIOEvent* TargetEvent = ValidEvents.FindByKey(InEventId);
+	const FActorIOEvent* TargetEvent = ValidEvents.GetEvent(InEventId);
 	if (TargetEvent && !TargetEvent->DisplayName.IsEmpty())
 	{
 		return TargetEvent->DisplayName;
@@ -622,7 +622,7 @@ FText SActorIOActionListViewRow::GetEventDisplayName(FName InEventId) const
 
 FText SActorIOActionListViewRow::GetEventTooltipText(FName InEventId) const
 {
-	const FActorIOEvent* TargetEvent = ValidEvents.FindByKey(InEventId);
+	const FActorIOEvent* TargetEvent = ValidEvents.GetEvent(InEventId);
 	if (TargetEvent)
 	{
 		return TargetEvent->TooltipText;
@@ -639,13 +639,13 @@ FSlateColor SActorIOActionListViewRow::GetEventTextColor(FName InEventId) const
 		return FSlateColor::UseForeground();
 	}
 
-	const FActorIOEvent* TargetEvent = ValidEvents.FindByKey(InEventId);
+	const FActorIOEvent* TargetEvent = ValidEvents.GetEvent(InEventId);
 	return TargetEvent ? FSlateColor::UseForeground() : FStyleColors::Error;
 }
 
 FText SActorIOActionListViewRow::GetFunctionDisplayName(FName InFunctionId) const
 {
-	const FActorIOFunction* TargetFunction = ValidFunctions.FindByKey(InFunctionId);
+	const FActorIOFunction* TargetFunction = ValidFunctions.GetFunction(InFunctionId);
 	if (TargetFunction && !TargetFunction->DisplayName.IsEmpty())
 	{
 		return TargetFunction->DisplayName;
@@ -656,7 +656,7 @@ FText SActorIOActionListViewRow::GetFunctionDisplayName(FName InFunctionId) cons
 
 FText SActorIOActionListViewRow::GetFunctionTooltipText(FName InFunctionId) const
 {
-	const FActorIOFunction* TargetFunction = ValidFunctions.FindByKey(InFunctionId);
+	const FActorIOFunction* TargetFunction = ValidFunctions.GetFunction(InFunctionId);
 	if (TargetFunction)
 	{
 		return TargetFunction->TooltipText;
@@ -673,7 +673,7 @@ FSlateColor SActorIOActionListViewRow::GetFunctionTextColor(FName InFunctionId) 
 		return FSlateColor::UseForeground();
 	}
 
-	const FActorIOFunction* TargetFunction = ValidFunctions.FindByKey(InFunctionId);
+	const FActorIOFunction* TargetFunction = ValidFunctions.GetFunction(InFunctionId);
 	return TargetFunction ? FSlateColor::UseForeground() : FStyleColors::Error;
 }
 

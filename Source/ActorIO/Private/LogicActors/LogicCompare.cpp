@@ -34,30 +34,30 @@ void ALogicCompare::PostInitializeComponents()
 	CurrentValue = InitialValue;
 }
 
-void ALogicCompare::RegisterIOEvents_Implementation(FActorIOEventList& RegisteredEvents)
+void ALogicCompare::RegisterIOEvents_Implementation(FActorIOEventList& EventRegistry)
 {
-	RegisteredEvents.Add(FActorIOEvent()
+	EventRegistry.RegisterEvent(FActorIOEvent()
 		.SetId(TEXT("ALogicCompare::OnEquals"))
 		.SetDisplayName(LOCTEXT("ALogicCompare.OnEquals", "OnEquals"))
 		.SetTooltipText(LOCTEXT("ALogicCompare.OnEqualsTooltip", "Event when the current value equals the compare value."))
 		.SetMulticastDelegate(this, &OnEquals)
 		.SetEventProcessor(this, TEXT("ProcessEvent_OnCompare")));
 
-	RegisteredEvents.Add(FActorIOEvent()
+	EventRegistry.RegisterEvent(FActorIOEvent()
 		.SetId(TEXT("ALogicCompare::OnNotEquals"))
 		.SetDisplayName(LOCTEXT("ALogicCompare.OnNotEquals", "OnNotEquals"))
 		.SetTooltipText(LOCTEXT("ALogicCompare.OnNotEqualsTooltip", "Event when the current value does not equal the compare value."))
 		.SetMulticastDelegate(this, &OnNotEquals)
 		.SetEventProcessor(this, TEXT("ProcessEvent_OnCompare")));
 
-	RegisteredEvents.Add(FActorIOEvent()
+	EventRegistry.RegisterEvent(FActorIOEvent()
 		.SetId(TEXT("ALogicCompare::OnLessThen"))
 		.SetDisplayName(LOCTEXT("ALogicCompare.OnLessThen", "OnLessThen"))
 		.SetTooltipText(LOCTEXT("ALogicCompare.OnLessThenTooltip", "Event when the current value is less than the compare value. Only works with numeric values!"))
 		.SetMulticastDelegate(this, &OnLessThen)
 		.SetEventProcessor(this, TEXT("ProcessEvent_OnCompare")));
 
-	RegisteredEvents.Add(FActorIOEvent()
+	EventRegistry.RegisterEvent(FActorIOEvent()
 		.SetId(TEXT("ALogicCompare::OnGreaterThen"))
 		.SetDisplayName(LOCTEXT("ALogicCompare.OnGreaterThen", "OnGreaterThen"))
 		.SetTooltipText(LOCTEXT("ALogicCompare.OnGreaterThenTooltip", "Event when the current value is greater than the compare value. Only works with numeric values!"))
@@ -65,27 +65,27 @@ void ALogicCompare::RegisterIOEvents_Implementation(FActorIOEventList& Registere
 		.SetEventProcessor(this, TEXT("ProcessEvent_OnCompare")));
 }
 
-void ALogicCompare::RegisterIOFunctions_Implementation(FActorIOFunctionList& RegisteredFunctions)
+void ALogicCompare::RegisterIOFunctions_Implementation(FActorIOFunctionList& FunctionRegistry)
 {
-	RegisteredFunctions.Add(FActorIOFunction()
+	FunctionRegistry.RegisterFunction(FActorIOFunction()
 		.SetId(TEXT("ALogicCompare::SetValue"))
 		.SetDisplayName(LOCTEXT("ALogicCompare.SetValue", "SetValue"))
 		.SetTooltipText(LOCTEXT("ALogicCompare.SetValueTooltip", "Set the current value without performing the comparison."))
 		.SetFunction(TEXT("SetValue")));
 
-	RegisteredFunctions.Add(FActorIOFunction()
+	FunctionRegistry.RegisterFunction(FActorIOFunction()
 		.SetId(TEXT("ALogicCompare::SetValueAndCompare"))
 		.SetDisplayName(LOCTEXT("ALogicCompare.SetValueAndCompare", "SetValueAndCompare"))
 		.SetTooltipText(LOCTEXT("ALogicCompare.SetValueAndCompareTooltip", "Set the current value and compare it against the compare value."))
 		.SetFunction(TEXT("SetValueAndCompare")));
 
-	RegisteredFunctions.Add(FActorIOFunction()
+	FunctionRegistry.RegisterFunction(FActorIOFunction()
 		.SetId(TEXT("ALogicCompare::SetCompareValue"))
 		.SetDisplayName(LOCTEXT("ALogicCompare.SetCompareValue", "SetCompareValue"))
 		.SetTooltipText(LOCTEXT("ALogicCompare.SetCompareValueTooltip", "Set the compare value."))
 		.SetFunction(TEXT("SetCompareValue")));
 
-	RegisteredFunctions.Add(FActorIOFunction()
+	FunctionRegistry.RegisterFunction(FActorIOFunction()
 		.SetId(TEXT("ALogicCompare::Compare"))
 		.SetDisplayName(LOCTEXT("ALogicCompare.Compare", "Compare"))
 		.SetTooltipText(LOCTEXT("ALogicCompare.CompareTooltip", "Compare the current value with the compare value."))

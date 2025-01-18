@@ -34,7 +34,7 @@ void UActorIOAction::BindAction()
 	}
 
 	const FActorIOEventList ValidEvents = UActorIOSystem::GetEventsForObject(ActionOwner);
-	const FActorIOEvent* TargetEvent = ValidEvents.FindByKey(EventId);
+	const FActorIOEvent* TargetEvent = ValidEvents.GetEvent(EventId);
 	if (!TargetEvent)
 	{
 		UE_LOG(LogActorIO, Error, TEXT("Actor '%s' could not bind action to '%s' - Event was not found."), *ActionOwner->GetActorNameOrLabel(), *EventId.ToString());
@@ -109,7 +109,7 @@ void UActorIOAction::UnbindAction()
 	}
 
 	const FActorIOEventList ValidEvents = UActorIOSystem::GetEventsForObject(OwnerIOComponent->GetOwner());
-	const FActorIOEvent* TargetEvent = ValidEvents.FindByKey(EventId);
+	const FActorIOEvent* TargetEvent = ValidEvents.GetEvent(EventId);
 	if (!TargetEvent)
 	{
 		// This should be impossible to reach.
@@ -225,7 +225,7 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 	}
 
 	FActorIOFunctionList ValidFunctions = UActorIOSystem::GetFunctionsForObject(TargetActor);
-	FActorIOFunction* TargetFunction = ValidFunctions.FindByKey(FunctionId);
+	FActorIOFunction* TargetFunction = ValidFunctions.GetFunction(FunctionId);
 	if (!TargetFunction)
 	{
 		UE_LOG(LogActorIO, Error, TEXT("Execute action failed. Failed to find function '%s' on target actor '%s'."), *FunctionId.ToString(), *TargetActor->GetActorNameOrLabel());
@@ -246,7 +246,7 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 	}
 
 	FActorIOEventList ValidEvents = UActorIOSystem::GetEventsForObject(GetOwnerActor());
-	FActorIOEvent* BoundEvent = ValidEvents.FindByKey(EventId);
+	FActorIOEvent* BoundEvent = ValidEvents.GetEvent(EventId);
 	check(BoundEvent);
 
 	// Let the event processor assign values to arbitrary named arguments.

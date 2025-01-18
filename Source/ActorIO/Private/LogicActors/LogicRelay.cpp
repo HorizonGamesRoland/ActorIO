@@ -18,30 +18,30 @@ ALogicRelay::ALogicRelay()
 #endif
 }
 
-void ALogicRelay::RegisterIOEvents_Implementation(FActorIOEventList& RegisteredEvents)
+void ALogicRelay::RegisterIOEvents_Implementation(FActorIOEventList& EventRegistry)
 {
-	RegisteredEvents.Add(FActorIOEvent()
+	EventRegistry.RegisterEvent(FActorIOEvent()
 		.SetId(TEXT("ALogicRelay::OnTrigger"))
 		.SetDisplayName(LOCTEXT("ALogicRelay.OnTrigger", "OnTrigger"))
 		.SetTooltipText(LOCTEXT("ALogicRelay.OnTriggerTooltip", "Event when the relay is triggered."))
 		.SetMulticastDelegate(this, &OnTrigger));
 }
 
-void ALogicRelay::RegisterIOFunctions_Implementation(FActorIOFunctionList& RegisteredFunctions)
+void ALogicRelay::RegisterIOFunctions_Implementation(FActorIOFunctionList& FunctionRegistry)
 {
-	RegisteredFunctions.Add(FActorIOFunction()
+	FunctionRegistry.RegisterFunction(FActorIOFunction()
 		.SetId(TEXT("ALogicRelay::Trigger"))
 		.SetDisplayName(LOCTEXT("ALogicRelay.Trigger", "Trigger"))
 		.SetTooltipText(LOCTEXT("ALogicRelay.TriggerTooltip", "Trigger the relay, causing the 'OnTrigger' event to fire if enabled."))
 		.SetFunction(TEXT("Trigger")));
 
-	RegisteredFunctions.Add(FActorIOFunction()
+	FunctionRegistry.RegisterFunction(FActorIOFunction()
 		.SetId(TEXT("ALogicRelay::Enable"))
 		.SetDisplayName(LOCTEXT("ALogicRelay.Enable", "Enable"))
 		.SetTooltipText(LOCTEXT("ALogicRelay.EnableTooltip", "Allow the relay to fire the 'OnTrigger' event."))
 		.SetFunction(TEXT("Enable")));
 
-	RegisteredFunctions.Add(FActorIOFunction()
+	FunctionRegistry.RegisterFunction(FActorIOFunction()
 		.SetId(TEXT("ALogicRelay::Disable"))
 		.SetDisplayName(LOCTEXT("ALogicRelay.Disable", "Disable"))
 		.SetTooltipText(LOCTEXT("ALogicRelay.DisableTooltip", "Prevent the relay from firing the 'OnTrigger' event."))

@@ -19,24 +19,24 @@ ALogicCondition::ALogicCondition()
 #endif
 }
 
-void ALogicCondition::RegisterIOEvents_Implementation(FActorIOEventList& RegisteredEvents)
+void ALogicCondition::RegisterIOEvents_Implementation(FActorIOEventList& EventRegistry)
 {
-	RegisteredEvents.Add(FActorIOEvent()
+	EventRegistry.RegisterEvent(FActorIOEvent()
 		.SetId(TEXT("ALogicCondition::OnPass"))
 		.SetDisplayName(LOCTEXT("ALogicCondition.OnPass", "OnPass"))
 		.SetTooltipText(LOCTEXT("ALogicCondition.OnPassTooltip", "Event when the condition function returns true."))
 		.SetMulticastDelegate(this, &OnPass));
 
-	RegisteredEvents.Add(FActorIOEvent()
+	EventRegistry.RegisterEvent(FActorIOEvent()
 		.SetId(TEXT("ALogicCondition::OnFail"))
 		.SetDisplayName(LOCTEXT("ALogicCondition.OnFail", "OnFail"))
 		.SetTooltipText(LOCTEXT("ALogicCondition.OnFailTooltip", "Event when the condition function returns false."))
 		.SetMulticastDelegate(this, &OnFail));
 }
 
-void ALogicCondition::RegisterIOFunctions_Implementation(FActorIOFunctionList& RegisteredFunctions)
+void ALogicCondition::RegisterIOFunctions_Implementation(FActorIOFunctionList& FunctionRegistry)
 {
-	RegisteredFunctions.Add(FActorIOFunction()
+	FunctionRegistry.RegisterFunction(FActorIOFunction()
 		.SetId(TEXT("ALogicCondition::Test"))
 		.SetDisplayName(LOCTEXT("ALogicCondition.Test", "Test"))
 		.SetTooltipText(LOCTEXT("ALogicCondition.TestTooltip", "Test the return value of the condition function and fire 'OnPass' or 'OnFail' based on the value."))

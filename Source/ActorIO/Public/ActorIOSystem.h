@@ -60,14 +60,14 @@ private:
 	 * Used to avoid the need of subclassing these base classes in order to expose them.
 	 * Called automatically when collecting list of registered I/O functions for the given actor.
 	 */
-	static void GetNativeEventsForObject(AActor* InObject, FActorIOEventList& RegisteredEvents);
+	static void GetNativeEventsForObject(AActor* InObject, FActorIOEventList& EventRegistry);
 
 	/**
 	 * Exposes functions from base Unreal Engine classes to the I/O system.
 	 * Used to avoid the need of subclassing these base classes in order to expose them.
 	 * Called automatically when collecting list of registered I/O functions for the given actor.
 	 */
-	static void GetNativeFunctionsForObject(AActor* InObject, FActorIOFunctionList& RegisteredFunctions);
+	static void GetNativeFunctionsForObject(AActor* InObject, FActorIOFunctionList& FunctionRegistry);
 
 	/** Event processor for the 'OnActorBeginOverlap' and 'OnActorEndOverlap' events. */
 	UFUNCTION()
@@ -78,8 +78,8 @@ public:
 	//#TODO: Rework? Custom nodes?
 
 	UFUNCTION(BlueprintCallable, Category = "Actor IO", DisplayName = "Register I/O Event", meta = (WorldContext = "WorldContextObject", AutoCreateRefTerm = "DisplayName,TooltipText"))
-	static void RegisterIOEvent(UObject* WorldContextObject, UPARAM(Ref) TArray<FActorIOEvent>& RegisterTo, FName EventId, const FText& DisplayName, const FText& TooltipText, FName EventDispatcherName);
+	static void RegisterIOEvent(UObject* WorldContextObject, UPARAM(Ref) FActorIOEventList& RegisterTo, FName EventId, const FText& DisplayName, const FText& TooltipText, FName EventDispatcherName);
 
 	UFUNCTION(BlueprintCallable, Category = "Actor IO", DisplayName = "Register I/O Function", meta = (WorldContext = "WorldContextObject", AutoCreateRefTerm = "DisplayName,TooltipText", AdvancedDisplay = "SubobjectName"))
-	static void RegisterIOFunction(UObject* WorldContextObject, UPARAM(Ref) TArray<FActorIOFunction>& RegisterTo, FName FunctionId, const FText& DisplayName, const FText& TooltipText, FString FunctionToExec, FName SubobjectName);
+	static void RegisterIOFunction(UObject* WorldContextObject, UPARAM(Ref) FActorIOFunctionList& RegisterTo, FName FunctionId, const FText& DisplayName, const FText& TooltipText, FString FunctionToExec, FName SubobjectName);
 };

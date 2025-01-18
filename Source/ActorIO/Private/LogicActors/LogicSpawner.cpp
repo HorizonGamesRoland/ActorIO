@@ -20,25 +20,25 @@ void ALogicSpawner::BeginPlay()
 	}
 }
 
-void ALogicSpawner::RegisterIOEvents_Implementation(FActorIOEventList& RegisteredEvents)
+void ALogicSpawner::RegisterIOEvents_Implementation(FActorIOEventList& EventRegistry)
 {
-	RegisteredEvents.Add(FActorIOEvent()
+	EventRegistry.RegisterEvent(FActorIOEvent()
 		.SetId(TEXT("ALogicSpawner::OnActorSpawned"))
 		.SetDisplayName(LOCTEXT("ALogicSpawner.OnActorSpawned", "OnActorSpawned"))
 		.SetTooltipText(LOCTEXT("ALogicSpawner.OnActorSpawnedTooltip", "Event whenever a new actor is spawned."))
 		.SetMulticastDelegate(this, &OnActorSpawned)
 		.SetEventProcessor(this, TEXT("ProcessEvent_OnActorSpawned")));
 
-	RegisteredEvents.Add(FActorIOEvent()
+	EventRegistry.RegisterEvent(FActorIOEvent()
 		.SetId(TEXT("ALogicSpawner::OnSpawnFinished"))
 		.SetDisplayName(LOCTEXT("ALogicSpawner.OnSpawnFinished", "OnSpawnFinished"))
 		.SetTooltipText(LOCTEXT("ALogicSpawner.OnSpawnFinishedTooltip", "Event when all actors have finished spawning."))
 		.SetMulticastDelegate(this, &OnSpawnFinished));
 }
 
-void ALogicSpawner::RegisterIOFunctions_Implementation(FActorIOFunctionList& RegisteredFunctions)
+void ALogicSpawner::RegisterIOFunctions_Implementation(FActorIOFunctionList& FunctionRegistry)
 {
-	RegisteredFunctions.Add(FActorIOFunction()
+	FunctionRegistry.RegisterFunction(FActorIOFunction()
 		.SetId(TEXT("ALogicSpawner::Spawn"))
 		.SetDisplayName(LOCTEXT("ALogicSpawner.Spawn", "Spawn"))
 		.SetTooltipText(LOCTEXT("ALogicSpawner.SpawnTooltip", "Spawn the actors."))
