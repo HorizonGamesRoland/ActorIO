@@ -33,7 +33,7 @@ void ALogicBranch::PostInitializeComponents()
 	bCurrentValue = bInitialValue;
 }
 
-void ALogicBranch::RegisterIOEvents_Implementation(FActorIOEventList& EventRegistry)
+void ALogicBranch::RegisterIOEvents(FActorIOEventList& EventRegistry)
 {
 	EventRegistry.RegisterEvent(FActorIOEvent()
 		.SetId(TEXT("ALogicBranch::OnTrue"))
@@ -50,7 +50,7 @@ void ALogicBranch::RegisterIOEvents_Implementation(FActorIOEventList& EventRegis
 		.SetEventProcessor(this, TEXT("ProcessEvent_OnTest")));
 }
 
-void ALogicBranch::RegisterIOFunctions_Implementation(FActorIOFunctionList& FunctionRegistry)
+void ALogicBranch::RegisterIOFunctions(FActorIOFunctionList& FunctionRegistry)
 {
 	FunctionRegistry.RegisterFunction(FActorIOFunction()
 		.SetId(TEXT("ALogicBranch::SetValue"))

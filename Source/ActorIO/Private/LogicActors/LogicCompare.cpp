@@ -34,7 +34,7 @@ void ALogicCompare::PostInitializeComponents()
 	CurrentValue = InitialValue;
 }
 
-void ALogicCompare::RegisterIOEvents_Implementation(FActorIOEventList& EventRegistry)
+void ALogicCompare::RegisterIOEvents(FActorIOEventList& EventRegistry)
 {
 	EventRegistry.RegisterEvent(FActorIOEvent()
 		.SetId(TEXT("ALogicCompare::OnEquals"))
@@ -65,7 +65,7 @@ void ALogicCompare::RegisterIOEvents_Implementation(FActorIOEventList& EventRegi
 		.SetEventProcessor(this, TEXT("ProcessEvent_OnCompare")));
 }
 
-void ALogicCompare::RegisterIOFunctions_Implementation(FActorIOFunctionList& FunctionRegistry)
+void ALogicCompare::RegisterIOFunctions(FActorIOFunctionList& FunctionRegistry)
 {
 	FunctionRegistry.RegisterFunction(FActorIOFunction()
 		.SetId(TEXT("ALogicCompare::SetValue"))

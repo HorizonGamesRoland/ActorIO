@@ -64,8 +64,8 @@ public:
 
     //~ Begin ALogicActorBase Interface
     virtual void PostInitializeComponents() override;
-    virtual void RegisterIOEvents_Implementation(FActorIOEventList& EventRegistry) override;
-    virtual void RegisterIOFunctions_Implementation(FActorIOFunctionList& FunctionRegistry) override;
+    virtual void RegisterIOEvents(FActorIOEventList& EventRegistry) override;
+    virtual void RegisterIOFunctions(FActorIOFunctionList& FunctionRegistry) override;
     virtual void Tick(float DeltaSeconds) override;
     //~ End ALogicActorBase Interface
 

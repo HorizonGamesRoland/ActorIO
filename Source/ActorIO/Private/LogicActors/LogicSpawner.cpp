@@ -20,7 +20,7 @@ void ALogicSpawner::BeginPlay()
 	}
 }
 
-void ALogicSpawner::RegisterIOEvents_Implementation(FActorIOEventList& EventRegistry)
+void ALogicSpawner::RegisterIOEvents(FActorIOEventList& EventRegistry)
 {
 	EventRegistry.RegisterEvent(FActorIOEvent()
 		.SetId(TEXT("ALogicSpawner::OnActorSpawned"))
@@ -36,7 +36,7 @@ void ALogicSpawner::RegisterIOEvents_Implementation(FActorIOEventList& EventRegi
 		.SetMulticastDelegate(this, &OnSpawnFinished));
 }
 
-void ALogicSpawner::RegisterIOFunctions_Implementation(FActorIOFunctionList& FunctionRegistry)
+void ALogicSpawner::RegisterIOFunctions(FActorIOFunctionList& FunctionRegistry)
 {
 	FunctionRegistry.RegisterFunction(FActorIOFunction()
 		.SetId(TEXT("ALogicSpawner::Spawn"))

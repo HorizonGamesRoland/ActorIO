@@ -18,7 +18,7 @@ ALogicTimer::ALogicTimer()
 #endif
 }
 
-void ALogicTimer::RegisterIOEvents_Implementation(FActorIOEventList& EventRegistry)
+void ALogicTimer::RegisterIOEvents(FActorIOEventList& EventRegistry)
 {
 	EventRegistry.RegisterEvent(FActorIOEvent()
 		.SetId(TEXT("ALogicTimer::OnTimer"))
@@ -27,7 +27,7 @@ void ALogicTimer::RegisterIOEvents_Implementation(FActorIOEventList& EventRegist
 		.SetMulticastDelegate(this, &OnTimer));
 }
 
-void ALogicTimer::RegisterIOFunctions_Implementation(FActorIOFunctionList& FunctionRegistry)
+void ALogicTimer::RegisterIOFunctions(FActorIOFunctionList& FunctionRegistry)
 {
 	FunctionRegistry.RegisterFunction(FActorIOFunction()
 		.SetId(TEXT("ALogicTimer::StartTimer"))

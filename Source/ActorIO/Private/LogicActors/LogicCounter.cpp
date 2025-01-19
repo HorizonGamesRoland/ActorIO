@@ -40,7 +40,7 @@ void ALogicCounter::PostInitializeComponents()
 	}
 }
 
-void ALogicCounter::RegisterIOEvents_Implementation(FActorIOEventList& EventRegistry)
+void ALogicCounter::RegisterIOEvents(FActorIOEventList& EventRegistry)
 {
 	EventRegistry.RegisterEvent(FActorIOEvent()
 		.SetId(TEXT("ALogicCounter::OnValueChanged"))
@@ -62,7 +62,7 @@ void ALogicCounter::RegisterIOEvents_Implementation(FActorIOEventList& EventRegi
 		.SetEventProcessor(this, TEXT("ProcessEvent_OnGetValue")));
 }
 
-void ALogicCounter::RegisterIOFunctions_Implementation(FActorIOFunctionList& FunctionRegistry)
+void ALogicCounter::RegisterIOFunctions(FActorIOFunctionList& FunctionRegistry)
 {
 	FunctionRegistry.RegisterFunction(FActorIOFunction()
 		.SetId(TEXT("ALogicCounter::Add"))

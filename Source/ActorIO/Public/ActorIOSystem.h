@@ -75,11 +75,35 @@ private:
 
 public:
 
-	//#TODO: Rework? Custom nodes?
+	/**
+	 * Add a new I/O event to the actor's event list.
+	 * Use this to expose a blueprint event dispatcher to the I/O system.
+	 * This function should only be called when the I/O interface is registering events to an actor.
+	 * 
+	 * @param WorldContextObject Reference to the object where this function is being called.
+	 * @param Registry The list of I/O events we are adding to.
+	 * @param EventId Unique id of the event. Recommended format is ClassName::EventName.
+	 * @param DisplayNameText Display name to use in the editor for this event.
+	 * @param TooltipText Tooltip to use in the editor for this event.
+	 * @param EventDispatcherName Name of the event dispatcher that should be exposed.
+	 * @param EventProcessorName Name of a function that should be called when firing this event. Use this to handle named arguments (params) for this event. 
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Actor IO", DisplayName = "Register I/O Event", meta = (WorldContext = "WorldContextObject", AutoCreateRefTerm = "DisplayNameText,TooltipText", AdvancedDisplay = "EventProcessorName", Keywords = "IO"))
+	static void RegisterIOEvent(UObject* WorldContextObject, UPARAM(Ref) FActorIOEventList& Registry, FName EventId, const FText& DisplayNameText, const FText& TooltipText, FName EventDispatcherName, FName EventProcessorName);
 
-	UFUNCTION(BlueprintCallable, Category = "Actor IO", DisplayName = "Register I/O Event", meta = (WorldContext = "WorldContextObject", AutoCreateRefTerm = "DisplayName,TooltipText"))
-	static void RegisterIOEvent(UObject* WorldContextObject, UPARAM(Ref) FActorIOEventList& RegisterTo, FName EventId, const FText& DisplayName, const FText& TooltipText, FName EventDispatcherName);
-
-	UFUNCTION(BlueprintCallable, Category = "Actor IO", DisplayName = "Register I/O Function", meta = (WorldContext = "WorldContextObject", AutoCreateRefTerm = "DisplayName,TooltipText", AdvancedDisplay = "SubobjectName"))
-	static void RegisterIOFunction(UObject* WorldContextObject, UPARAM(Ref) FActorIOFunctionList& RegisterTo, FName FunctionId, const FText& DisplayName, const FText& TooltipText, FString FunctionToExec, FName SubobjectName);
+	/**
+	 * Add a new I/O function to the actor's function list.
+	 * Use this to expose a blueprint function to the I/O system.
+	 * This function should only be called when the I/O interface is registering functions to an actor.
+	 *
+	 * @param WorldContextObject Reference to the object where this function is being called.
+	 * @param Registry The list of I/O functions we are adding to.
+	 * @param FunctionId Unique id of the function. Recommended format is ClassName::FunctionName.
+	 * @param DisplayNameText Display name to use in the editor for this function.
+	 * @param TooltipText Tooltip to use in the editor for this function.
+	 * @param FunctionToExec Name of the blueprint function that should be exposed.
+	 * @param SubobjectName Specific subobject to call the function on instead of the actor itself.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Actor IO", DisplayName = "Register I/O Function", meta = (WorldContext = "WorldContextObject", AutoCreateRefTerm = "DisplayNameText,TooltipText", AdvancedDisplay = "SubobjectName", Keywords = "IO"))
+	static void RegisterIOFunction(UObject* WorldContextObject, UPARAM(Ref) FActorIOFunctionList& Registry, FName FunctionId, const FText& DisplayNameText, const FText& TooltipText, FString FunctionToExec, FName SubobjectName);
 };

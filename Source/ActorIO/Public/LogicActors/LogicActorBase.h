@@ -26,6 +26,13 @@ public:
 
 protected:
 
+	//~ Begin ALogicActorBase Interface
+	virtual void RegisterIOEvents(FActorIOEventList& EventRegistry) override {}
+	virtual void RegisterIOFunctions(FActorIOFunctionList& FunctionRegistry) override {}
+	//~ End ALogicActorBase Interface
+
+protected:
+
 #if WITH_EDITORONLY_DATA
 	/** Billboard component displayed in the editor. */
 	UPROPERTY(EditDefaultsOnly, Category = "Components")

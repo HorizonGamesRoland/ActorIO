@@ -30,7 +30,13 @@ FActorIOEventList UActorIOSystem::GetEventsForObject(AActor* InObject)
     {
         if (InObject->Implements<UActorIOInterface>())
         {
-            IActorIOInterface::Execute_RegisterIOEvents(InObject, OutEvents);
+            IActorIOInterface* IOInterface = Cast<IActorIOInterface>(InObject);
+            if (IOInterface)
+            {
+                IOInterface->RegisterIOEvents(OutEvents);
+            }
+
+            IActorIOInterface::Execute_K2_RegisterIOEvents(InObject, OutEvents);
         }
 
         GetNativeEventsForObject(InObject, OutEvents);
@@ -46,7 +52,13 @@ FActorIOFunctionList UActorIOSystem::GetFunctionsForObject(AActor* InObject)
     {
         if (InObject->Implements<UActorIOInterface>())
         {
-            IActorIOInterface::Execute_RegisterIOFunctions(InObject, OutFunctions);
+            IActorIOInterface* IOInterface = Cast<IActorIOInterface>(InObject);
+            if (IOInterface)
+            {
+                IOInterface->RegisterIOFunctions(OutFunctions);
+            }
+
+            IActorIOInterface::Execute_K2_RegisterIOFunctions(InObject, OutFunctions);
         }
 
         GetNativeFunctionsForObject(InObject, OutFunctions);
@@ -284,20 +296,21 @@ void UActorIOSystem::ProcessEvent_OnActorOverlap(AActor* OverlappedActor, AActor
     ActionExecContext.SetNamedArgument(TEXT("$Actor"), IsValid(OtherActor) ? OtherActor->GetPathName() : FString());
 }
 
-void UActorIOSystem::RegisterIOEvent(UObject* WorldContextObject, FActorIOEventList& RegisterTo, FName EventId, const FText& DisplayName, const FText& TooltipText, FName EventDispatcherName)
+void UActorIOSystem::RegisterIOEvent(UObject* WorldContextObject, FActorIOEventList& Registry, FName EventId, const FText& DisplayNameText, const FText& TooltipText, FName EventDispatcherName, FName EventProcessorName)
 {
-    RegisterTo.RegisterEvent(FActorIOEvent()
+    Registry.RegisterEvent(FActorIOEvent()
         .SetId(EventId)
-        .SetDisplayName(DisplayName)
+        .SetDisplayName(DisplayNameText)
         .SetTooltipText(TooltipText)
-        .SetBlueprintDelegate(WorldContextObject, EventDispatcherName));
+        .SetBlueprintDelegate(WorldContextObject, EventDispatcherName)
+        .SetEventProcessor(WorldContextObject, EventProcessorName));
 }
 
-void UActorIOSystem::RegisterIOFunction(UObject* WorldContextObject, FActorIOFunctionList& RegisterTo, FName FunctionId, const FText& DisplayName, const FText& TooltipText, FString FunctionToExec, FName SubobjectName)
+void UActorIOSystem::RegisterIOFunction(UObject* WorldContextObject, FActorIOFunctionList& Registry, FName FunctionId, const FText& DisplayNameText, const FText& TooltipText, FString FunctionToExec, FName SubobjectName)
 {
-    RegisterTo.RegisterFunction(FActorIOFunction()
+    Registry.RegisterFunction(FActorIOFunction()
         .SetId(FunctionId)
-        .SetDisplayName(DisplayName)
+        .SetDisplayName(DisplayNameText)
         .SetTooltipText(TooltipText)
         .SetFunction(FunctionToExec)
         .SetSubobject(SubobjectName));

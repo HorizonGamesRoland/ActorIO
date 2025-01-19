@@ -24,23 +24,33 @@ class ACTORIO_API IActorIOInterface
 
 public:
 
-	// #TODO: Rework so that it doesn't require the list params?
+	/**
+	 * Called when building list of registered I/O events for the actor.
+	 * This function is called every time the list of registered events is requested for the actor.
+	 * Called in editor and at runtime!
+	 */
+	virtual void RegisterIOEvents(FActorIOEventList& EventRegistry) = 0;
+
+	/**
+	 * Called when building list of registered I/O functions for the actor.
+	 * This function is called every time the list of registered functions is requested for the actor.
+	 * Called in editor and at runtime!
+	 */
+	virtual void RegisterIOFunctions(FActorIOFunctionList& FunctionRegistry) = 0;
 
 	/**
 	 * Event when building list of registered I/O events for the actor.
 	 * 
 	 * @param EventRegistry Current list of registered events.
 	 */
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, CallInEditor, Category = "Actor IO", DisplayName = "Register I/O Events", meta = (ForceAsFunction))
-	void RegisterIOEvents(UPARAM(Ref) FActorIOEventList& EventRegistry);
-	virtual void RegisterIOEvents_Implementation(FActorIOEventList& EventRegistry) {}
+	UFUNCTION(BlueprintImplementableEvent, CallInEditor, Category = "Actor IO", DisplayName = "Register I/O Events", meta = (ForceAsFunction, Keywords = "IO"))
+	void K2_RegisterIOEvents(UPARAM(Ref) FActorIOEventList& EventRegistry);
 
 	/**
 	 * Event when building list of registered I/O functions for the actor.
 	 *
 	 * @param FunctionRegistry Current list of registered functions.
 	 */
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, CallInEditor, Category = "Actor IO", DisplayName = "Register I/O Functions", meta = (ForceAsFunction))
-	void RegisterIOFunctions(UPARAM(Ref) FActorIOFunctionList& FunctionRegistry);
-	virtual void RegisterIOFunctions_Implementation(FActorIOFunctionList& FunctionRegistry) {}
+	UFUNCTION(BlueprintImplementableEvent, CallInEditor, Category = "Actor IO", DisplayName = "Register I/O Functions", meta = (ForceAsFunction, Keywords = "IO"))
+	void K2_RegisterIOFunctions(UPARAM(Ref) FActorIOFunctionList& FunctionRegistry);
 };

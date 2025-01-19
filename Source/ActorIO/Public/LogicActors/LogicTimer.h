@@ -48,8 +48,8 @@ protected:
 public:
 
     //~ Begin ALogicActorBase Interface
-    virtual void RegisterIOEvents_Implementation(FActorIOEventList& EventRegistry) override;
-    virtual void RegisterIOFunctions_Implementation(FActorIOFunctionList& FunctionRegistry) override;
+    virtual void RegisterIOEvents(FActorIOEventList& EventRegistry) override;
+    virtual void RegisterIOFunctions(FActorIOFunctionList& FunctionRegistry) override;
     //~ End ALogicActorBase Interface
 
 public:

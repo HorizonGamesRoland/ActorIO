@@ -19,7 +19,7 @@ ALogicCase::ALogicCase()
 #endif
 }
 
-void ALogicCase::RegisterIOEvents_Implementation(FActorIOEventList& EventRegistry)
+void ALogicCase::RegisterIOEvents(FActorIOEventList& EventRegistry)
 {
 	EventRegistry.RegisterEvent(FActorIOEvent()
 		.SetId(TEXT("ALogicCase::OnCase01"))
@@ -118,7 +118,7 @@ void ALogicCase::RegisterIOEvents_Implementation(FActorIOEventList& EventRegistr
 		.SetMulticastDelegate(this, &OnCase16));
 }
 
-void ALogicCase::RegisterIOFunctions_Implementation(FActorIOFunctionList& FunctionRegistry)
+void ALogicCase::RegisterIOFunctions(FActorIOFunctionList& FunctionRegistry)
 {
 	FunctionRegistry.RegisterFunction(FActorIOFunction()
 		.SetId(TEXT("ALogicCase::Test"))
