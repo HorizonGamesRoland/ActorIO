@@ -379,7 +379,7 @@ struct ACTORIO_API FActionExecutionContext
 	bool HasContext() const;
 
 	/**
-	 * Add a named argument to the current execution context.
+	 * Add a named argument (parameter) to the current execution context.
 	 * If it already exists then the value is simply updated.
 	 * Should only be called from within an I/O event processor!
 	 */

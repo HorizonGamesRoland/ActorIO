@@ -316,4 +316,10 @@ void UActorIOSystem::RegisterIOFunction(UObject* WorldContextObject, FActorIOFun
         .SetSubobject(SubobjectName));
 }
 
+void UActorIOSystem::K2_SetNamedArgument(UObject* WorldContextObject, const FString& ArgumentName, const FString& ArgumentValue)
+{
+    FActionExecutionContext& ExecContext = FActionExecutionContext::Get(WorldContextObject);
+    ExecContext.SetNamedArgument(ArgumentName, ArgumentValue);
+}
+
 #undef LOCTEXT_NAMESPACE

@@ -86,7 +86,7 @@ public:
 	 * @param DisplayNameText Display name to use in the editor for this event.
 	 * @param TooltipText Tooltip to use in the editor for this event.
 	 * @param EventDispatcherName Name of the event dispatcher that should be exposed.
-	 * @param EventProcessorName Name of a function that should be called when firing this event. Use this to handle named arguments (params) for this event. 
+	 * @param EventProcessorName Name of a function that should be called when firing this event. Use this to handle named arguments (params) for this event.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Actor IO", DisplayName = "Register I/O Event", meta = (WorldContext = "WorldContextObject", AutoCreateRefTerm = "DisplayNameText,TooltipText", AdvancedDisplay = "EventProcessorName", Keywords = "IO"))
 	static void RegisterIOEvent(UObject* WorldContextObject, UPARAM(Ref) FActorIOEventList& Registry, FName EventId, const FText& DisplayNameText, const FText& TooltipText, FName EventDispatcherName, FName EventProcessorName);
@@ -106,4 +106,14 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Actor IO", DisplayName = "Register I/O Function", meta = (WorldContext = "WorldContextObject", AutoCreateRefTerm = "DisplayNameText,TooltipText", AdvancedDisplay = "SubobjectName", Keywords = "IO"))
 	static void RegisterIOFunction(UObject* WorldContextObject, UPARAM(Ref) FActorIOFunctionList& Registry, FName FunctionId, const FText& DisplayNameText, const FText& TooltipText, FString FunctionToExec, FName SubobjectName);
+
+public:
+
+	/**
+	 * Add a named argument (parameter) to the current execution context.
+	 * If it already exists then the value is simply updated.
+	 * Should only be called from within an I/O event processor!
+	 */
+	UFUNCTION(BlueprintCallable, Category = "ActorIO", DisplayName = "Set Named Argument", meta = (WorldContext = "WorldContextObject", AutoCreateRefTerm = "ArgumentName,ArgumentValue"))
+	static void K2_SetNamedArgument(UObject* WorldContextObject, const FString& ArgumentName, const FString& ArgumentValue);
 };
