@@ -415,9 +415,6 @@ void SActorIOActionListViewRow::OnEventComboBoxSelectionChanged(FName InName, ES
 		const FScopedTransaction Transaction(LOCTEXT("ModifyActorIOAction", "Modify ActorIO Action"));
 		ActionPtr->Modify();
 
-		UActorIOComponent* ActionOwner = ActionPtr->GetOwnerIOComponent();
-		ActionOwner->Modify();
-
 		ActionPtr->EventId = InName;
 	}
 }
@@ -431,9 +428,6 @@ void SActorIOActionListViewRow::OnTargetActorChanged(const FAssetData& InAssetDa
 {
 	const FScopedTransaction Transaction(LOCTEXT("ModifyActorIOAction", "Modify ActorIO Action"));
 	ActionPtr->Modify();
-
-	UActorIOComponent* ActionOwner = ActionPtr->GetOwnerIOComponent();
-	ActionOwner->Modify();
 
 	AActor* NewTarget = Cast<AActor>(InAssetData.GetAsset());
 	ActionPtr->TargetActor = NewTarget;
@@ -484,9 +478,6 @@ void SActorIOActionListViewRow::OnFunctionComboBoxSelectionChanged(FName InName,
 		const FScopedTransaction Transaction(LOCTEXT("ModifyActorIOAction", "Modify ActorIO Action"));
 		ActionPtr->Modify();
 
-		UActorIOComponent* ActionOwner = ActionPtr->GetOwnerIOComponent();
-		ActionOwner->Modify();
-
 		ActionPtr->FunctionId = InName;
 		ActionPtr->FunctionArguments = FString();
 
@@ -498,9 +489,6 @@ void SActorIOActionListViewRow::OnFunctionParametersChanged(const FText& InText,
 {
 	const FScopedTransaction Transaction(LOCTEXT("ModifyActorIOAction", "Modify ActorIO Action"));
 	ActionPtr->Modify();
-
-	UActorIOComponent* ActionOwner = ActionPtr->GetOwnerIOComponent();
-	ActionOwner->Modify();
 
 	ActionPtr->FunctionArguments = InText.ToString();
 }
@@ -515,9 +503,6 @@ void SActorIOActionListViewRow::OnActionDelayChanged(float InValue, ETextCommit:
 	const FScopedTransaction Transaction(LOCTEXT("ModifyActorIOAction", "Modify ActorIO Action"));
 	ActionPtr->Modify();
 
-	UActorIOComponent* ActionOwner = ActionPtr->GetOwnerIOComponent();
-	ActionOwner->Modify();
-
 	ActionPtr->Delay = InValue;
 }
 
@@ -530,9 +515,6 @@ void SActorIOActionListViewRow::OnExecuteOnlyOnceChecked(ECheckBoxState InState)
 {
 	const FScopedTransaction Transaction(LOCTEXT("ModifyActorIOAction", "Modify ActorIO Action"));
 	ActionPtr->Modify();
-
-	UActorIOComponent* ActionOwner = ActionPtr->GetOwnerIOComponent();
-	ActionOwner->Modify();
 
 	ActionPtr->bExecuteOnlyOnce = InState == ECheckBoxState::Checked;
 }
@@ -560,6 +542,7 @@ FReply SActorIOActionListViewRow::OnClick_RemoveOrViewAction()
 	if (!bIsInputAction)
 	{
 		const FScopedTransaction Transaction(LOCTEXT("RemoveActorIOAction", "Remove ActorIO Action"));
+		ActionPtr->Modify();
 
 		UActorIOComponent* ActionOwner = ActionPtr->GetOwnerIOComponent();
 		ActionOwner->Modify();
@@ -573,6 +556,7 @@ FReply SActorIOActionListViewRow::OnClick_RemoveOrViewAction()
 		AActor* OwnerActor = ActionPtr->GetOwnerActor();
 		if (GEditor && IsValid(OwnerActor))
 		{
+			// Need to clear selection first, otherwise we are just adding to the selection.
 			GEditor->SelectNone(false, true);
 			GEditor->SelectActor(OwnerActor, true, true);
 

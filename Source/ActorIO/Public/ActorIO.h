@@ -153,7 +153,7 @@ struct ACTORIO_API FActorIOEventList
 
 	/**
 	 * The internal list of I/O events.
-	 * Do not modify directly, use the register function instead.
+	 * Do not modify directly, use RegisterEvent() instead.
 	 */
 	TArray<FActorIOEvent> EventRegistry;
 
@@ -294,7 +294,7 @@ struct ACTORIO_API FActorIOFunctionList
 
 	/**
 	 * The internal list of I/O functions.
-	 * Do not modify directly, use the register function instead.
+	 * Do not modify directly, use RegisterFunction() instead.
 	 */
 	TArray<FActorIOFunction> FunctionRegistry;
 

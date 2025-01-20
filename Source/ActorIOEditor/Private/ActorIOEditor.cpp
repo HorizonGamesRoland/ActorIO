@@ -148,6 +148,8 @@ void FActorIOEditor::OnObjectSelectionChanged(UObject* NewSelection)
 
 void FActorIOEditor::OnDeleteActorsBegin()
 {
+	// Modify all actions who's caller is about to deleted for proper undo/redo support.
+	// The transaction is already active at this point.
 	for (FSelectionIterator It(GEditor->GetSelectedActorIterator()); It; ++It)
 	{
 		AActor* Actor = static_cast<AActor*>(*It);
@@ -167,6 +169,7 @@ void FActorIOEditor::OnBlueprintCompiled()
 {
 	// A blueprint was recompiled, so the user may have exposed new I/O events or functions.
 	// To make the changes appear immediately, we need to update the editor window.
+	// This also handles the case where no I/O stuff was being exposed due to an error in the blueprint which may have got fixed with this recompile.
 	UpdateEditorWindow();
 }
 
