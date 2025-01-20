@@ -28,6 +28,9 @@ private:
 	/** Handle for when an actor is deleted in the level editor. */
 	FDelegateHandle DelegateHandle_DeleteActorsBegin;
 
+	/** Handle for when a blueprint is compiled in the editor. */
+	FDelegateHandle DelegateHandle_BlueprintCompiled;
+
 public:
 
 	/** Register the Actor I/O editor module with the engine. */
@@ -64,4 +67,7 @@ private:
 
 	/** Called when an actor is deleted in the level editor. */
 	void OnDeleteActorsBegin();
+
+	/** Called when a blueprint is compiled in the editor. */
+	void OnBlueprintCompiled();
 };

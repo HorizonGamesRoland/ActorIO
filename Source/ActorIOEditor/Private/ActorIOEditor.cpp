@@ -49,6 +49,11 @@ void FActorIOEditor::StartupModule()
 	DelegateHandle_SelectionChange = USelection::SelectionChangedEvent.AddRaw(this, &FActorIOEditor::OnObjectSelectionChanged);
 	DelegateHandle_DeleteActorsBegin = FEditorDelegates::OnDeleteActorsBegin.AddRaw(this, &FActorIOEditor::OnDeleteActorsBegin);
 
+	if (GEditor)
+	{
+		GEditor->OnBlueprintCompiled().AddRaw(this, &FActorIOEditor::OnBlueprintCompiled);
+	}
+
 	if (GUnrealEd)
 	{
 		TSharedPtr<FComponentVisualizer> IOComponentVisualizer = MakeShared<FActorIOComponentVisualizer>();
@@ -84,6 +89,11 @@ void FActorIOEditor::ShutdownModule()
 
 	USelection::SelectionChangedEvent.Remove(DelegateHandle_SelectionChange);
 	FEditorDelegates::OnDeleteActorsBegin.Remove(DelegateHandle_DeleteActorsBegin);
+
+	if (GEditor)
+	{
+		GEditor->OnBlueprintCompiled().Remove(DelegateHandle_BlueprintCompiled);
+	}
 
 	if (GUnrealEd)
 	{
@@ -153,6 +163,13 @@ void FActorIOEditor::OnDeleteActorsBegin()
 	}
 }
 
+void FActorIOEditor::OnBlueprintCompiled()
+{
+	// A blueprint was recompiled, so the user may have exposed new I/O events or functions.
+	// To make the changes appear immediately, we need to update the editor window.
+	UpdateEditorWindow();
+}
+
 SActorIOEditor* FActorIOEditor::GetEditorWindow() const
 {
 	return EditorWindow.Get();
@@ -166,7 +183,7 @@ AActor* FActorIOEditor::GetSelectedActor() const
 UActorIOComponent* FActorIOEditor::AddIOComponenToActor(AActor* TargetActor, bool bSelectActor)
 {
 	// Modify the actor to support undo/redo.
-	// The transaction should already be defined prior to calling this function.
+	// The transaction is already active at this point.
 	TargetActor->Modify();
 
 	UActorIOComponent* NewComponent = NewObject<UActorIOComponent>(TargetActor, TEXT("ActorIOComponent"), RF_Transactional);
