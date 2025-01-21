@@ -194,7 +194,7 @@ void UActorIOAction::ReceiveExecuteAction()
 
 bool UActorIOAction::CanExecuteAction(FActionExecutionContext& ExecutionContext)
 {
-	const AActor* ActionOwner = GetOwnerActor();
+	AActor* ActionOwner = GetOwnerActor();
 	if (!IsValid(ActionOwner))
 	{
 		// Do not attempt to execute an action if we are about to be destroyed.
@@ -207,7 +207,21 @@ bool UActorIOAction::CanExecuteAction(FActionExecutionContext& ExecutionContext)
 		return false;
 	}
 
-	// #TODO: Give actor a chance to decide execution?
+	// Give the owning actor a chance to abort action execution.
+	// We are checking separately on C++ level first and then in blueprints.
+	if (ActionOwner->Implements<UActorIOInterface>())
+	{
+		IActorIOInterface* IOInterface = Cast<IActorIOInterface>(ActionOwner);
+		if (IOInterface && !IOInterface->CanExecuteAction(this))
+		{
+			return false;
+		}
+
+		if (!IActorIOInterface::Execute_K2_CanExecuteAction(ActionOwner, this))
+		{
+			return false;
+		}
+	}
 
 	return true;
 }
@@ -245,7 +259,7 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 		}
 	}
 
-	FActorIOEventList ValidEvents = UActorIOSystem::GetEventsForObject(GetOwnerActor());
+	FActorIOEventList ValidEvents = UActorIOSystem::GetEventsForObject(ActionOwner);
 	FActorIOEvent* BoundEvent = ValidEvents.GetEvent(EventId);
 	check(BoundEvent);
 

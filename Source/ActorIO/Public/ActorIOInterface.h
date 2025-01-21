@@ -53,4 +53,21 @@ public:
 	 */
 	UFUNCTION(BlueprintImplementableEvent, CallInEditor, Category = "Actor IO", DisplayName = "Register I/O Functions", meta = (ForceAsFunction, Keywords = "IO"))
 	void K2_RegisterIOFunctions(UPARAM(Ref) FActorIOFunctionList& FunctionRegistry);
+
+public:
+
+	/**
+	 * Determine whether the action can be executed or not.
+	 * If this function returns false then the action will not be executed.
+	 */
+	virtual bool CanExecuteAction(UActorIOAction* Action) { return true; }
+
+	/**
+	 * Determine whether the action can be executed or not.
+	 * If this function returns false then the action will not be executed.
+	 * 
+	 * @return Whether to execute the action or not.
+	 */
+	UFUNCTION(BlueprintImplementableEvent, Category = "Actor IO", DisplayName = "Can Execute Action")
+	bool K2_CanExecuteAction(UActorIOAction* Action) const;
 };

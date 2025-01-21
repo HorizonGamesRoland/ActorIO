@@ -529,11 +529,11 @@ FText SActorIOActionListViewRow::OnGetRemoveOrViewTooltip() const
 {
 	if (!bIsInputAction)
 	{
-		return LOCTEXT("RemoveActionTooltip", "Delete this action.");
+		return LOCTEXT("RemoveActionTooltip", "Delete action");
 	}
 	else
 	{
-		return LOCTEXT("ViewActionTooltip", "Select the actor that calls this action.");
+		return LOCTEXT("ViewActionTooltip", "Select the actor that calls this action");
 	}
 }
 

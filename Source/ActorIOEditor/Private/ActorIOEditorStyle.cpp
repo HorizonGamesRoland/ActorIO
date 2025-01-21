@@ -89,6 +89,8 @@ void FActorIOEditorStyle::Initialize()
 	StyleSet->Set("ClassThumbnail.LogicGlobalEvent", new IMAGE_BRUSH("Icons/AssetIcons/LogicGlobalEvent_64", Icon64x64));
 	StyleSet->Set("ClassIcon.LogicRelay", new IMAGE_BRUSH("Icons/AssetIcons/LogicRelay_16", Icon16x16));
 	StyleSet->Set("ClassThumbnail.LogicRelay", new IMAGE_BRUSH("Icons/AssetIcons/LogicRelay_64", Icon64x64));
+	StyleSet->Set("ClassIcon.LogicSpawner", new IMAGE_BRUSH("Icons/AssetIcons/LogicSpawner_16", Icon16x16));
+	StyleSet->Set("ClassThumbnail.LogicSpawner", new IMAGE_BRUSH("Icons/AssetIcons/LogicSpawner_64", Icon64x64));
 	StyleSet->Set("ClassIcon.LogicTimeline", new IMAGE_BRUSH("Icons/AssetIcons/LogicTimeline_16", Icon16x16));
 	StyleSet->Set("ClassThumbnail.LogicTimeline", new IMAGE_BRUSH("Icons/AssetIcons/LogicTimeline_64", Icon64x64));
 	StyleSet->Set("ClassIcon.LogicTimer", new IMAGE_BRUSH("Icons/AssetIcons/LogicTimer_16", Icon16x16));
