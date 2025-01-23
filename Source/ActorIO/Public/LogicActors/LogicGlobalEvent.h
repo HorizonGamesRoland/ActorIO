@@ -21,11 +21,11 @@ public:
 
 public:
 
-    /** Event when the world has been initialized. Called after all actors have been initialized, but before 'BeginPlay'. */
+    /** Event when the world is initialized. Called after all actors have been initialized, but before 'BeginPlay'. */
     UPROPERTY(BlueprintAssignable, Category = "Global Event")
     FSimpleActionDelegate OnWorldInitialized;
 
-    /** Event when play begins for this actor. */
+    /** Event when 'BeginPlay' is called for this actor. */
     UPROPERTY(BlueprintAssignable, Category = "Global Event")
     FSimpleActionDelegate OnBeginPlay;
 

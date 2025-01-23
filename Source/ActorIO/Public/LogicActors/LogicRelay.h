@@ -23,8 +23,6 @@ public:
 
 public:
 
-    // #TODO: Add call on server to this?
-
     /** Whether the relay is enabled or not. */
     UPROPERTY(EditInstanceOnly, Category = "Relay")
     bool bIsEnabled;

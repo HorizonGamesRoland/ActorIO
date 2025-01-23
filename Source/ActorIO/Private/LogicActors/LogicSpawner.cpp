@@ -25,7 +25,7 @@ void ALogicSpawner::BeginPlay()
 
 	if (bSpawnActorsOnStart)
 	{
-		Spawn();
+		SpawnActors();
 	}
 }
 
@@ -43,49 +43,115 @@ void ALogicSpawner::RegisterIOEvents(FActorIOEventList& EventRegistry)
 		.SetDisplayName(LOCTEXT("ALogicSpawner.OnSpawnFinished", "OnSpawnFinished"))
 		.SetTooltipText(LOCTEXT("ALogicSpawner.OnSpawnFinishedTooltip", "Event when all actors have finished spawning."))
 		.SetMulticastDelegate(this, &OnSpawnFinished));
+
+	EventRegistry.RegisterEvent(FActorIOEvent()
+		.SetId(TEXT("ALogicSpawner::OnGetSpawnedActor"))
+		.SetDisplayName(LOCTEXT("ALogicSpawner.OnGetSpawnedActor", "OnGetSpawnedActor"))
+		.SetTooltipText(LOCTEXT("ALogicSpawner.OnGetSpawnedActorTooltip", "Event when getting a spawned actor using the 'GetSpawnedActorForEntry' function."))
+		.SetMulticastDelegate(this, &OnGetSpawnedActor)
+		.SetEventProcessor(this, TEXT("ProcessEvent_OnGetSpawnedActor")));
 }
 
 void ALogicSpawner::RegisterIOFunctions(FActorIOFunctionList& FunctionRegistry)
 {
 	FunctionRegistry.RegisterFunction(FActorIOFunction()
-		.SetId(TEXT("ALogicSpawner::Spawn"))
-		.SetDisplayName(LOCTEXT("ALogicSpawner.Spawn", "Spawn"))
+		.SetId(TEXT("ALogicSpawner::SpawnActors"))
+		.SetDisplayName(LOCTEXT("ALogicSpawner.SpawnActors", "SpawnActors"))
 		.SetTooltipText(LOCTEXT("ALogicSpawner.SpawnTooltip", "Spawn the actors."))
-		.SetFunction(TEXT("Spawn")));
+		.SetFunction(TEXT("SpawnActors")));
+
+	FunctionRegistry.RegisterFunction(FActorIOFunction()
+		.SetId(TEXT("ALogicSpawner::DestroySpawnedActors"))
+		.SetDisplayName(LOCTEXT("ALogicSpawner.DestroySpawnedActors", "DestroySpawnedActors"))
+		.SetTooltipText(LOCTEXT("ALogicSpawner.DestroySpawnedActorsTooltip", "Destroy all spawned actors."))
+		.SetFunction(TEXT("DestroySpawnedActors")));
+
+	FunctionRegistry.RegisterFunction(FActorIOFunction()
+		.SetId(TEXT("ALogicSpawner::DestroySpawnedActorForEntry"))
+		.SetDisplayName(LOCTEXT("ALogicSpawner.DestroySpawnedActorForEntry", "DestroySpawnedActorForEntry"))
+		.SetTooltipText(LOCTEXT("ALogicSpawner.DestroySpawnedActorForEntryTooltip", "Destroy the actor that was spawned for the given entry."))
+		.SetFunction(TEXT("DestroySpawnedActorForEntry")));
+
+	FunctionRegistry.RegisterFunction(FActorIOFunction()
+		.SetId(TEXT("ALogicSpawner::GetSpawnedActorForEntry"))
+		.SetDisplayName(LOCTEXT("ALogicSpawner.GetSpawnedActorForEntry", "GetSpawnedActorForEntry"))
+		.SetTooltipText(LOCTEXT("ALogicSpawner.GetSpawnedActorForEntryTooltip", "Get the actor that was spawned for the given entry and fire 'OnGetSpawnedActor' event."))
+		.SetFunction(TEXT("GetSpawnedActorForEntry")));
 }
 
-void ALogicSpawner::Spawn()
+void ALogicSpawner::SpawnActors()
 {
-	FActorSpawnParameters SpawnParams = FActorSpawnParameters();
-	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
+	GetWorld()->GetTimerManager().ClearAllTimersForObject(this);
 
-	UWorld* MyWorld = GetWorld();
-	for (const FLogicSpawnerEntry& SpawnEntry : ActorsToSpawn)
+	for (int32 EntryIdx = 0; EntryIdx != ActorsToSpawn.Num(); ++EntryIdx)
 	{
-		if (SpawnEntry.SpawnClass && IsValid(SpawnEntry.SpawnPoint))
+		const FLogicSpawnerEntry& SpawnEntry = ActorsToSpawn[EntryIdx];
+		if (SpawnEntry.IsValid())
 		{
-			AActor* NewActor = MyWorld->SpawnActor<AActor>(
-				SpawnEntry.SpawnClass,
-				SpawnEntry.SpawnPoint->GetActorLocation(),
-				SpawnEntry.SpawnPoint->GetActorRotation(),
-				SpawnParams);
-
-			SpawnedActors.Add(NewActor);
-			OnActorSpawned.Broadcast(NewActor);
+			if (SpawnEntry.SpawnDelay > 0.0f)
+			{
+				FTimerHandle UniqueHandle;
+				FTimerDelegate SpawnDelegate = FTimerDelegate::CreateUObject(this, &ThisClass::InternalSpawnActor, EntryIdx);
+				GetWorld()->GetTimerManager().SetTimer(UniqueHandle, SpawnDelegate, SpawnEntry.SpawnDelay, false);
+			}
+			else
+			{
+				InternalSpawnActor(EntryIdx);
+			}
 		}
 	}
 
 	OnSpawnFinished.Broadcast();
 }
 
-AActor* ALogicSpawner::GetSpawnedActorAt(int32 Index) const
+void ALogicSpawner::InternalSpawnActor(int32 EntryIdx)
 {
-	if (SpawnedActors.IsValidIndex(Index))
+	FActorSpawnParameters SpawnParams = FActorSpawnParameters();
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
+
+	const FLogicSpawnerEntry& SpawnEntry = ActorsToSpawn[EntryIdx];
+	AActor* NewActor = GetWorld()->SpawnActor<AActor>(
+		SpawnEntry.SpawnClass,
+		SpawnEntry.SpawnPoint->GetActorLocation(),
+		SpawnEntry.SpawnPoint->GetActorRotation(),
+		SpawnParams);
+
+	SpawnedActors.Add(NewActor);
+	OnActorSpawned.Broadcast(NewActor);
+}
+
+void ALogicSpawner::DestroySpawnedActors()
+{
+	GetWorld()->GetTimerManager().ClearAllTimersForObject(this);
+
+	for (AActor* SpawnedActor : SpawnedActors)
 	{
-		return SpawnedActors[Index];
+		if (IsValid(SpawnedActor))
+		{
+			GetWorld()->DestroyActor(SpawnedActor);
+		}
+	}
+}
+
+void ALogicSpawner::DestroySpawnedActorForEntry(int32 EntryIdx)
+{
+	AActor* ActorToDestroy = GetSpawnedActorForEntry(EntryIdx);
+	if (IsValid(ActorToDestroy))
+	{
+		GetWorld()->DestroyActor(ActorToDestroy);
+	}
+}
+
+AActor* ALogicSpawner::GetSpawnedActorForEntry(int32 EntryIdx) const
+{
+	AActor* OutActor = nullptr;
+	if (SpawnedActors.IsValidIndex(EntryIdx))
+	{
+		OutActor = SpawnedActors[EntryIdx];
 	}
 
-	return nullptr;
+	OnGetSpawnedActor.Broadcast(OutActor);
+	return OutActor;
 }
 
 int32 ALogicSpawner::GetSpawnedActorCount() const
@@ -94,6 +160,12 @@ int32 ALogicSpawner::GetSpawnedActorCount() const
 }
 
 void ALogicSpawner::ProcessEvent_OnActorSpawned(AActor* ActorPtr)
+{
+	FActionExecutionContext& ExecContext = FActionExecutionContext::Get(this);
+	ExecContext.SetNamedArgument(TEXT("$Actor"), IsValid(ActorPtr) ? ActorPtr->GetPathName() : FString());
+}
+
+void ALogicSpawner::ProcessEvent_OnGetSpawnedActor(AActor* ActorPtr)
 {
 	FActionExecutionContext& ExecContext = FActionExecutionContext::Get(this);
 	ExecContext.SetNamedArgument(TEXT("$Actor"), IsValid(ActorPtr) ? ActorPtr->GetPathName() : FString());

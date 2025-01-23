@@ -7,7 +7,9 @@
 #include "LogicSpawner.generated.h"
 
 /** Delegate when an actor is spawned. */
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLogicSpawnerSpawnActor, AActor*, ActorPtr);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSpawnerSpawnActor, AActor*, ActorPtr);
+/** Delegate when getting a spawned actor. */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnGetSpawnedActor, AActor*, ActorPtr);
 
 /**
  * An actor entry for the logic spawner.
@@ -21,21 +23,36 @@ struct FLogicSpawnerEntry
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawner")
     TSubclassOf<AActor> SpawnClass;
 
-    /** Spawn point of the actor. Use the built in Target Point actor in Unreal to easily mark spawn points. */
+    /**
+     * Spawn point of the actor.
+     * Use the built in Target Point actor in Unreal to easily mark spawn points.
+     */
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawner")
     TObjectPtr<AActor> SpawnPoint;
+
+    /** Time delay before spawning the actor. */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawner")
+    float SpawnDelay;
 
     /** Default constructor. */
     FLogicSpawnerEntry() :
         SpawnClass(TSubclassOf<AActor>()),
-        SpawnPoint(nullptr)
+        SpawnPoint(nullptr),
+        SpawnDelay(0.0f)
     {}
 
-    /** Constructor from a class and spawn point. */
-    FLogicSpawnerEntry(UClass* InSpawnClass, AActor* InSpawnPoint) :
+    /** Constructor from already existing params. */
+    FLogicSpawnerEntry(UClass* InSpawnClass, AActor* InSpawnPoint, float InSpawnDelay) :
         SpawnClass(InSpawnClass),
-        SpawnPoint(InSpawnPoint)
+        SpawnPoint(InSpawnPoint),
+        SpawnDelay(InSpawnDelay)
     {}
+
+    /** @return Whether an actor is spawnable from the entry. */
+    FORCEINLINE bool IsValid() const
+    {
+        return SpawnClass != nullptr && SpawnPoint != nullptr;
+    }
 };
 
 /**
@@ -63,11 +80,15 @@ public:
 
     /** Event whenever a new actor is spawned */
     UPROPERTY(BlueprintAssignable, Category = "Spawner")
-    FOnLogicSpawnerSpawnActor OnActorSpawned;
+    FOnSpawnerSpawnActor OnActorSpawned;
 
     /** Event when all actors have finished spawning. */
     UPROPERTY(BlueprintAssignable, Category = "Spawner")
     FSimpleActionDelegate OnSpawnFinished;
+
+    /** Event when getting a spawned actor using the 'GetSpawnedActorForEntry' function. */
+    UPROPERTY(BlueprintAssignable, Category = "Spawner")
+    FOnGetSpawnedActor OnGetSpawnedActor;
 
 protected:
 
@@ -87,11 +108,19 @@ public:
 
     /** Spawn the actors. */
     UFUNCTION(BlueprintCallable, Category = "Spawner")
-    void Spawn();
+    void SpawnActors();
 
-    /** Get a reference to the actor that has been spawned for the given entry. */
+    /** Destroy all spawned actors. */
+    UFUNCTION(BlueprintCallable, Category = "Spawner")
+    void DestroySpawnedActors();
+
+    /** Destroy the actor that was spawned for the given entry. */
+    UFUNCTION(BlueprintCallable, Category = "Spawner")
+    void DestroySpawnedActorForEntry(int32 EntryIdx);
+
+    /** Get the actor that was spawned for the given entry and fire 'OnGetSpawnedActor' event. */
     UFUNCTION(BlueprintPure, Category = "Spawner")
-    AActor* GetSpawnedActorAt(int32 Index) const;
+    AActor* GetSpawnedActorForEntry(int32 EntryIdx) const;
 
     /** Get the number of spawned actors. */
     UFUNCTION(BlueprintPure, Category = "Spawner")
@@ -99,7 +128,14 @@ public:
 
 protected:
 
+    /** Internal spawn function. */
+    void InternalSpawnActor(int32 EntryIdx);
+
     /** Event processor for the 'OnActorSpawned' event. */
     UFUNCTION()
     void ProcessEvent_OnActorSpawned(AActor* ActorPtr);
+
+    /** Event processor for the 'OnGetSpawnedActor' event. */
+    UFUNCTION()
+    void ProcessEvent_OnGetSpawnedActor(AActor* ActorPtr);
 };

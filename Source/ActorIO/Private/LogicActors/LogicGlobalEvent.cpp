@@ -51,13 +51,13 @@ void ALogicGlobalEvent::RegisterIOEvents(FActorIOEventList& EventRegistry)
 	EventRegistry.RegisterEvent(FActorIOEvent()
 		.SetId(TEXT("ALogicGlobalEvent::OnWorldInitialized"))
 		.SetDisplayName(LOCTEXT("ALogicGlobalEvent.OnWorldInitialized", "OnWorldInitialized"))
-		.SetTooltipText(LOCTEXT("ALogicGlobalEvent.OnWorldInitializedTooltip", "Event when the world has been initialized. Called after all actors have been initialized, but before 'BeginPlay'."))
+		.SetTooltipText(LOCTEXT("ALogicGlobalEvent.OnWorldInitializedTooltip", "Event when the world is initialized. Called after all actors have been initialized, but before 'BeginPlay'."))
 		.SetMulticastDelegate(this, &OnWorldInitialized));
 
 	EventRegistry.RegisterEvent(FActorIOEvent()
 		.SetId(TEXT("ALogicGlobalEvent::OnBeginPlay"))
 		.SetDisplayName(LOCTEXT("ALogicGlobalEvent.OnBeginPlay", "OnBeginPlay"))
-		.SetTooltipText(LOCTEXT("ALogicGlobalEvent.OnBeginPlayTooltip", "Event when play begins for this actor."))
+		.SetTooltipText(LOCTEXT("ALogicGlobalEvent.OnBeginPlayTooltip", "Event when 'BeginPlay' is called for this actor."))
 		.SetMulticastDelegate(this, &OnBeginPlay));
 
 	EventRegistry.RegisterEvent(FActorIOEvent()
