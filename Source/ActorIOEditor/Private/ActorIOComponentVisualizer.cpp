@@ -22,7 +22,7 @@ void FActorIOComponentVisualizer::DrawVisualization(const UActorComponent* Compo
 		{
 			const FVector Start = IOComponentOwner->GetActorLocation();
 			const FVector End = OutputAction->TargetActor->GetActorLocation();
-			PDI->DrawLine(Start, End, FColor(215, 255, 135).ReinterpretAsLinear(), SDPG_Foreground, LineThickness, 0.01f);
+			PDI->DrawLine(Start, End, FColor(150, 255, 80).ReinterpretAsLinear(), SDPG_Foreground, LineThickness, 0.01f);
 		}
 	}
 
@@ -35,7 +35,7 @@ void FActorIOComponentVisualizer::DrawVisualization(const UActorComponent* Compo
 			{
 				const FVector Start = IOComponentOwner->GetActorLocation();
 				const FVector End = ActionOwner->GetActorLocation();
-				PDI->DrawLine(Start, End, FColor(255, 210, 135).ReinterpretAsLinear(), SDPG_Foreground, LineThickness);
+				PDI->DrawLine(Start, End, FColor(255, 200, 80).ReinterpretAsLinear(), SDPG_Foreground, LineThickness);
 			}
 		}
 	}
