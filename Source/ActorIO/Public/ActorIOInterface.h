@@ -61,15 +61,7 @@ public:
 	 * Use this to abort action execution as needed.
 	 * If this function returns false then the action will not be executed.
 	 */
-	virtual bool OnExecutingAction(UActorIOAction* Action) { return true; }
-
-	/**
-	 * Event when the actor is executing one of its I/O actions.
-	 * Use this to abort action execution as needed.
-	 * If this function returns false then the action will not be executed.
-	 * 
-	 * @return Whether to execute the action or not.
-	 */
-	UFUNCTION(BlueprintImplementableEvent, Category = "Actor IO", DisplayName = "On Executing Action")
-	bool K2_OnExecutingAction(UActorIOAction* Action);
+	UFUNCTION(BlueprintNativeEvent, Category = "Actor IO", DisplayName = "On Executing I/O Action")
+	bool OnExecutingIOAction(UActorIOAction* Action);
+	virtual bool OnExecutingIOAction_Implementation(UActorIOAction* Action) { return true; }
 };

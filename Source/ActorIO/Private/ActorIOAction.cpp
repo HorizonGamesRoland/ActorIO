@@ -267,13 +267,7 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 	// We are checking separately on C++ level first and then in blueprints.
 	if (ActionOwner->Implements<UActorIOInterface>())
 	{
-		IActorIOInterface* IOInterface = Cast<IActorIOInterface>(ActionOwner);
-		if (IOInterface && !IOInterface->OnExecutingAction(this))
-		{
-			return;
-		}
-
-		if (!IActorIOInterface::Execute_K2_OnExecutingAction(ActionOwner, this))
+		if (!IActorIOInterface::Execute_OnExecutingIOAction(ActionOwner, this))
 		{
 			return;
 		}

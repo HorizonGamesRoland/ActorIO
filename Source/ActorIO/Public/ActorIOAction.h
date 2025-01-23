@@ -26,15 +26,15 @@ public:
 public:
 
 	/** Id of the I/O event to bind to. */
-	UPROPERTY(EditAnywhere, Category = "Action")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Action")
 	FName EventId;
 
 	/** The execution target. The designated function will be called on this actor. */
-	UPROPERTY(EditAnywhere, Category = "Action")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Action")
 	TObjectPtr<AActor> TargetActor;
 
 	/** Id of the I/O function to call on the target actor. */
-	UPROPERTY(EditAnywhere, Category = "Action")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Action")
 	FName FunctionId;
 
 	/**
@@ -42,18 +42,18 @@ public:
 	 * Format is: Arg1 Arg2 Arg3 ...
 	 * Also supports named arguments in the form of $ArgName.
 	 */
-	UPROPERTY(EditAnywhere, Category = "Action")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Action")
 	FString FunctionArguments;
 
 	/** Time before the function is called on the target actor, after the action is executed. */
-	UPROPERTY(EditAnywhere, Category = "Action")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Action")
 	float Delay;
 
 	/**
 	 * Whether the action can only be executed once.
 	 * If false, the action will be executed every time the assigned I/O event is triggered.
 	 */
-	UPROPERTY(EditAnywhere, Category = "Action")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Action")
 	bool bExecuteOnlyOnce;
 
 protected:
@@ -75,10 +75,12 @@ public:
 	/** Unbind the action. */
 	void UnbindAction();
 
-	/** @return The I/O component that owns this action. */
+	/** Get the I/O component that owns this action. */
+	UFUNCTION(BlueprintPure, Category = "Action")
 	UActorIOComponent* GetOwnerIOComponent() const;
 
-	/** @return The parent actor of the owning I/O component. */
+	/** Get the parent actor of the I/O component that owns this action. */
+	UFUNCTION(BlueprintPure, Category = "Action")
 	AActor* GetOwnerActor() const;
 
 protected:

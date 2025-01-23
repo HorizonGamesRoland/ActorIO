@@ -144,7 +144,7 @@ struct ACTORIO_API FActorIOEvent
 
 /**
  * List of I/O events registered with an object.
- * Use the register function to add elements to this.
+ * Use the register function to add elements to the list.
  */
 USTRUCT(BlueprintType)
 struct ACTORIO_API FActorIOEventList
@@ -285,7 +285,7 @@ struct ACTORIO_API FActorIOFunction
 
 /**
  * List of I/O functions registered with an object.
- * Use the register function to add elements to this.
+ * Use the register function to add elements to the list.
  */
 USTRUCT(BlueprintType)
 struct ACTORIO_API FActorIOFunctionList

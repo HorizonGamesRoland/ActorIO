@@ -4,6 +4,7 @@
 #include "ActorIOComponent.h"
 #include "ActorIOInterface.h"
 #include "ActorIOAction.h"
+#include "LogicActors/LogicActorBase.h"
 #include "GameFramework/Actor.h"
 #include "GameFramework/CameraBlockingVolume.h"
 #include "Engine/StaticMeshActor.h"
@@ -281,14 +282,17 @@ void UActorIOSystem::GetNativeFunctionsForObject(AActor* InObject, FActorIOFunct
     }
 
     //==================================
-    // Base Actor
+    // Non Logic Actors
     //==================================
 
-    FunctionRegistry.RegisterFunction(FActorIOFunction()
-        .SetId(TEXT("AActor::Destroy"))
-        .SetDisplayName(LOCTEXT("Actor.Destroy", "Destroy"))
-        .SetTooltipText(LOCTEXT("Actor.DestroyTooltip", "Destroy the actor."))
-        .SetFunction(TEXT("K2_DestroyActor")));
+    if (!InObject->IsA<ALogicActorBase>())
+    {
+        FunctionRegistry.RegisterFunction(FActorIOFunction()
+            .SetId(TEXT("AActor::Destroy"))
+            .SetDisplayName(LOCTEXT("Actor.Destroy", "Destroy"))
+            .SetTooltipText(LOCTEXT("Actor.DestroyTooltip", "Destroy the actor."))
+            .SetFunction(TEXT("K2_DestroyActor")));
+    }
 }
 
 void UActorIOSystem::ProcessEvent_OnActorOverlap(AActor* OverlappedActor, AActor* OtherActor)
