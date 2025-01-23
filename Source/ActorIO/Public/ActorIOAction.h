@@ -98,9 +98,6 @@ protected:
 	UFUNCTION()
 	void ReceiveExecuteAction();
 
-	/** @return Whether the action can be executed or not. */
-	bool CanExecuteAction(FActionExecutionContext& ExecutionContext);
-
 	/** Executes the action. */
 	void ExecuteAction(FActionExecutionContext& ExecutionContext);
 

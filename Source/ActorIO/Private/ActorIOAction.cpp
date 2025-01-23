@@ -170,10 +170,9 @@ void UActorIOAction::ProcessEvent(UFunction* Function, void* Parms)
 		FActionExecutionContext& ExecContext = FActionExecutionContext::Get(this);
 		ExecContext.EnterContext(this, Parms);
 
-		if (CanExecuteAction(ExecContext))
-		{
-			ExecuteAction(ExecContext);
-		}
+		// Start executing the action.
+		// Build the command and send it to the target actor.
+		ExecuteAction(ExecContext);
 
 		// Make sure to leave the context in case 'ExecuteAction' didn't leave already.
 		if (ExecContext.HasContext())
@@ -192,43 +191,15 @@ void UActorIOAction::ReceiveExecuteAction()
 	// For more information see 'ProcessEvent' above.
 }
 
-bool UActorIOAction::CanExecuteAction(FActionExecutionContext& ExecutionContext)
+void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 {
 	AActor* ActionOwner = GetOwnerActor();
 	if (!IsValid(ActionOwner))
 	{
 		// Do not attempt to execute an action if we are about to be destroyed.
-		return false;
+		return;
 	}
 
-	if (bExecuteOnlyOnce && bWasExecuted)
-	{
-		// Action has already been executed once.
-		return false;
-	}
-
-	// Give the owning actor a chance to abort action execution.
-	// We are checking separately on C++ level first and then in blueprints.
-	if (ActionOwner->Implements<UActorIOInterface>())
-	{
-		IActorIOInterface* IOInterface = Cast<IActorIOInterface>(ActionOwner);
-		if (IOInterface && !IOInterface->CanExecuteAction(this))
-		{
-			return false;
-		}
-
-		if (!IActorIOInterface::Execute_K2_CanExecuteAction(ActionOwner, this))
-		{
-			return false;
-		}
-	}
-
-	return true;
-}
-
-void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
-{
-	AActor* ActionOwner = GetOwnerActor();
 	UE_LOG(LogActorIO, Log, TEXT("Actor '%s' executing action: %s -> %s"), *ActionOwner->GetActorNameOrLabel(), *EventId.ToString(), *FunctionId.ToString());
 
 	if (!IsValid(TargetActor))
@@ -289,6 +260,22 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 				const FString NamedArgValue = ExecutionContext.NamedArguments[Argument];
 				Argument = NamedArgValue;
 			}
+		}
+	}
+
+	// Give the owning actor a chance to abort action execution.
+	// We are checking separately on C++ level first and then in blueprints.
+	if (ActionOwner->Implements<UActorIOInterface>())
+	{
+		IActorIOInterface* IOInterface = Cast<IActorIOInterface>(ActionOwner);
+		if (IOInterface && !IOInterface->OnExecutingAction(this))
+		{
+			return;
+		}
+
+		if (!IActorIOInterface::Execute_K2_OnExecutingAction(ActionOwner, this))
+		{
+			return;
 		}
 	}
 

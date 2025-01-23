@@ -57,17 +57,19 @@ public:
 public:
 
 	/**
-	 * Determine whether the action can be executed or not.
+	 * Called when the actor is executing one of its I/O actions.
+	 * Use this to abort action execution as needed.
 	 * If this function returns false then the action will not be executed.
 	 */
-	virtual bool CanExecuteAction(UActorIOAction* Action) { return true; }
+	virtual bool OnExecutingAction(UActorIOAction* Action) { return true; }
 
 	/**
-	 * Determine whether the action can be executed or not.
+	 * Event when the actor is executing one of its I/O actions.
+	 * Use this to abort action execution as needed.
 	 * If this function returns false then the action will not be executed.
 	 * 
 	 * @return Whether to execute the action or not.
 	 */
-	UFUNCTION(BlueprintImplementableEvent, Category = "Actor IO", DisplayName = "Can Execute Action")
-	bool K2_CanExecuteAction(UActorIOAction* Action) const;
+	UFUNCTION(BlueprintImplementableEvent, Category = "Actor IO", DisplayName = "On Executing Action")
+	bool K2_OnExecutingAction(UActorIOAction* Action);
 };
