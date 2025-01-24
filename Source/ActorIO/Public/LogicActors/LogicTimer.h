@@ -45,7 +45,7 @@ protected:
     /** Handle for the current timer. */
     FTimerHandle CurrentTimerHandle;
 
-public:
+protected:
 
     //~ Begin ALogicActorBase Interface
     virtual void RegisterIOEvents(FActorIOEventList& EventRegistry) override;

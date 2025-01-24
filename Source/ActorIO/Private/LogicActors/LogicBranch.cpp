@@ -19,20 +19,6 @@ ALogicBranch::ALogicBranch()
 #endif
 }
 
-void ALogicBranch::PostInitializeComponents()
-{
-	Super::PostInitializeComponents();
-
-	UWorld* MyWorld = GetWorld();
-	if (!MyWorld || !MyWorld->IsGameWorld())
-	{
-		// Do nothing in the editor.
-		return;
-	}
-
-	bCurrentValue = bInitialValue;
-}
-
 void ALogicBranch::RegisterIOEvents(FActorIOEventList& EventRegistry)
 {
 	EventRegistry.RegisterEvent(FActorIOEvent()
@@ -81,6 +67,17 @@ void ALogicBranch::RegisterIOFunctions(FActorIOFunctionList& FunctionRegistry)
 		.SetDisplayName(LOCTEXT("LogicBranch.Test", "Test"))
 		.SetTooltipText(LOCTEXT("LogicBranch.TestTooltip", "Test the boolean value and fire 'OnTrue' or 'OnFalse' based on the value."))
 		.SetFunction(TEXT("Test")));
+}
+
+void ALogicBranch::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+
+	UWorld* MyWorld = GetWorld();
+	if (MyWorld && MyWorld->IsGameWorld())
+	{
+		bCurrentValue = bInitialValue;
+	}
 }
 
 void ALogicBranch::SetValue(bool bValue)

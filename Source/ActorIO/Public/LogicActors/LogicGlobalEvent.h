@@ -33,12 +33,12 @@ public:
     UPROPERTY(BlueprintAssignable, Category = "Global Event")
     FSimpleActionDelegate OnWorldTeardown;
 
-public:
+protected:
 
     //~ Begin ALogicActorBase Interface
-    virtual void PostInitializeComponents() override;
     virtual void RegisterIOEvents(FActorIOEventList& EventRegistry) override;
     virtual void RegisterIOFunctions(FActorIOFunctionList& FunctionRegistry) override;
+    virtual void PostInitializeComponents() override;
     virtual void BeginPlay() override;
     virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
     //~ End ALogicActorBase Interface

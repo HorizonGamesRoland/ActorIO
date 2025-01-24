@@ -16,36 +16,6 @@ ALogicGlobalEvent::ALogicGlobalEvent()
 #endif
 }
 
-void ALogicGlobalEvent::PostInitializeComponents()
-{
-	Super::PostInitializeComponents();
-
-	UWorld* MyWorld = GetWorld();
-	if (!MyWorld || !MyWorld->IsGameWorld())
-	{
-		// Do nothing in the editor.
-		return;
-	}
-
-	FWorldDelegates::OnWorldInitializedActors.AddUObject(this, &ThisClass::OnWorldInitializedCallback);
-	FWorldDelegates::OnWorldBeginTearDown.AddUObject(this, &ThisClass::OnWorldTeardownCallback);
-}
-
-void ALogicGlobalEvent::BeginPlay()
-{
-	Super::BeginPlay();
-
-	OnBeginPlay.Broadcast();
-}
-
-void ALogicGlobalEvent::EndPlay(const EEndPlayReason::Type EndPlayReason)
-{
-	FWorldDelegates::OnWorldInitializedActors.RemoveAll(this);
-	FWorldDelegates::OnWorldBeginTearDown.RemoveAll(this);
-
-	Super::EndPlay(EndPlayReason);
-}
-
 void ALogicGlobalEvent::RegisterIOEvents(FActorIOEventList& EventRegistry)
 {
 	EventRegistry.RegisterEvent(FActorIOEvent()
@@ -65,6 +35,33 @@ void ALogicGlobalEvent::RegisterIOEvents(FActorIOEventList& EventRegistry)
 		.SetDisplayName(LOCTEXT("ALogicGlobalEvent.OnWorldTeardown", "OnWorldTeardown"))
 		.SetTooltipText(LOCTEXT("ALogicGlobalEvent.OnWorldTeardownTooltip", "Event when the world is being torn down. This means we are leaving the map. Called before 'EndPlay' is dispatched to all actors."))
 		.SetMulticastDelegate(this, &OnWorldTeardown));
+}
+
+void ALogicGlobalEvent::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+
+	UWorld* MyWorld = GetWorld();
+	if (MyWorld && MyWorld->IsGameWorld())
+	{
+		FWorldDelegates::OnWorldInitializedActors.AddUObject(this, &ThisClass::OnWorldInitializedCallback);
+		FWorldDelegates::OnWorldBeginTearDown.AddUObject(this, &ThisClass::OnWorldTeardownCallback);
+	}
+}
+
+void ALogicGlobalEvent::BeginPlay()
+{
+	Super::BeginPlay();
+
+	OnBeginPlay.Broadcast();
+}
+
+void ALogicGlobalEvent::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	FWorldDelegates::OnWorldInitializedActors.RemoveAll(this);
+	FWorldDelegates::OnWorldBeginTearDown.RemoveAll(this);
+
+	Super::EndPlay(EndPlayReason);
 }
 
 void ALogicGlobalEvent::RegisterIOFunctions(FActorIOFunctionList& FunctionRegistry)

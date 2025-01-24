@@ -50,12 +50,12 @@ protected:
     /** Current value to use for comparison. */
     FString CurrentValue;
 
-public:
+protected:
 
     //~ Begin ALogicActorBase Interface
-    virtual void PostInitializeComponents() override;
     virtual void RegisterIOEvents(FActorIOEventList& EventRegistry) override;
     virtual void RegisterIOFunctions(FActorIOFunctionList& FunctionRegistry) override;
+    virtual void PostInitializeComponents() override;
     //~ End ALogicActorBase Interface
 
 public:

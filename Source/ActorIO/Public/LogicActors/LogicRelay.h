@@ -31,7 +31,7 @@ public:
     UPROPERTY(BlueprintAssignable, Category = "Relay")
     FSimpleActionDelegate OnTrigger;
 
-public:
+protected:
 
     //~ Begin ALogicActorBase Interface
     virtual void RegisterIOEvents(FActorIOEventList& EventRegistry) override;

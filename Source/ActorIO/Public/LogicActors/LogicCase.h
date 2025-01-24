@@ -81,7 +81,7 @@ public:
     UPROPERTY(BlueprintAssignable, Category = "Case")
     FSimpleActionDelegate OnDefault;
 
-public:
+protected:
 
     //~ Begin ALogicActorBase Interface
     virtual void RegisterIOEvents(FActorIOEventList& EventRegistry) override;

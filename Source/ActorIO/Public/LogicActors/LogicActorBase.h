@@ -26,13 +26,6 @@ public:
 
 protected:
 
-	//~ Begin ALogicActorBase Interface
-	virtual void RegisterIOEvents(FActorIOEventList& EventRegistry) override {}
-	virtual void RegisterIOFunctions(FActorIOFunctionList& FunctionRegistry) override {}
-	//~ End ALogicActorBase Interface
-
-protected:
-
 #if WITH_EDITORONLY_DATA
 	/** Billboard component displayed in the editor. */
 	UPROPERTY(EditDefaultsOnly, Category = "Components")
@@ -42,4 +35,11 @@ protected:
 	/** Get the editor only billboard component of the actor. */
 	UFUNCTION(BlueprintPure, Category = "Components", meta = (DevelopmentOnly))
 	UBillboardComponent* GetEditorSpriteComponent() const;
+
+protected:
+
+	//~ Begin ALogicActorBase Interface
+	virtual void RegisterIOEvents(FActorIOEventList& EventRegistry) override {}
+	virtual void RegisterIOFunctions(FActorIOFunctionList& FunctionRegistry) override {}
+	//~ End ALogicActorBase Interface
 };

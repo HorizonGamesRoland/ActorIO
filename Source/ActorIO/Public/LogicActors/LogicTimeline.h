@@ -60,12 +60,12 @@ protected:
     UPROPERTY(Transient)
     TObjectPtr<UCurveFloat> TimelineCurve;
 
-public:
+protected:
 
     //~ Begin ALogicActorBase Interface
-    virtual void PostInitializeComponents() override;
     virtual void RegisterIOEvents(FActorIOEventList& EventRegistry) override;
     virtual void RegisterIOFunctions(FActorIOFunctionList& FunctionRegistry) override;
+    virtual void PostInitializeComponents() override;
     virtual void Tick(float DeltaSeconds) override;
     //~ End ALogicActorBase Interface
 

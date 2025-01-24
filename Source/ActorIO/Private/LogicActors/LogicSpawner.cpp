@@ -19,16 +19,6 @@ ALogicSpawner::ALogicSpawner()
 #endif
 }
 
-void ALogicSpawner::BeginPlay()
-{
-	Super::BeginPlay();
-
-	if (bSpawnActorsOnStart)
-	{
-		SpawnActors();
-	}
-}
-
 void ALogicSpawner::RegisterIOEvents(FActorIOEventList& EventRegistry)
 {
 	EventRegistry.RegisterEvent(FActorIOEvent()
@@ -77,6 +67,16 @@ void ALogicSpawner::RegisterIOFunctions(FActorIOFunctionList& FunctionRegistry)
 		.SetDisplayName(LOCTEXT("ALogicSpawner.GetSpawnedActorForEntry", "GetSpawnedActorForEntry"))
 		.SetTooltipText(LOCTEXT("ALogicSpawner.GetSpawnedActorForEntryTooltip", "Get the actor that was spawned for the given entry and fire 'OnGetSpawnedActor' event."))
 		.SetFunction(TEXT("GetSpawnedActorForEntry")));
+}
+
+void ALogicSpawner::BeginPlay()
+{
+	Super::BeginPlay();
+
+	if (bSpawnActorsOnStart)
+	{
+		SpawnActors();
+	}
 }
 
 void ALogicSpawner::SpawnActors()

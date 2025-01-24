@@ -96,12 +96,12 @@ protected:
     UPROPERTY(Transient)
     TArray<TObjectPtr<AActor>> SpawnedActors;
 
-public:
+protected:
 
     //~ Begin ALogicActorBase Interface
-    virtual void BeginPlay() override;
     virtual void RegisterIOEvents(FActorIOEventList& EventRegistry) override;
     virtual void RegisterIOFunctions(FActorIOFunctionList& FunctionRegistry) override;
+    virtual void BeginPlay() override;
     //~ End ALogicActorBase Interface
 
 public:

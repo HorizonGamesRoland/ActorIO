@@ -20,20 +20,6 @@ ALogicCompare::ALogicCompare()
 #endif
 }
 
-void ALogicCompare::PostInitializeComponents()
-{
-	Super::PostInitializeComponents();
-
-	UWorld* MyWorld = GetWorld();
-	if (!MyWorld || !MyWorld->IsGameWorld())
-	{
-		// Do nothing in the editor.
-		return;
-	}
-
-	CurrentValue = InitialValue;
-}
-
 void ALogicCompare::RegisterIOEvents(FActorIOEventList& EventRegistry)
 {
 	EventRegistry.RegisterEvent(FActorIOEvent()
@@ -90,6 +76,17 @@ void ALogicCompare::RegisterIOFunctions(FActorIOFunctionList& FunctionRegistry)
 		.SetDisplayName(LOCTEXT("ALogicCompare.Compare", "Compare"))
 		.SetTooltipText(LOCTEXT("ALogicCompare.CompareTooltip", "Compare the current value with the compare value."))
 		.SetFunction(TEXT("Compare")));
+}
+
+void ALogicCompare::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+
+	UWorld* MyWorld = GetWorld();
+	if (MyWorld && MyWorld->IsGameWorld())
+	{
+		CurrentValue = InitialValue;
+	}
 }
 
 void ALogicCompare::SetValue(FString InValue)

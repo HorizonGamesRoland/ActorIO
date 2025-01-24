@@ -22,24 +22,6 @@ ALogicCounter::ALogicCounter()
 #endif
 }
 
-void ALogicCounter::PostInitializeComponents()
-{
-	Super::PostInitializeComponents();
-
-	UWorld* MyWorld = GetWorld();
-	if (!MyWorld || !MyWorld->IsGameWorld())
-	{
-		// Do nothing in the editor.
-		return;
-	}
-
-	CurrentValue = InitialValue;
-	if (bClampValue)
-	{
-		CurrentValue = FMath::Clamp(CurrentValue, 0, TargetValue);
-	}
-}
-
 void ALogicCounter::RegisterIOEvents(FActorIOEventList& EventRegistry)
 {
 	EventRegistry.RegisterEvent(FActorIOEvent()
@@ -93,6 +75,21 @@ void ALogicCounter::RegisterIOFunctions(FActorIOFunctionList& FunctionRegistry)
 		.SetDisplayName(LOCTEXT("ALogicCounter.GetValue", "GetValue"))
 		.SetTooltipText(LOCTEXT("ALogicCounter.GetValueTooltip", "Fire the 'OnGetValue' event with the current value."))
 		.SetFunction(TEXT("GetValue")));
+}
+
+void ALogicCounter::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+
+	UWorld* MyWorld = GetWorld();
+	if (MyWorld && MyWorld->IsGameWorld())
+	{
+		CurrentValue = InitialValue;
+		if (bClampValue)
+		{
+			CurrentValue = FMath::Clamp(CurrentValue, 0, TargetValue);
+		}
+	}
 }
 
 void ALogicCounter::Add(int32 Amount)

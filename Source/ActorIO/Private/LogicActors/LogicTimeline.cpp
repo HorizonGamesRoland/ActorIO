@@ -27,32 +27,6 @@ ALogicTimeline::ALogicTimeline()
 #endif
 }
 
-void ALogicTimeline::PostInitializeComponents()
-{
-	Super::PostInitializeComponents();
-
-	UWorld* MyWorld = GetWorld();
-	if (!MyWorld || !MyWorld->IsGameWorld())
-	{
-		// Do nothing in the editor.
-		return;
-	}
-
-	if (Curve.ExternalCurve)
-	{
-		TimelineCurve = Curve.ExternalCurve;
-	}
-	else
-	{
-		UCurveFloat* NewCurve = NewObject<UCurveFloat>(this, NAME_None, RF_Transient);
-		NewCurve->FloatCurve = *Curve.GetRichCurve();
-		TimelineCurve = NewCurve;
-	}
-
-	Timeline.AddInterpFloat(TimelineCurve, FOnTimelineFloatStatic::CreateUObject(this, &ThisClass::OnTimelineValueChangedCallback));
-	Timeline.SetTimelineFinishedFunc(FOnTimelineEventStatic::CreateUObject(this, &ThisClass::OnTimelineFinishedCallback));
-}
-
 void ALogicTimeline::RegisterIOEvents(FActorIOEventList& EventRegistry)
 {
 	EventRegistry.RegisterEvent(FActorIOEvent()
@@ -100,6 +74,29 @@ void ALogicTimeline::RegisterIOFunctions(FActorIOFunctionList& FunctionRegistry)
 		.SetDisplayName(LOCTEXT("ALogicTimeline.Stop", "Stop"))
 		.SetTooltipText(LOCTEXT("ALogicTimeline.StopTooltip", "Stop the timeline."))
 		.SetFunction(TEXT("Stop")));
+}
+
+void ALogicTimeline::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+
+	UWorld* MyWorld = GetWorld();
+	if (MyWorld && MyWorld->IsGameWorld())
+	{
+		if (Curve.ExternalCurve)
+		{
+			TimelineCurve = Curve.ExternalCurve;
+		}
+		else
+		{
+			UCurveFloat* NewCurve = NewObject<UCurveFloat>(this, NAME_None, RF_Transient);
+			NewCurve->FloatCurve = *Curve.GetRichCurve();
+			TimelineCurve = NewCurve;
+		}
+
+		Timeline.AddInterpFloat(TimelineCurve, FOnTimelineFloatStatic::CreateUObject(this, &ThisClass::OnTimelineValueChangedCallback));
+		Timeline.SetTimelineFinishedFunc(FOnTimelineEventStatic::CreateUObject(this, &ThisClass::OnTimelineFinishedCallback));
+	}
 }
 
 void ALogicTimeline::Tick(float DeltaSeconds)
