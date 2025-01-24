@@ -60,5 +60,8 @@ public:
 	//~ Begin UActorComponent Interface
 	virtual void OnRegister() override;
 	virtual void OnUnregister() override;
+#if WITH_EDITOR
+	virtual void CheckForErrors() override;
+#endif
 	//~ End UActorComponent Interface
 };

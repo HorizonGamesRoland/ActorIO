@@ -2,6 +2,11 @@
 
 #include "ActorIOComponent.h"
 #include "ActorIOAction.h"
+#include "ActorIOSystem.h"
+#include "Logging/MessageLog.h"
+#include "Misc/UObjectToken.h"
+
+#define LOCTEXT_NAMESPACE "ActorIO"
 
 UActorIOComponent::UActorIOComponent()
 {
@@ -73,9 +78,10 @@ float UActorIOComponent::GetDurationOfLongestDelay() const
 	float OutLongestDelay = 0.0f;
 	for (int32 ActionIdx = 0; ActionIdx != Actions.Num(); ++ActionIdx)
 	{
-		if (IsValid(Actions[ActionIdx]) && Actions[ActionIdx]->Delay > OutLongestDelay)
+		UActorIOAction* Action = Actions[ActionIdx].Get();
+		if (IsValid(Action) && Action->Delay > OutLongestDelay)
 		{
-			OutLongestDelay = Actions[ActionIdx]->Delay;
+			OutLongestDelay = Action->Delay;
 		}
 	}
 
@@ -87,7 +93,7 @@ void UActorIOComponent::BindActions()
 	for (int32 ActionIdx = 0; ActionIdx != Actions.Num(); ++ActionIdx)
 	{
 		UActorIOAction* Action = Actions[ActionIdx].Get();
-		if (Action)
+		if (IsValid(Action))
 		{
 			Action->BindAction();
 		}
@@ -100,7 +106,7 @@ void UActorIOComponent::UnbindActions()
 	for (int32 ActionIdx = 0; ActionIdx != Actions.Num(); ++ActionIdx)
 	{
 		UActorIOAction* Action = Actions[ActionIdx].Get();
-		if (Action)
+		if (IsValid(Action))
 		{
 			Action->UnbindAction();
 			TimerManager.ClearAllTimersForObject(Action);
@@ -118,3 +124,59 @@ void UActorIOComponent::OnUnregister()
 
 	Super::OnUnregister();
 }
+
+#if WITH_EDITOR
+void UActorIOComponent::CheckForErrors()
+{
+	Super::CheckForErrors();
+
+	AActor* Owner = GetOwner();
+
+	const int32 NumActions = Actions.Num();
+	if (NumActions > 0)
+	{
+		const FActorIOEventList ValidEvents = UActorIOSystem::GetEventsForObject(Owner);
+		const FActorIOFunctionList ValidFunctions = UActorIOSystem::GetFunctionsForObject(Owner);
+
+		for (int32 ActionIdx = 0; ActionIdx != NumActions; ++ActionIdx)
+		{
+			const UActorIOAction* Action = Actions[ActionIdx].Get();
+			if (!IsValid(Action))
+			{
+				FMessageLog("MapCheck").Error()
+					->AddToken(FTextToken::Create(LOCTEXT("MapCheck_Message_IOPrefix", "[I/O]")))
+					->AddToken(FUObjectToken::Create(Owner))
+					->AddToken(FTextToken::Create(LOCTEXT("MapCheck_Message_IOComponentInvalidAction", "contains a null action. Re-open the level to fix.")));
+			}
+
+			const FActorIOEvent* TargetEvent = ValidEvents.GetEvent(Action->EventId);
+			if (!TargetEvent)
+			{
+				FMessageLog("MapCheck").Warning()
+					->AddToken(FTextToken::Create(LOCTEXT("MapCheck_Message_IOPrefix", "[I/O]")))
+					->AddToken(FUObjectToken::Create(Owner))
+					->AddToken(FTextToken::Create(LOCTEXT("MapCheck_Message_IOActionInvalidEvent", "contains an action with invalid event selected.")));
+			}
+
+			const FActorIOFunction* TargetFunction = ValidFunctions.GetFunction(Action->FunctionId);
+			if (!TargetFunction)
+			{
+				FMessageLog("MapCheck").Warning()
+					->AddToken(FTextToken::Create(LOCTEXT("MapCheck_Message_IOPrefix", "[I/O]")))
+					->AddToken(FUObjectToken::Create(Owner))
+					->AddToken(FTextToken::Create(LOCTEXT("MapCheck_Message_IOActionInvalidFunction", "contains an action with invalid target function selected.")));
+			}
+
+			if (!IsValid(Action->TargetActor))
+			{
+				FMessageLog("MapCheck").Warning()
+					->AddToken(FTextToken::Create(LOCTEXT("MapCheck_Message_IOPrefix", "[I/O]")))
+					->AddToken(FUObjectToken::Create(Owner))
+					->AddToken(FTextToken::Create(LOCTEXT("MapCheck_Message_IOActionInvalidTarget", "contains an action with invalid target actor selected.")));
+			}
+		}
+	}
+}
+#endif
+
+#undef LOCTEXT_NAMESPACE
