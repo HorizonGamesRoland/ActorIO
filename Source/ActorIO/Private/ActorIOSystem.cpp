@@ -97,6 +97,10 @@ void UActorIOSystem::GetNativeEventsForObject(AActor* InObject, FActorIOEventLis
     UWorld* ObjectWorld = InObject->GetWorld();
     UActorIOSystem* IOSystem = ObjectWorld->GetSubsystem<UActorIOSystem>();
 
+    //==================================
+    // Trigger Actors
+    //==================================
+
     if (InObject->IsA<ATriggerBase>())
     {
         EventRegistry.RegisterEvent(FActorIOEvent()
@@ -112,6 +116,20 @@ void UActorIOSystem::GetNativeEventsForObject(AActor* InObject, FActorIOEventLis
             .SetTooltipText(LOCTEXT("TriggerBase.OnTriggerExitTooltip", "Event when an actor leaves the trigger area."))
             .SetSparseDelegate(InObject, TEXT("OnActorEndOverlap"))
             .SetEventProcessor(IOSystem, TEXT("ProcessEvent_OnActorOverlap")));
+    }
+
+    //==================================
+    // Non Logic Actors
+    //==================================
+
+    if (!InObject->IsA<ALogicActorBase>())
+    {
+        EventRegistry.RegisterEvent(FActorIOEvent()
+            .SetId(TEXT("AActor::OnDestroyed"))
+            .SetDisplayName(LOCTEXT("Actor.OnDestroyed", "OnDestroyed"))
+            .SetTooltipText(LOCTEXT("Actor.OnDestroyedTooltip", "Event when the actor is getting destroyed."))
+            .SetSparseDelegate(InObject, TEXT("OnDestroyed"))
+            .SetEventProcessor(IOSystem, TEXT("ProcessEvent_OnActorDestroyed")));
     }
 }
 
@@ -298,6 +316,11 @@ void UActorIOSystem::GetNativeFunctionsForObject(AActor* InObject, FActorIOFunct
 void UActorIOSystem::ProcessEvent_OnActorOverlap(AActor* OverlappedActor, AActor* OtherActor)
 {
     ActionExecContext.SetNamedArgument(TEXT("$Actor"), IsValid(OtherActor) ? OtherActor->GetPathName() : FString());
+}
+
+void UActorIOSystem::ProcessEvent_OnActorDestroyed(AActor* DestroyedActor)
+{
+    ActionExecContext.SetNamedArgument(TEXT("$Actor"), IsValid(DestroyedActor) ? DestroyedActor->GetPathName() : FString());
 }
 
 void UActorIOSystem::RegisterIOEvent(UObject* WorldContextObject, FActorIOEventList& Registry, FName EventId, const FText& DisplayNameText, const FText& TooltipText, FName EventDispatcherName, FName EventProcessorName)

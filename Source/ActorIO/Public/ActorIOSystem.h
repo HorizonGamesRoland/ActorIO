@@ -27,17 +27,10 @@ public:
 	/**
 	 * The current I/O action execution context.
 	 * Only valid between an action receiving the ProcessEvent call and sending the command to the target actor.
+	 * Use FActionExecutionContext::Get() to access unless you have direct reference to the I/O system.
 	 */
 	UPROPERTY(Transient)
 	FActionExecutionContext ActionExecContext;
-
-public:
-
-	/**
-	 * Get the current I/O action execution context.
-	 * In general you should use FActionExecutionContext::Get() instead.
-	 */
-	FActionExecutionContext& GetExecutionContext() { return ActionExecContext; }
 
 public:
 
@@ -72,6 +65,10 @@ private:
 	/** Event processor for the 'OnActorBeginOverlap' and 'OnActorEndOverlap' events. */
 	UFUNCTION()
 	void ProcessEvent_OnActorOverlap(AActor* OverlappedActor, AActor* OtherActor);
+
+	/** Event processor for the 'OnDestroyed' event of actors. */
+	UFUNCTION()
+	void ProcessEvent_OnActorDestroyed(AActor* DestroyedActor);
 
 public:
 

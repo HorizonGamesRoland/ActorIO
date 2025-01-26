@@ -234,16 +234,19 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 	FActorIOEvent* BoundEvent = ValidEvents.GetEvent(EventId);
 	check(BoundEvent);
 
-	// Let the event processor assign values to arbitrary named arguments.
-	// We are calling the event processor with the original params memory that we received from the delegate our action is bound to.
-	// This way the event processor will receive the proper values for its params given that its signature matches the delegate.
-	if (BoundEvent->EventProcessor.IsBound())
+	if (FunctionArguments.Contains(NAMEDARGUMENT_PREFIX))
 	{
-		UObject* EventProcessorObject = BoundEvent->EventProcessor.GetUObject();
-		if (IsValid(EventProcessorObject))
+		// Let the event processor assign values to arbitrary named arguments.
+		// We are calling the event processor with the original params memory that we received from the delegate our action is bound to.
+		// This way the event processor will receive the proper values for its params given that its signature matches the delegate.
+		if (BoundEvent->EventProcessor.IsBound())
 		{
-			UFunction* Func_EventProcessor = EventProcessorObject->GetClass()->FindFunctionByName(BoundEvent->EventProcessor.GetFunctionName());
-			EventProcessorObject->ProcessEvent(Func_EventProcessor, ExecutionContext.ScriptParams);
+			UObject* EventProcessorObject = BoundEvent->EventProcessor.GetUObject();
+			if (IsValid(EventProcessorObject))
+			{
+				UFunction* Func_EventProcessor = EventProcessorObject->GetClass()->FindFunctionByName(BoundEvent->EventProcessor.GetFunctionName());
+				EventProcessorObject->ProcessEvent(Func_EventProcessor, ExecutionContext.ScriptParams);
+			}
 		}
 	}
 
@@ -264,7 +267,6 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 	}
 
 	// Give the owning actor a chance to abort action execution.
-	// We are checking separately on C++ level first and then in blueprints.
 	if (ActionOwner->Implements<UActorIOInterface>())
 	{
 		if (!IActorIOInterface::Execute_OnExecutingIOAction(ActionOwner, this))
@@ -309,7 +311,7 @@ void UActorIOAction::SendCommand(UObject* TargetObject, FString Command)
 
 UActorIOComponent* UActorIOAction::GetOwnerIOComponent() const
 {
-	// Actions are owned by the actor's ActorIO component.
+	// Actions are owned by the actor's I/O component.
 	return Cast<UActorIOComponent>(GetOuter());
 }
 

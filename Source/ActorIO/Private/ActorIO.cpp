@@ -10,7 +10,7 @@ FActionExecutionContext& FActionExecutionContext::Get(UObject* WorldContextObjec
     if (UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull))
     {
         UActorIOSystem* IOSystem = World->GetSubsystem<UActorIOSystem>();
-        return IOSystem->GetExecutionContext();
+        return IOSystem->ActionExecContext;
     }
 
     checkNoEntry();
