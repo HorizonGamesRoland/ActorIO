@@ -232,7 +232,7 @@ FReply SActorIOEditor::OnClick_NewAction()
         UActorIOComponent* ActorIOComponent = SelectedActor->GetComponentByClass<UActorIOComponent>();
         if (!ActorIOComponent)
         {
-            ActorIOComponent = ActorIOEditor.AddIOComponenToActor(SelectedActor, true);
+            ActorIOComponent = ActorIOEditor.AddIOComponentToActor(SelectedActor, true);
         }
 
         if (ActorIOComponent)

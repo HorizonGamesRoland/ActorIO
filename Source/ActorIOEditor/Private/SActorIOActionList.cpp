@@ -442,7 +442,7 @@ void SActorIOActionListViewRow::OnTargetActorChanged(const FAssetData& InAssetDa
 		if (!TargetIOComponent)
 		{
 			FActorIOEditor& ActorIOEditor = FActorIOEditor::Get();
-			ActorIOEditor.AddIOComponenToActor(NewTarget, false);
+			ActorIOEditor.AddIOComponentToActor(NewTarget, false);
 		}
 	}
 

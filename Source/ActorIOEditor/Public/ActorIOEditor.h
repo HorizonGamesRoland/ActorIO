@@ -52,7 +52,7 @@ public:
 	AActor* GetSelectedActor() const;
 	
 	/** Add an actor I/O component to the given actor. */
-	UActorIOComponent* AddIOComponenToActor(AActor* TargetActor, bool bSelectActor);
+	UActorIOComponent* AddIOComponentToActor(AActor* TargetActor, bool bSelectActor);
 
 private:
 

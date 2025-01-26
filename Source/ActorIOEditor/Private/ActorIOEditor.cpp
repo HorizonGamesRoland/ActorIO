@@ -181,7 +181,7 @@ AActor* FActorIOEditor::GetSelectedActor() const
 	return SelectedActor.Get();
 }
 
-UActorIOComponent* FActorIOEditor::AddIOComponenToActor(AActor* TargetActor, bool bSelectActor)
+UActorIOComponent* FActorIOEditor::AddIOComponentToActor(AActor* TargetActor, bool bSelectActor)
 {
 	// Modify the actor to support undo/redo.
 	// The transaction is already active at this point.
