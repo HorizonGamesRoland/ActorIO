@@ -136,6 +136,19 @@ void UActorIOSystem::GetNativeEventsForObject(AActor* InObject, FActorIOEventLis
 void UActorIOSystem::GetNativeFunctionsForObject(AActor* InObject, FActorIOFunctionList& FunctionRegistry)
 {
     //==================================
+    // Trigger Actors
+    //==================================
+
+    if (InObject->IsA<ATriggerBase>())
+    {
+        FunctionRegistry.RegisterFunction(FActorIOFunction()
+            .SetId(TEXT("ATriggerBase::SetEnabled"))
+            .SetDisplayName(LOCTEXT("TriggerBase.SetEnabled", "SetEnabled"))
+            .SetTooltipText(LOCTEXT("TriggerBase.SetEnabledTooltip", "Change whether collision is enabled for the trigger."))
+            .SetFunction(TEXT("SetActorEnableCollision")));
+    }
+
+    //==================================
     // Light Actors
     //==================================
 
