@@ -250,7 +250,7 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 		}
 	}
 
-	// Break up the user defined arguments string from a single line into multiple elements.
+	// Break up the user defined arguments string from a single line into multiple elements with no whitespaces.
 	// Then replace all named arguments with their actual value set by the 'EventProcessor' above.
 	// Everything stays in string form (including named argument values) until the very end when the final command is sent.
 	TArray<FString> Arguments;
@@ -258,10 +258,20 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 	{
 		for (FString& Argument : Arguments)
 		{
-			// #TODO: Make it so that trimming happens for the whole string unless its between quotes
-
-			// Remove whitespaces from the start.
-			Argument.TrimStartInline();
+			bool bInQuotes = false;
+			for (int32 CharIndex = Argument.Len() - 1; CharIndex >= 0; --CharIndex)
+			{
+				// Current character is a quote, so we either enter/exit a quote block.
+				if (Argument[CharIndex] == '"')
+				{
+					bInQuotes = !bInQuotes;
+				}
+				// Current character is whitespace, so remove it unless we are inside a quote block.
+				else if (FChar::IsWhitespace(Argument[CharIndex]) && !bInQuotes)
+				{
+					Argument.RemoveAt(CharIndex);
+				}
+			}
 
 			if (Argument.StartsWith(NAMEDARGUMENT_PREFIX) && ExecutionContext.NamedArguments.Contains(Argument))
 			{

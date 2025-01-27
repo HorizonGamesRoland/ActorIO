@@ -44,7 +44,14 @@ void FActionExecutionContext::SetNamedArgument(const FString& InName, const FStr
     {
         if (!InName.StartsWith(NAMEDARGUMENT_PREFIX))
         {
-            UE_LOG(LogActorIO, Error, TEXT("ActionExecutionContext: Attempted to set named argument without the necessary '%s' prefix. Name was: %s"), NAMEDARGUMENT_PREFIX, *InName);
+            UE_LOG(LogActorIO, Error, TEXT("ActionExecutionContext: Attempted to set named argument without the required '%s' prefix. Name was: %s"), NAMEDARGUMENT_PREFIX, *InName);
+            return;
+        }
+
+        int32 InvalidCharIndex = INDEX_NONE;
+        if (!InName.FindChar('"', InvalidCharIndex))
+        {
+            UE_LOG(LogActorIO, Error, TEXT("ActionExecutionContext: Attempted to set named argument with illegal character. Name was: %s"), NAMEDARGUMENT_PREFIX, *InName);
             return;
         }
 
