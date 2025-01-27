@@ -34,7 +34,7 @@ void SActorIOEditor::Construct(const FArguments& InArgs)
             .PhysicalSplitterHandleSize(0.0f)
             + SSplitter::Slot()
             .MinSize(70)
-            .Value(0.33f)
+            .Value(0.3f)
             [
                 SNew(SVerticalBox)
                 + SVerticalBox::Slot()
@@ -46,7 +46,7 @@ void SActorIOEditor::Construct(const FArguments& InArgs)
                     .Padding(0.0f)
                     [
                         SNew(SBox)
-                        .HeightOverride(FActorIOEditorStyle::HeaderRowHeight)
+                        .HeightOverride(FActorIOEditorStyle::Get().GetFloat("ActionListView.HeaderRowHeight"))
                         .Padding(10.0f, 0.0f)
                         [
                             SNew(SHorizontalBox)
@@ -71,7 +71,7 @@ void SActorIOEditor::Construct(const FArguments& InArgs)
                 .Padding(0.0f, 0.0f, 0.0f, 3.0f)
                 [
                     SNew(SBox)
-                    .HeightOverride(FActorIOEditorStyle::ToolButtonHeight)
+                    .HeightOverride(FActorIOEditorStyle::Get().GetFloat("ToggleButtonHeight"))
                     [
                         SNew(SCheckBox)
                         .Type(ESlateCheckBoxType::ToggleButton)
@@ -94,7 +94,7 @@ void SActorIOEditor::Construct(const FArguments& InArgs)
                 .Padding(0.0f, 0.0f, 0.0f, 3.0f)
                 [
                     SNew(SBox)
-                    .HeightOverride(FActorIOEditorStyle::ToolButtonHeight)
+                    .HeightOverride(FActorIOEditorStyle::Get().GetFloat("ToggleButtonHeight"))
                     [
                         SNew(SCheckBox)
                         .Type(ESlateCheckBoxType::ToggleButton)
@@ -121,7 +121,7 @@ void SActorIOEditor::Construct(const FArguments& InArgs)
                 .AutoHeight()
                 [
                     SNew(SBox)
-                    .HeightOverride(FActorIOEditorStyle::ToolButtonHeight)
+                    .HeightOverride(FActorIOEditorStyle::Get().GetFloat("ToggleButtonHeight"))
                     [
                         SAssignNew(NewActionButton, SPositiveActionButton)
                         .Text(LOCTEXT("NewAction", "New Action"))

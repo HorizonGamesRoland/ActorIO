@@ -17,17 +17,6 @@ private:
 
 public:
 
-	/** Height of action list header row. */
-	static constexpr float HeaderRowHeight = 28.0f;
-	/** Height of primary tool buttons. */
-	static constexpr float ToolButtonHeight = 38.0f;
-	/** Height of action entries. Same as PropertyEditorConstants::PropertyRowHeight. */
-	static constexpr float ActionHeight = 26.0f;
-	/** Spacing between actions in the action list. */
-	static constexpr float ActionSpacing = 2.0f;
-
-public:
-
 	/**
 	 * Initializes the style set.
 	 * Called during module startup.
@@ -42,6 +31,9 @@ public:
 
 	/** @return The style set used by the plugin. */
 	static const ISlateStyle& Get();
+
+	/** @return Reference to the actual FSlateStyleSet used by the plugin. */
+	static FSlateStyleSet* GetMutableStyle();
 
 	/** @return The name of the style set used by the plugin. */
 	static const FName& GetStyleSetName();

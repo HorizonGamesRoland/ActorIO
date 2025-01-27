@@ -10,6 +10,7 @@ class UActorIOAction;
 
 /**
  * Columns used by the action list.
+ * Each column must have a matching entry in FActorIOEditorStyle!
  */
 namespace ColumnId
 {
@@ -68,6 +69,12 @@ protected:
 
     /** Called when a new row is being added to the action list. */
     TSharedRef<ITableRow> OnGenerateRowItem(TWeakObjectPtr<UActorIOAction> Item, const TSharedRef<STableViewBase>& OwnerTable);
+
+    /** @return Width of the given column. */
+    float OnGetColumnWidth(const FName InColumnName) const;
+
+    /** Called when a column is resized. */
+    void OnColumnWidthChanged(const float InSize, const FName InColumnName);
 };
 
 

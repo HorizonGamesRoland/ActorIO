@@ -43,51 +43,52 @@ void SActorIOActionListView::Construct(const FArguments& InArgs)
 			.FixedWidth(30.0f)
 			[
 				SNew(SBox)
-				.HeightOverride(FActorIOEditorStyle::HeaderRowHeight)
+				.HeightOverride(FActorIOEditorStyle::Get().GetFloat("ActionListView.HeaderRowHeight"))
 			]
 
 			+ SHeaderRow::Column(ColumnId::Caller)
 			.DefaultLabel(LOCTEXT("ActionListColCaller", "Caller"))
 			.DefaultTooltip(FText::GetEmpty())
-			.FillWidth(1.0f)
+			.FillWidth(this, &SActorIOActionListView::OnGetColumnWidth, ColumnId::Caller)
+			.OnWidthChanged(this, &SActorIOActionListView::OnColumnWidthChanged, ColumnId::Caller)
 			.HeaderContentPadding(FMargin(5.0f, 0.0f, 0.0f, 0.0f))
 			.ShouldGenerateWidget(this, &SActorIOActionListView::IsViewingInputActions)
 
             +SHeaderRow::Column(ColumnId::Event)
             .DefaultLabel(LOCTEXT("ActionListColEvent", "Event"))
-			.DefaultTooltip(FText::GetEmpty())
-            .FillWidth(1.0f)
+			.FillWidth(this, &SActorIOActionListView::OnGetColumnWidth, ColumnId::Event)
+			.OnWidthChanged(this, &SActorIOActionListView::OnColumnWidthChanged, ColumnId::Event)
 			.HeaderContentPadding(FMargin(5.0f, 0.0f, 0.0f, 0.0f))
 
             + SHeaderRow::Column(ColumnId::Target)
             .DefaultLabel(LOCTEXT("ActionListColTarget", "Target"))
-			.DefaultTooltip(FText::GetEmpty())
-            .FillWidth(1.0f)
+			.FillWidth(this, &SActorIOActionListView::OnGetColumnWidth, ColumnId::Target)
+			.OnWidthChanged(this, &SActorIOActionListView::OnColumnWidthChanged, ColumnId::Target)
 			.HeaderContentPadding(FMargin(5.0f, 0.0f, 0.0f, 0.0f))
 			.ShouldGenerateWidget(this, &SActorIOActionListView::IsViewingOutputActions)
 
             + SHeaderRow::Column(ColumnId::Action)
             .DefaultLabel(LOCTEXT("ActionListColAction", "Action"))
-			.DefaultTooltip(FText::GetEmpty())
-            .FillWidth(1.0f)
+			.FillWidth(this, &SActorIOActionListView::OnGetColumnWidth, ColumnId::Action)
+			.OnWidthChanged(this, &SActorIOActionListView::OnColumnWidthChanged, ColumnId::Action)
 			.HeaderContentPadding(FMargin(5.0f, 0.0f, 0.0f, 0.0f))
 
             + SHeaderRow::Column(ColumnId::Parameter)
             .DefaultLabel(LOCTEXT("ActionListColParameter", "Parameter"))
-			.DefaultTooltip(FText::GetEmpty())
-            .FillWidth(1.0f)
+			.FillWidth(this, &SActorIOActionListView::OnGetColumnWidth, ColumnId::Parameter)
+			.OnWidthChanged(this, &SActorIOActionListView::OnColumnWidthChanged, ColumnId::Parameter)
 			.HeaderContentPadding(FMargin(5.0f, 0.0f, 0.0f, 0.0f))
 
             + SHeaderRow::Column(ColumnId::Delay)
             .DefaultLabel(LOCTEXT("ActionListColDelay", "Delay"))
-			.DefaultTooltip(FText::GetEmpty())
-            .FillWidth(0.35f)
+			.FillWidth(this, &SActorIOActionListView::OnGetColumnWidth, ColumnId::Delay)
+			.OnWidthChanged(this, &SActorIOActionListView::OnColumnWidthChanged, ColumnId::Delay)
 			.HeaderContentPadding(FMargin(5.0f, 0.0f, 0.0f, 0.0f))
 
             + SHeaderRow::Column(ColumnId::OnlyOnce)
             .DefaultLabel(LOCTEXT("ActionListColOnce", "Once?"))
-			.DefaultTooltip(FText::GetEmpty())
-            .FillWidth(0.5f)
+			.FillWidth(this, &SActorIOActionListView::OnGetColumnWidth, ColumnId::OnlyOnce)
+			.OnWidthChanged(this, &SActorIOActionListView::OnColumnWidthChanged, ColumnId::OnlyOnce)
 			.HeaderContentPadding(FMargin(5.0f, 0.0f, 0.0f, 0.0f))
         )
     );
@@ -134,6 +135,24 @@ TSharedRef<ITableRow> SActorIOActionListView::OnGenerateRowItem(TWeakObjectPtr<U
 		.IsLastItemInList(bIsLastItem);
 }
 
+float SActorIOActionListView::OnGetColumnWidth(const FName InColumnName) const
+{
+	FString PropertyName = TEXT("ActionListView");
+	PropertyName += bViewInputActions ? TEXT(".InputColumnWidth.") : TEXT(".OutputColumnWidth.");
+	PropertyName += InColumnName.ToString();
+
+	return FActorIOEditorStyle::Get().GetFloat(FName(PropertyName));
+}
+
+void SActorIOActionListView::OnColumnWidthChanged(const float InSize, const FName InColumnName)
+{
+	FString PropertyName = TEXT("ActionListView");
+	PropertyName += bViewInputActions ? TEXT(".InputColumnWidth.") : TEXT(".OutputColumnWidth.");
+	PropertyName += InColumnName.ToString();
+
+	FActorIOEditorStyle::GetMutableStyle()->Set(FName(PropertyName), InSize);
+}
+
 
 //=======================================================
 //~ Begin SActorIOActionListViewRow
@@ -154,8 +173,9 @@ void SActorIOActionListViewRow::Construct(const FArguments& InArgs, const TShare
 	UpdateSelectableEvents();
 	UpdateSelectableFunctions();
 
+	const float ActionSpacing = FActorIOEditorStyle::Get().GetFloat("ActionListView.ActionSpacing");
 	FTableRowArgs RowArgs = FTableRowArgs()
-		.Padding(FMargin(0.0f, FActorIOEditorStyle::ActionSpacing, 0.0f, InArgs._IsLastItemInList ? FActorIOEditorStyle::ActionSpacing : 0.0f));
+		.Padding(FMargin(0.0f, ActionSpacing, 0.0f, InArgs._IsLastItemInList ? ActionSpacing : 0.0f));
 
 	FSuperRowType::Construct(RowArgs, InOwnerTableView);
 }
@@ -164,7 +184,7 @@ BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 TSharedRef<SWidget> SActorIOActionListViewRow::GenerateWidgetForColumn(const FName& ColumnName)
 {
 	TSharedRef<SBox> OutWidget = SNew(SBox)
-		.HeightOverride(FActorIOEditorStyle::ActionHeight);
+		.HeightOverride(FActorIOEditorStyle::Get().GetFloat("ActionListView.ActionHeight"));
 
 	if (!ActionPtr.IsValid())
 	{
@@ -335,7 +355,7 @@ TSharedRef<SWidget> SActorIOActionListViewRow::GenerateWidgetForColumn(const FNa
 			.Padding(0.0f, 0.0f, 2.0f, 0.0f)
 			[
 				SNew(SBox)
-				.WidthOverride(FActorIOEditorStyle::ActionHeight)
+				.WidthOverride(FActorIOEditorStyle::Get().GetFloat("ActionListView.ActionHeight"))
 				[
 					SNew(SButton)
 					.ButtonStyle(&FActorIOEditorStyle::Get().GetWidgetStyle<FButtonStyle>("ImageButton"))

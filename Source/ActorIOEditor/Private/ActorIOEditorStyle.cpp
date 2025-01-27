@@ -45,6 +45,7 @@ void FActorIOEditorStyle::Initialize()
 		.SetPadding(0.0f);
 
 	StyleSet->Set("ToggleButtonCheckbox", ToggleButtonStyle);
+	StyleSet->Set("ToggleButtonHeight", 38.0f);
 
 	const FButtonStyle ImageButtonStyle = FButtonStyle()
 		.SetNormal(FSlateRoundedBoxBrush(FStyleColors::Secondary, 4.0f, FStyleColors::Input, 1.0f))
@@ -65,6 +66,25 @@ void FActorIOEditorStyle::Initialize()
 
 	StyleSet->Set("ActionListView", ActionListStyle);
 	StyleSet->Set("ActionListView.Border", new FSlateRoundedBoxBrush(FStyleColors::Recessed, FVector4(0.0f, 0.0f, 4.0f, 4.0f), FStyleColors::Input, 1.0f));
+	StyleSet->Set("ActionListView.HeaderRowHeight", 28.0f);
+	StyleSet->Set("ActionListView.ActionHeight", 26.0f);
+	StyleSet->Set("ActionListView.ActionSpacing", 2.0f);
+
+	// #TODO: Put this in an Init function so it can be reset?
+	StyleSet->Set("ActionListView.InputColumnWidth.Caller", 1.0f);
+	StyleSet->Set("ActionListView.InputColumnWidth.Event", 1.0f);
+	StyleSet->Set("ActionListView.InputColumnWidth.Target", 1.0f);
+	StyleSet->Set("ActionListView.InputColumnWidth.Action", 1.0f);
+	StyleSet->Set("ActionListView.InputColumnWidth.Parameter", 1.0f);
+	StyleSet->Set("ActionListView.InputColumnWidth.Delay", 0.35f);
+	StyleSet->Set("ActionListView.InputColumnWidth.OnlyOnce", 0.5f);
+
+	StyleSet->Set("ActionListView.OutputColumnWidth.Event", 1.0f);
+	StyleSet->Set("ActionListView.OutputColumnWidth.Target", 1.0f);
+	StyleSet->Set("ActionListView.OutputColumnWidth.Action", 1.0f);
+	StyleSet->Set("ActionListView.OutputColumnWidth.Parameter", 1.0f);
+	StyleSet->Set("ActionListView.OutputColumnWidth.Delay", 0.35f);
+	StyleSet->Set("ActionListView.OutputColumnWidth.OnlyOnce", 0.5f);
 
 	const FVector2D Icon16x16(16.0f, 16.0f);
 	const FVector2D Icon64x64(64.0f, 64.0f);
@@ -109,6 +129,16 @@ void FActorIOEditorStyle::Shutdown()
 const ISlateStyle& FActorIOEditorStyle::Get()
 {
 	return *(StyleSet.Get());
+}
+
+FSlateStyleSet* FActorIOEditorStyle::GetMutableStyle()
+{
+	if (StyleSet.IsValid())
+	{
+		return StyleSet.Get();
+	}
+
+	return nullptr;
 }
 
 const FName& FActorIOEditorStyle::GetStyleSetName()
