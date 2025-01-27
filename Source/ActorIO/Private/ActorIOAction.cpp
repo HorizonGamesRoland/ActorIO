@@ -258,6 +258,11 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 	{
 		for (FString& Argument : Arguments)
 		{
+			// #TODO: Make it so that trimming happens for the whole string unless its between quotes
+
+			// Remove whitespaces from the start.
+			Argument.TrimStartInline();
+
 			if (Argument.StartsWith(NAMEDARGUMENT_PREFIX) && ExecutionContext.NamedArguments.Contains(Argument))
 			{
 				const FString NamedArgValue = ExecutionContext.NamedArguments[Argument];
@@ -306,6 +311,12 @@ void UActorIOAction::SendCommand(UObject* TargetObject, FString Command)
 	{
 		FStringOutputDevice Ar;
 		TargetObject->CallFunctionByNameWithArguments(*Command, Ar, this, true);
+
+		// Log execution errors.
+		if (!Ar.IsEmpty())
+		{
+			UE_LOG(LogActorIO, Error, TEXT("%s"), *Ar);
+		}
 	}
 }
 

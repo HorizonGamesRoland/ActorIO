@@ -16,7 +16,7 @@ class UObject;
 ACTORIO_API DECLARE_LOG_CATEGORY_EXTERN(LogActorIO, Log, All);
 
 /** Character to use as a separator for I/O action arguments. */
-#define ARGUMENT_SEPARATOR TEXT(" ")
+#define ARGUMENT_SEPARATOR TEXT(";")
 
 /** Prefix to identify named arguments with. */
 #define NAMEDARGUMENT_PREFIX TEXT("$")
@@ -131,12 +131,14 @@ struct ACTORIO_API FActorIOEvent
 		return *this;
 	}
 
-	bool operator==(const FName InEventName) const
+	/** Equals operator. Required to support TArray.FindByKey(). */
+	FORCEINLINE bool operator==(const FName InEventName) const
 	{
 		return EventId == InEventName;
 	}
 
-	bool operator!=(const FName InEventName) const
+	/** Not equals operator. */
+	FORCEINLINE bool operator!=(const FName InEventName) const
 	{
 		return EventId != InEventName;
 	}
@@ -272,12 +274,14 @@ struct ACTORIO_API FActorIOFunction
 		return *this;
 	}
 
-	bool operator==(const FName InFunctionId) const
+	/** Equals operator. Required to support TArray.FindByKey(). */
+	FORCEINLINE bool operator==(const FName InFunctionId) const
 	{
 		return FunctionId == InFunctionId;
 	}
 
-	bool operator!=(const FName InFunctionId) const
+	/** Not equals operator. */
+	FORCEINLINE bool operator!=(const FName InFunctionId) const
 	{
 		return FunctionId != InFunctionId;
 	}
