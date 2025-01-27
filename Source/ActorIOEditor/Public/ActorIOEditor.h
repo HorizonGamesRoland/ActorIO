@@ -57,7 +57,7 @@ public:
 private:
 
 	/** Creates the Actor I/O editor tab. */
-	TSharedRef<SDockTab> SpawnActorIOEditor(const FSpawnTabArgs& TabSpawnArgs);
+	TSharedRef<SDockTab> CreateActorIOEditorTab(const FSpawnTabArgs& TabSpawnArgs);
 
 	/** Called when the Actor I/O tab is closed. */
 	void OnActorIOEditorClosed(TSharedRef<SDockTab> DockTab);

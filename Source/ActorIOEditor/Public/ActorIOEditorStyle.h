@@ -37,4 +37,12 @@ public:
 
 	/** @return The name of the style set used by the plugin. */
 	static const FName& GetStyleSetName();
+
+public:
+
+	/**
+	 * Set up default size values for action list columns.
+	 * Also used to reset size values to defaults before opening the I/O editor tab.
+	 */
+	static void SetupActionListColumnSizes();
 };

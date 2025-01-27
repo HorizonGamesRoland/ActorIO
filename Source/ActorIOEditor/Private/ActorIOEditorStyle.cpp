@@ -70,21 +70,7 @@ void FActorIOEditorStyle::Initialize()
 	StyleSet->Set("ActionListView.ActionHeight", 26.0f);
 	StyleSet->Set("ActionListView.ActionSpacing", 2.0f);
 
-	// #TODO: Put this in an Init function so it can be reset?
-	StyleSet->Set("ActionListView.InputColumnWidth.Caller", 1.0f);
-	StyleSet->Set("ActionListView.InputColumnWidth.Event", 1.0f);
-	StyleSet->Set("ActionListView.InputColumnWidth.Target", 1.0f);
-	StyleSet->Set("ActionListView.InputColumnWidth.Action", 1.0f);
-	StyleSet->Set("ActionListView.InputColumnWidth.Parameter", 1.0f);
-	StyleSet->Set("ActionListView.InputColumnWidth.Delay", 0.35f);
-	StyleSet->Set("ActionListView.InputColumnWidth.OnlyOnce", 0.5f);
-
-	StyleSet->Set("ActionListView.OutputColumnWidth.Event", 1.0f);
-	StyleSet->Set("ActionListView.OutputColumnWidth.Target", 1.0f);
-	StyleSet->Set("ActionListView.OutputColumnWidth.Action", 1.0f);
-	StyleSet->Set("ActionListView.OutputColumnWidth.Parameter", 1.0f);
-	StyleSet->Set("ActionListView.OutputColumnWidth.Delay", 0.35f);
-	StyleSet->Set("ActionListView.OutputColumnWidth.OnlyOnce", 0.5f);
+	SetupActionListColumnSizes();
 
 	const FVector2D Icon16x16(16.0f, 16.0f);
 	const FVector2D Icon64x64(64.0f, 64.0f);
@@ -115,6 +101,27 @@ void FActorIOEditorStyle::Initialize()
 	StyleSet->Set("ClassThumbnail.LogicTimer", new IMAGE_BRUSH("Icons/AssetIcons/LogicTimer_64", Icon64x64));
 
 	FSlateStyleRegistry::RegisterSlateStyle(*StyleSet.Get());
+}
+
+void FActorIOEditorStyle::SetupActionListColumnSizes()
+{
+	// Size values for action list columns.
+	// There must be an entry for each SActorIOActionList::ColumnId!
+	// Using two sets so that we can have different layout for inputs/outputs.
+
+	StyleSet->Set("ActionListView.InputColumnWidth.Caller", 1.0f); // only visible for inputs
+	StyleSet->Set("ActionListView.InputColumnWidth.Event", 1.0f);
+	StyleSet->Set("ActionListView.InputColumnWidth.Action", 1.0f);
+	StyleSet->Set("ActionListView.InputColumnWidth.Parameter", 1.0f);
+	StyleSet->Set("ActionListView.InputColumnWidth.Delay", 0.35f);
+	StyleSet->Set("ActionListView.InputColumnWidth.OnlyOnce", 0.5f);
+
+	StyleSet->Set("ActionListView.OutputColumnWidth.Event", 1.0f);
+	StyleSet->Set("ActionListView.OutputColumnWidth.Target", 1.0f); // only visible for outputs
+	StyleSet->Set("ActionListView.OutputColumnWidth.Action", 1.0f);
+	StyleSet->Set("ActionListView.OutputColumnWidth.Parameter", 1.0f);
+	StyleSet->Set("ActionListView.OutputColumnWidth.Delay", 0.35f);
+	StyleSet->Set("ActionListView.OutputColumnWidth.OnlyOnce", 0.5f);
 }
 
 void FActorIOEditorStyle::Shutdown()

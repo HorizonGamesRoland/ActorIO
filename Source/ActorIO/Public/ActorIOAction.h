@@ -39,7 +39,7 @@ public:
 
 	/**
 	 * Parameters that are sent with the function.
-	 * Format is: Arg1 Arg2 Arg3 ...
+	 * Format is: Arg1; Arg2; Arg3; ...
 	 * Also supports named arguments in the form of $ArgName.
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Action")

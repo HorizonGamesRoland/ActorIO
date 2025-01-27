@@ -39,7 +39,7 @@ void FActorIOEditor::StartupModule()
 	// Initialize the editor style of the plugin.
 	FActorIOEditorStyle::Initialize();
 
-	FGlobalTabmanager::Get()->RegisterNomadTabSpawner(TEXT("ActorIO"), FOnSpawnTab::CreateRaw(this, &FActorIOEditor::SpawnActorIOEditor))
+	FGlobalTabmanager::Get()->RegisterNomadTabSpawner(TEXT("ActorIO"), FOnSpawnTab::CreateRaw(this, &FActorIOEditor::CreateActorIOEditorTab))
 		.SetDisplayName(LOCTEXT("TabName", "Actor I/O"))
 		.SetTooltipText(LOCTEXT("TabTooltip", "Open the Actor I/O tab. Use this for level scripting."))
 		.SetGroup(WorkspaceMenu::GetMenuStructure().GetLevelEditorCategory())
@@ -107,8 +107,11 @@ void FActorIOEditor::ShutdownModule()
 	FActorIOEditorStyle::Shutdown();
 }
 
-TSharedRef<SDockTab> FActorIOEditor::SpawnActorIOEditor(const FSpawnTabArgs& TabSpawnArgs)
+TSharedRef<SDockTab> FActorIOEditor::CreateActorIOEditorTab(const FSpawnTabArgs& TabSpawnArgs)
 {
+	// Reset action list column sizes to defaults before creating the tab.
+	FActorIOEditorStyle::SetupActionListColumnSizes();
+
 	TSharedRef<SDockTab> SpawnedTab = SNew(SDockTab)
 	.TabRole(ETabRole::NomadTab)
 	[

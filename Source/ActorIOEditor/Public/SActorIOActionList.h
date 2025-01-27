@@ -10,7 +10,7 @@ class UActorIOAction;
 
 /**
  * Columns used by the action list.
- * Each column must have a matching entry in FActorIOEditorStyle!
+ * Each column must have a matching entry in FActorIOEditorStyle::SetupActionListColumnSizes!
  */
 namespace ColumnId
 {
