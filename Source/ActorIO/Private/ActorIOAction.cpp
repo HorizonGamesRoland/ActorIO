@@ -3,7 +3,6 @@
 #include "ActorIOAction.h"
 #include "ActorIOComponent.h"
 #include "ActorIOInterface.h"
-#include "ActorIOSystem.h"
 
 FName UActorIOAction::ExecuteActionSignalName(TEXT("ReceiveExecuteAction"));
 
@@ -32,7 +31,7 @@ void UActorIOAction::BindAction()
 		return;
 	}
 
-	const FActorIOEventList ValidEvents = UActorIOSystem::GetEventsForObject(ActionOwner);
+	const FActorIOEventList ValidEvents = IActorIO::GetEventsForObject(ActionOwner);
 	const FActorIOEvent* TargetEvent = ValidEvents.GetEvent(EventId);
 	if (!TargetEvent)
 	{
@@ -107,7 +106,7 @@ void UActorIOAction::UnbindAction()
 		return;
 	}
 
-	const FActorIOEventList ValidEvents = UActorIOSystem::GetEventsForObject(OwnerIOComponent->GetOwner());
+	const FActorIOEventList ValidEvents = IActorIO::GetEventsForObject(OwnerIOComponent->GetOwner());
 	const FActorIOEvent* TargetEvent = ValidEvents.GetEvent(EventId);
 	if (!TargetEvent)
 	{
@@ -210,7 +209,7 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 		return;
 	}
 
-	FActorIOFunctionList ValidFunctions = UActorIOSystem::GetFunctionsForObject(TargetActor);
+	FActorIOFunctionList ValidFunctions = IActorIO::GetFunctionsForObject(TargetActor);
 	FActorIOFunction* TargetFunction = ValidFunctions.GetFunction(FunctionId);
 	if (!TargetFunction)
 	{
@@ -233,7 +232,7 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 		}
 	}
 
-	FActorIOEventList ValidEvents = UActorIOSystem::GetEventsForObject(ActionOwner);
+	FActorIOEventList ValidEvents = IActorIO::GetEventsForObject(ActionOwner);
 	FActorIOEvent* BoundEvent = ValidEvents.GetEvent(EventId);
 	check(BoundEvent);
 
@@ -261,16 +260,16 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 	{
 		for (FString& Argument : Arguments)
 		{
-			bool bInQuotes = false;
+			bool bInQuote = false;
 			for (int32 CharIndex = Argument.Len() - 1; CharIndex >= 0; --CharIndex)
 			{
 				// Current character is a quote, so we either enter/exit a quote block.
 				if (Argument[CharIndex] == '"')
 				{
-					bInQuotes = !bInQuotes;
+					bInQuote = !bInQuote;
 				}
 				// Current character is whitespace, so remove it unless we are inside a quote block.
-				else if (FChar::IsWhitespace(Argument[CharIndex]) && !bInQuotes)
+				else if (FChar::IsWhitespace(Argument[CharIndex]) && !bInQuote)
 				{
 					Argument.RemoveAt(CharIndex);
 				}

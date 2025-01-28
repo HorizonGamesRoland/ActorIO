@@ -11,13 +11,14 @@ public class ActorIO : ModuleRules
 		PublicDependencyModuleNames.AddRange(new string[]
 		{
 			"Core",
-            "CoreUObject"
+            "CoreUObject",
+			"DeveloperSettings"
         });
 
 		PrivateDependencyModuleNames.AddRange(new string[]
 		{
 			"Engine",
-			"Niagara"
+			"Niagara" // #TODO: Remove this from dependency?
         });
 
 		// Required to have access to "Emitter.h" (Cascade effect actor)

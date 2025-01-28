@@ -1,7 +1,6 @@
 // Copyright 2025 Horizon Games. All Rights Reserved.
 
 #include "LogicActors/LogicCounter.h"
-#include "ActorIOSystem.h"
 
 #define LOCTEXT_NAMESPACE "ActorIO"
 

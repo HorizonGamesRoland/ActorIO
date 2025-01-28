@@ -2,7 +2,6 @@
 
 #include "SActorIOActionList.h"
 #include "SActorIOEditor.h"
-#include "ActorIOSystem.h"
 #include "ActorIOComponent.h"
 #include "ActorIOAction.h"
 #include "ActorIOEditor.h"
@@ -112,7 +111,7 @@ void SActorIOActionListView::Refresh()
 
 	if (bViewInputActions)
 	{
-		ActionListItems = UActorIOSystem::GetInputActionsForObject(SelectedActor);
+		ActionListItems = IActorIO::GetInputActionsForObject(SelectedActor);
 	}
 	else
 	{
@@ -600,7 +599,7 @@ void SActorIOActionListViewRow::UpdateSelectableEvents()
 	SelectableEventIds.Reset();
 	SelectableEventIds.Add(NAME_ClearComboBox);
 
-	ValidEvents = UActorIOSystem::GetEventsForObject(ActionPtr->GetOwnerActor());
+	ValidEvents = IActorIO::GetEventsForObject(ActionPtr->GetOwnerActor());
 	for (const FActorIOEvent& IOEvent : ValidEvents.EventRegistry)
 	{
 		SelectableEventIds.Emplace(IOEvent.EventId);
@@ -612,7 +611,7 @@ void SActorIOActionListViewRow::UpdateSelectableFunctions()
 	SelectableFunctionIds.Reset();
 	SelectableFunctionIds.Add(NAME_ClearComboBox);
 
-	ValidFunctions = UActorIOSystem::GetFunctionsForObject(ActionPtr->TargetActor);
+	ValidFunctions = IActorIO::GetFunctionsForObject(ActionPtr->TargetActor);
 	for (const FActorIOFunction& IOFunction : ValidFunctions.FunctionRegistry)
 	{
 		SelectableFunctionIds.Emplace(IOFunction.FunctionId);

@@ -5,7 +5,6 @@
 #include "ActorIOAction.h"
 #include "ActorIOComponent.h"
 #include "ActorIOComponentVisualizer.h"
-#include "ActorIOSystem.h"
 #include "SActorIOEditor.h"
 #include "LogicActors/LogicBranch.h"
 #include "LogicActors/LogicCase.h"
@@ -154,7 +153,7 @@ void FActorIOEditor::OnDeleteActorsBegin()
 	for (FSelectionIterator It(GEditor->GetSelectedActorIterator()); It; ++It)
 	{
 		AActor* Actor = static_cast<AActor*>(*It);
-		TArray<TWeakObjectPtr<UActorIOAction>> InputActions = UActorIOSystem::GetInputActionsForObject(Actor);
+		TArray<TWeakObjectPtr<UActorIOAction>> InputActions = IActorIO::GetInputActionsForObject(Actor);
 		for (int32 ActionIdx = 0; ActionIdx != InputActions.Num(); ++ActionIdx)
 		{
 			UActorIOAction* ActionPtr = InputActions[ActionIdx].Get();

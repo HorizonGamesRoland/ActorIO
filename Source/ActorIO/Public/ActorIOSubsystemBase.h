@@ -4,29 +4,29 @@
 
 #include "ActorIO.h"
 #include "Subsystems/WorldSubsystem.h"
-#include "ActorIOSystem.generated.h"
+#include "ActorIOSubsystemBase.generated.h"
 
 class UActorIOAction;
 
 /**
- * World subsystem of the I/O system.
- * Implements global functions, and stores the current action execution context.
+ * Base implementation of the Actor I/O Subsystem.
+ * Stores the current action execution context, and exposes native I/O events and functions.
  */
-UCLASS(DisplayName = "Actor I/O System")
-class ACTORIO_API UActorIOSystem : public UWorldSubsystem
+UCLASS()
+class ACTORIO_API UActorIOSubsystemBase : public UWorldSubsystem
 {
 	GENERATED_BODY()
 
 public:
 
 	/** Default constructor. */
-	UActorIOSystem();
+	UActorIOSubsystemBase();
 
 public:
 
 	/**
 	 * The current I/O action execution context.
-	 * Only valid between an action receiving the ProcessEvent call and sending the command to the target actor.
+	 * Only valid at runtime between an actor receiving the execute action signal, and sending the command to the target actor.
 	 * Use FActionExecutionContext::Get() to access unless you have direct reference to the I/O system.
 	 */
 	UPROPERTY(Transient)
@@ -34,33 +34,21 @@ public:
 
 public:
 
-	/** @return List of registered I/O events of the given actor. */
-	static FActorIOEventList GetEventsForObject(AActor* InObject);
-
-	/** @return List of registered I/O functions of the given actor. */
-	static FActorIOFunctionList GetFunctionsForObject(AActor* InObject);
-
-	/** @return List of I/O actions currently loaded in the world that are targeting the given actor. */
-	static TArray<TWeakObjectPtr<UActorIOAction>> GetInputActionsForObject(AActor* InObject);
-
-	/** @return Number of I/O actions currently loaded in the world that are targeting the given actor. */
-	static int32 GetNumInputActionsForObject(AActor* InObject);
-
-private:
-
 	/**
 	 * Exposes events from base Unreal Engine classes to the I/O system.
 	 * Used to avoid the need of subclassing these base classes in order to expose them.
 	 * Called automatically when collecting list of registered I/O functions for the given actor.
 	 */
-	static void GetNativeEventsForObject(AActor* InObject, FActorIOEventList& EventRegistry);
+	virtual void GetNativeEventsForObject(AActor* InObject, FActorIOEventList& EventRegistry);
 
 	/**
 	 * Exposes functions from base Unreal Engine classes to the I/O system.
 	 * Used to avoid the need of subclassing these base classes in order to expose them.
 	 * Called automatically when collecting list of registered I/O functions for the given actor.
 	 */
-	static void GetNativeFunctionsForObject(AActor* InObject, FActorIOFunctionList& FunctionRegistry);
+	virtual void GetNativeFunctionsForObject(AActor* InObject, FActorIOFunctionList& FunctionRegistry);
+
+private:
 
 	/** Event processor for the 'OnActorBeginOverlap' and 'OnActorEndOverlap' events. */
 	UFUNCTION()

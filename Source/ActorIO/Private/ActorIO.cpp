@@ -1,6 +1,8 @@
 // Copyright 2025 Horizon Games. All Rights Reserved.
 
 #include "ActorIO.h"
+#include "ActorIOAction.h"
+#include "ActorIOInterface.h"
 #include "ActorIOSystem.h"
 
 DEFINE_LOG_CATEGORY(LogActorIO)
@@ -9,7 +11,7 @@ FActionExecutionContext& FActionExecutionContext::Get(UObject* WorldContextObjec
 {
     if (UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull))
     {
-        UActorIOSystem* IOSystem = World->GetSubsystem<UActorIOSystem>();
+        UActorIOSubsystemBase* IOSystem = World->GetSubsystem<UActorIOSubsystemBase>();
         return IOSystem->ActionExecContext;
     }
 
@@ -65,4 +67,74 @@ void FActionExecutionContext::SetNamedArgument(const FString& InName, const FStr
             NamedArguments.Remove(InName);
         }
     }
+}
+
+FActorIOEventList IActorIO::GetEventsForObject(AActor* InObject)
+{
+    FActorIOEventList OutEvents = FActorIOEventList();
+    if (IsValid(InObject))
+    {
+        if (InObject->Implements<UActorIOInterface>())
+        {
+            IActorIOInterface* IOInterface = Cast<IActorIOInterface>(InObject);
+            if (IOInterface)
+            {
+                IOInterface->RegisterIOEvents(OutEvents);
+            }
+
+            IActorIOInterface::Execute_K2_RegisterIOEvents(InObject, OutEvents);
+        }
+
+        UActorIOSubsystemBase* IOSystem = InObject->GetWorld()->GetSubsystem<UActorIOSubsystemBase>();
+        IOSystem->GetNativeEventsForObject(InObject, OutEvents);
+    }
+
+    return OutEvents;
+}
+
+FActorIOFunctionList IActorIO::GetFunctionsForObject(AActor* InObject)
+{
+    FActorIOFunctionList OutFunctions = FActorIOFunctionList();
+    if (IsValid(InObject))
+    {
+        if (InObject->Implements<UActorIOInterface>())
+        {
+            IActorIOInterface* IOInterface = Cast<IActorIOInterface>(InObject);
+            if (IOInterface)
+            {
+                IOInterface->RegisterIOFunctions(OutFunctions);
+            }
+
+            IActorIOInterface::Execute_K2_RegisterIOFunctions(InObject, OutFunctions);
+        }
+
+        UActorIOSubsystemBase* IOSystem = InObject->GetWorld()->GetSubsystem<UActorIOSubsystemBase>();
+        IOSystem->GetNativeFunctionsForObject(InObject, OutFunctions);
+    }
+
+    return OutFunctions;
+}
+
+TArray<TWeakObjectPtr<UActorIOAction>> IActorIO::GetInputActionsForObject(AActor* InObject)
+{
+    TArray<TWeakObjectPtr<UActorIOAction>> OutActions = TArray<TWeakObjectPtr<UActorIOAction>>();
+    if (IsValid(InObject))
+    {
+        for (TObjectIterator<UActorIOAction> ActionItr; ActionItr; ++ActionItr)
+        {
+            UActorIOAction* Action = *ActionItr;
+            if (IsValid(Action) && IsValid(Action->GetOwnerActor()) && Action->TargetActor == InObject)
+            {
+                OutActions.Add(Action);
+            }
+        }
+    }
+
+    return OutActions;
+}
+
+int32 IActorIO::GetNumInputActionsForObject(AActor* InObject)
+{
+    TArray<TWeakObjectPtr<UActorIOAction>> InputActions = GetInputActionsForObject(InObject);
+    return InputActions.Num();
 }

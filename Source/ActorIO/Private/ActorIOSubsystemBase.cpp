@@ -1,6 +1,6 @@
 // Copyright 2025 Horizon Games. All Rights Reserved.
 
-#include "ActorIOSystem.h"
+#include "ActorIOSubsystemBase.h"
 #include "ActorIOComponent.h"
 #include "ActorIOInterface.h"
 #include "ActorIOAction.h"
@@ -19,84 +19,13 @@
 
 #define LOCTEXT_NAMESPACE "ActorIO"
 
-UActorIOSystem::UActorIOSystem()
+UActorIOSubsystemBase::UActorIOSubsystemBase()
 {
     ActionExecContext = FActionExecutionContext();
 }
 
-FActorIOEventList UActorIOSystem::GetEventsForObject(AActor* InObject)
+void UActorIOSubsystemBase::GetNativeEventsForObject(AActor* InObject, FActorIOEventList& EventRegistry)
 {
-    FActorIOEventList OutEvents = FActorIOEventList();
-    if (IsValid(InObject))
-    {
-        if (InObject->Implements<UActorIOInterface>())
-        {
-            IActorIOInterface* IOInterface = Cast<IActorIOInterface>(InObject);
-            if (IOInterface)
-            {
-                IOInterface->RegisterIOEvents(OutEvents);
-            }
-
-            IActorIOInterface::Execute_K2_RegisterIOEvents(InObject, OutEvents);
-        }
-
-        GetNativeEventsForObject(InObject, OutEvents);
-    }
-    
-    return OutEvents;
-}
-
-FActorIOFunctionList UActorIOSystem::GetFunctionsForObject(AActor* InObject)
-{
-    FActorIOFunctionList OutFunctions = FActorIOFunctionList();
-    if (IsValid(InObject))
-    {
-        if (InObject->Implements<UActorIOInterface>())
-        {
-            IActorIOInterface* IOInterface = Cast<IActorIOInterface>(InObject);
-            if (IOInterface)
-            {
-                IOInterface->RegisterIOFunctions(OutFunctions);
-            }
-
-            IActorIOInterface::Execute_K2_RegisterIOFunctions(InObject, OutFunctions);
-        }
-
-        GetNativeFunctionsForObject(InObject, OutFunctions);
-    }
-
-    return OutFunctions;
-}
-
-TArray<TWeakObjectPtr<UActorIOAction>> UActorIOSystem::GetInputActionsForObject(AActor* InObject)
-{
-    TArray<TWeakObjectPtr<UActorIOAction>> OutActions = TArray<TWeakObjectPtr<UActorIOAction>>();
-    if (IsValid(InObject))
-    {
-        for (TObjectIterator<UActorIOAction> ActionItr; ActionItr; ++ActionItr)
-        {
-            UActorIOAction* Action = *ActionItr;
-            if (IsValid(Action) && IsValid(Action->GetOwnerActor()) && Action->TargetActor == InObject)
-            {
-                OutActions.Add(Action);
-            }
-        }
-    }
-
-    return OutActions;
-}
-
-int32 UActorIOSystem::GetNumInputActionsForObject(AActor* InObject)
-{
-    TArray<TWeakObjectPtr<UActorIOAction>> InputActions = GetInputActionsForObject(InObject);
-    return InputActions.Num();
-}
-
-void UActorIOSystem::GetNativeEventsForObject(AActor* InObject, FActorIOEventList& EventRegistry)
-{
-    UWorld* ObjectWorld = InObject->GetWorld();
-    UActorIOSystem* IOSystem = ObjectWorld->GetSubsystem<UActorIOSystem>();
-
     //==================================
     // Trigger Actors
     //==================================
@@ -108,14 +37,14 @@ void UActorIOSystem::GetNativeEventsForObject(AActor* InObject, FActorIOEventLis
             .SetDisplayName(LOCTEXT("TriggerBase.OnTriggerEnter", "OnTriggerEnter"))
             .SetTooltipText(LOCTEXT("TriggerBase.OnTriggerEnterTooltip", "Event when an actor enters the trigger area."))
             .SetSparseDelegate(InObject, TEXT("OnActorBeginOverlap"))
-            .SetEventProcessor(IOSystem, TEXT("ProcessEvent_OnActorOverlap")));
+            .SetEventProcessor(this, TEXT("ProcessEvent_OnActorOverlap")));
 
         EventRegistry.RegisterEvent(FActorIOEvent()
             .SetId(TEXT("ATriggerBase::OnTriggerExit"))
             .SetDisplayName(LOCTEXT("TriggerBase.OnTriggerExit", "OnTriggerExit"))
             .SetTooltipText(LOCTEXT("TriggerBase.OnTriggerExitTooltip", "Event when an actor leaves the trigger area."))
             .SetSparseDelegate(InObject, TEXT("OnActorEndOverlap"))
-            .SetEventProcessor(IOSystem, TEXT("ProcessEvent_OnActorOverlap")));
+            .SetEventProcessor(this, TEXT("ProcessEvent_OnActorOverlap")));
     }
 
     //==================================
@@ -129,11 +58,11 @@ void UActorIOSystem::GetNativeEventsForObject(AActor* InObject, FActorIOEventLis
             .SetDisplayName(LOCTEXT("Actor.OnDestroyed", "OnDestroyed"))
             .SetTooltipText(LOCTEXT("Actor.OnDestroyedTooltip", "Event when the actor is getting destroyed."))
             .SetSparseDelegate(InObject, TEXT("OnDestroyed"))
-            .SetEventProcessor(IOSystem, TEXT("ProcessEvent_OnActorDestroyed")));
+            .SetEventProcessor(this, TEXT("ProcessEvent_OnActorDestroyed")));
     }
 }
 
-void UActorIOSystem::GetNativeFunctionsForObject(AActor* InObject, FActorIOFunctionList& FunctionRegistry)
+void UActorIOSubsystemBase::GetNativeFunctionsForObject(AActor* InObject, FActorIOFunctionList& FunctionRegistry)
 {
     //==================================
     // Trigger Actors
@@ -326,17 +255,17 @@ void UActorIOSystem::GetNativeFunctionsForObject(AActor* InObject, FActorIOFunct
     }
 }
 
-void UActorIOSystem::ProcessEvent_OnActorOverlap(AActor* OverlappedActor, AActor* OtherActor)
+void UActorIOSubsystemBase::ProcessEvent_OnActorOverlap(AActor* OverlappedActor, AActor* OtherActor)
 {
     ActionExecContext.SetNamedArgument(TEXT("$Actor"), IsValid(OtherActor) ? OtherActor->GetPathName() : FString());
 }
 
-void UActorIOSystem::ProcessEvent_OnActorDestroyed(AActor* DestroyedActor)
+void UActorIOSubsystemBase::ProcessEvent_OnActorDestroyed(AActor* DestroyedActor)
 {
     ActionExecContext.SetNamedArgument(TEXT("$Actor"), IsValid(DestroyedActor) ? DestroyedActor->GetPathName() : FString());
 }
 
-void UActorIOSystem::K2_RegisterIOEvent(UObject* WorldContextObject, FActorIOEventList& Registry, FName EventId, const FText& DisplayNameText, const FText& TooltipText, FName EventDispatcherName, FName EventProcessorName)
+void UActorIOSubsystemBase::K2_RegisterIOEvent(UObject* WorldContextObject, FActorIOEventList& Registry, FName EventId, const FText& DisplayNameText, const FText& TooltipText, FName EventDispatcherName, FName EventProcessorName)
 {
     Registry.RegisterEvent(FActorIOEvent()
         .SetId(EventId)
@@ -346,7 +275,7 @@ void UActorIOSystem::K2_RegisterIOEvent(UObject* WorldContextObject, FActorIOEve
         .SetEventProcessor(WorldContextObject, EventProcessorName));
 }
 
-void UActorIOSystem::K2_RegisterIOFunction(UObject* WorldContextObject, FActorIOFunctionList& Registry, FName FunctionId, const FText& DisplayNameText, const FText& TooltipText, FString FunctionToExec, FName SubobjectName)
+void UActorIOSubsystemBase::K2_RegisterIOFunction(UObject* WorldContextObject, FActorIOFunctionList& Registry, FName FunctionId, const FText& DisplayNameText, const FText& TooltipText, FString FunctionToExec, FName SubobjectName)
 {
     Registry.RegisterFunction(FActorIOFunction()
         .SetId(FunctionId)
@@ -356,7 +285,7 @@ void UActorIOSystem::K2_RegisterIOFunction(UObject* WorldContextObject, FActorIO
         .SetSubobject(SubobjectName));
 }
 
-void UActorIOSystem::K2_SetNamedArgument(UObject* WorldContextObject, const FString& ArgumentName, const FString& ArgumentValue)
+void UActorIOSubsystemBase::K2_SetNamedArgument(UObject* WorldContextObject, const FString& ArgumentName, const FString& ArgumentValue)
 {
     FActionExecutionContext& ExecContext = FActionExecutionContext::Get(WorldContextObject);
     ExecContext.SetNamedArgument(ArgumentName, ArgumentValue);

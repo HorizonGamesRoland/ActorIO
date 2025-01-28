@@ -389,3 +389,23 @@ struct ACTORIO_API FActionExecutionContext
 	 */
 	void SetNamedArgument(const FString& InName, const FString& InValue);
 };
+
+/**
+ * API to interface with the Actor I/O system.
+ */
+class ACTORIO_API IActorIO
+{
+public:
+
+	/** @return List of registered I/O events of the given actor. */
+	static FActorIOEventList GetEventsForObject(AActor* InObject);
+
+	/** @return List of registered I/O functions of the given actor. */
+	static FActorIOFunctionList GetFunctionsForObject(AActor* InObject);
+
+	/** @return List of I/O actions currently loaded in the world that are targeting the given actor. */
+	static TArray<TWeakObjectPtr<UActorIOAction>> GetInputActionsForObject(AActor* InObject);
+
+	/** @return Number of I/O actions currently loaded in the world that are targeting the given actor. */
+	static int32 GetNumInputActionsForObject(AActor* InObject);
+};

@@ -4,7 +4,6 @@
 #include "SActorIOActionList.h"
 #include "ActorIOEditor.h"
 #include "ActorIOEditorStyle.h"
-#include "ActorIOSystem.h"
 #include "ActorIOComponent.h"
 #include "ActorIOAction.h"
 #include "GameFramework/Actor.h"
@@ -159,7 +158,7 @@ void SActorIOEditor::Refresh()
     OutputsButtonText->SetText(FText::FormatNamed(LOCTEXT("OutputsButton", "Outputs ({Count})"),
         TEXT("Count"), NumOutputActions));
 
-    const int32 NumInputActions = UActorIOSystem::GetNumInputActionsForObject(SelectedActor);
+    const int32 NumInputActions = IActorIO::GetNumInputActionsForObject(SelectedActor);
     InputsButtonText->SetText(FText::FormatNamed(LOCTEXT("InputsButton", "Inputs ({Count})"),
         TEXT("Count"), NumInputActions));
 

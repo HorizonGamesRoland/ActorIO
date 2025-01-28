@@ -2,7 +2,6 @@
 
 #include "ActorIOComponent.h"
 #include "ActorIOAction.h"
-#include "ActorIOSystem.h"
 #include "Logging/MessageLog.h"
 #include "Misc/UObjectToken.h"
 
@@ -135,8 +134,8 @@ void UActorIOComponent::CheckForErrors()
 	const int32 NumActions = Actions.Num();
 	if (NumActions > 0)
 	{
-		const FActorIOEventList ValidEvents = UActorIOSystem::GetEventsForObject(Owner);
-		const FActorIOFunctionList ValidFunctions = UActorIOSystem::GetFunctionsForObject(Owner);
+		const FActorIOEventList ValidEvents = IActorIO::GetEventsForObject(Owner);
+		const FActorIOFunctionList ValidFunctions = IActorIO::GetFunctionsForObject(Owner);
 
 		for (int32 ActionIdx = 0; ActionIdx != NumActions; ++ActionIdx)
 		{
