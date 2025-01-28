@@ -213,7 +213,8 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 	FActorIOFunction* TargetFunction = ValidFunctions.GetFunction(FunctionId);
 	if (!TargetFunction)
 	{
-		UE_LOG(LogActorIO, Error, TEXT("Execute action failed. Failed to find function '%s' on target actor '%s'."), *FunctionId.ToString(), *TargetActor->GetActorNameOrLabel());
+		UE_LOG(LogActorIO, Error, TEXT("Actor '%s' failed to execute action. Could not find function '%s' on target actor '%s'."),
+			*ActionOwner->GetActorNameOrLabel(), *FunctionId.ToString(), *TargetActor->GetActorNameOrLabel());
 		return;
 	}
 
@@ -225,7 +226,8 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 		ObjectToSendCommandTo = TargetActor->GetDefaultSubobjectByName(TargetFunction->TargetSubobject);
 		if (!IsValid(ObjectToSendCommandTo))
 		{
-			UE_LOG(LogActorIO, Error, TEXT("Execute action failed. Failed to find default subobject '%s' on target actor '%s'."), *TargetFunction->TargetSubobject.ToString(), *TargetActor->GetActorNameOrLabel());
+			UE_LOG(LogActorIO, Error, TEXT("Actor '%s' failed to execute action. Could not find default subobject '%s' on target actor '%s'."),
+				*TargetFunction->TargetSubobject.ToString(), *TargetActor->GetActorNameOrLabel());
 			return;
 		}
 	}

@@ -49,9 +49,9 @@ void FActionExecutionContext::SetNamedArgument(const FString& InName, const FStr
         }
 
         int32 InvalidCharIndex = INDEX_NONE;
-        if (!InName.FindChar('"', InvalidCharIndex))
+        if (InName.FindChar('"', InvalidCharIndex) || InName.FindChar(';', InvalidCharIndex))
         {
-            UE_LOG(LogActorIO, Error, TEXT("ActionExecutionContext: Attempted to set named argument with illegal character. Name was: %s"), NAMEDARGUMENT_PREFIX, *InName);
+            UE_LOG(LogActorIO, Error, TEXT("ActionExecutionContext: Attempted to set named argument with illegal character. Name was: %s"), *InName);
             return;
         }
 
