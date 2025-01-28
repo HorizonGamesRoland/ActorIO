@@ -1,10 +1,9 @@
 // Copyright 2025 Horizon Games. All Rights Reserved.
 
 #include "ActorIOAction.h"
-#include "ActorIOSystem.h"
 #include "ActorIOComponent.h"
 #include "ActorIOInterface.h"
-#include "UObject/SparseDelegate.h"
+#include "ActorIOSystem.h"
 
 FName UActorIOAction::ExecuteActionSignalName(TEXT("ReceiveExecuteAction"));
 
@@ -206,6 +205,8 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 	{
 		// Do nothing if the target actor is invalid.
 		// The actor was most likely destroyed at runtime.
+		UE_LOG(LogActorIO, Warning, TEXT("Actor '%s' failed to execute action. Could not find target actor '%s'. Actor was destroyed?"),
+			*ActionOwner->GetActorNameOrLabel(), *TargetActor->GetActorNameOrLabel());
 		return;
 	}
 
@@ -227,7 +228,7 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 		if (!IsValid(ObjectToSendCommandTo))
 		{
 			UE_LOG(LogActorIO, Error, TEXT("Actor '%s' failed to execute action. Could not find default subobject '%s' on target actor '%s'."),
-				*TargetFunction->TargetSubobject.ToString(), *TargetActor->GetActorNameOrLabel());
+				*ActionOwner->GetActorNameOrLabel(), *TargetFunction->TargetSubobject.ToString(), *TargetActor->GetActorNameOrLabel());
 			return;
 		}
 	}
@@ -327,7 +328,7 @@ void UActorIOAction::SendCommand(UObject* TargetObject, FString Command)
 		// Log execution errors.
 		if (!Ar.IsEmpty())
 		{
-			UE_LOG(LogActorIO, Error, TEXT("%s"), *Ar);
+			UE_LOG(LogActorIO, Error, TEXT("%s - Original command: '%s'"), *Ar, *Command);
 		}
 	}
 }

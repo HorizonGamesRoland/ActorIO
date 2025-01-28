@@ -75,7 +75,7 @@ public:
 	/**
 	 * Add a new I/O event to the actor's event list.
 	 * Use this to expose a blueprint event dispatcher to the I/O system.
-	 * This function should only be called when the I/O interface is registering events to an actor.
+	 * Should only be called when the I/O interface is registering events to an actor.
 	 * 
 	 * @param WorldContextObject Reference to the object where this function is being called.
 	 * @param Registry The list of I/O events we are adding to.
@@ -86,12 +86,12 @@ public:
 	 * @param EventProcessorName Name of a function that should be called when firing this event. Use this to handle named arguments (params) for this event.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Actor IO", DisplayName = "Register I/O Event", meta = (WorldContext = "WorldContextObject", AutoCreateRefTerm = "DisplayNameText,TooltipText", AdvancedDisplay = "EventProcessorName", Keywords = "IO"))
-	static void RegisterIOEvent(UObject* WorldContextObject, UPARAM(Ref) FActorIOEventList& Registry, FName EventId, const FText& DisplayNameText, const FText& TooltipText, FName EventDispatcherName, FName EventProcessorName);
+	static void K2_RegisterIOEvent(UObject* WorldContextObject, UPARAM(Ref) FActorIOEventList& Registry, FName EventId, const FText& DisplayNameText, const FText& TooltipText, FName EventDispatcherName, FName EventProcessorName);
 
 	/**
 	 * Add a new I/O function to the actor's function list.
 	 * Use this to expose a blueprint function to the I/O system.
-	 * This function should only be called when the I/O interface is registering functions to an actor.
+	 * Should only be called when the I/O interface is registering functions to an actor.
 	 *
 	 * @param WorldContextObject Reference to the object where this function is being called.
 	 * @param Registry The list of I/O functions we are adding to.
@@ -102,9 +102,7 @@ public:
 	 * @param SubobjectName Specific subobject to call the function on instead of the actor itself.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Actor IO", DisplayName = "Register I/O Function", meta = (WorldContext = "WorldContextObject", AutoCreateRefTerm = "DisplayNameText,TooltipText", AdvancedDisplay = "SubobjectName", Keywords = "IO"))
-	static void RegisterIOFunction(UObject* WorldContextObject, UPARAM(Ref) FActorIOFunctionList& Registry, FName FunctionId, const FText& DisplayNameText, const FText& TooltipText, FString FunctionToExec, FName SubobjectName);
-
-public:
+	static void K2_RegisterIOFunction(UObject* WorldContextObject, UPARAM(Ref) FActorIOFunctionList& Registry, FName FunctionId, const FText& DisplayNameText, const FText& TooltipText, FString FunctionToExec, FName SubobjectName);
 
 	/**
 	 * Add a named argument (parameter) to the current execution context.

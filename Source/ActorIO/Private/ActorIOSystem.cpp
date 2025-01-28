@@ -336,7 +336,7 @@ void UActorIOSystem::ProcessEvent_OnActorDestroyed(AActor* DestroyedActor)
     ActionExecContext.SetNamedArgument(TEXT("$Actor"), IsValid(DestroyedActor) ? DestroyedActor->GetPathName() : FString());
 }
 
-void UActorIOSystem::RegisterIOEvent(UObject* WorldContextObject, FActorIOEventList& Registry, FName EventId, const FText& DisplayNameText, const FText& TooltipText, FName EventDispatcherName, FName EventProcessorName)
+void UActorIOSystem::K2_RegisterIOEvent(UObject* WorldContextObject, FActorIOEventList& Registry, FName EventId, const FText& DisplayNameText, const FText& TooltipText, FName EventDispatcherName, FName EventProcessorName)
 {
     Registry.RegisterEvent(FActorIOEvent()
         .SetId(EventId)
@@ -346,7 +346,7 @@ void UActorIOSystem::RegisterIOEvent(UObject* WorldContextObject, FActorIOEventL
         .SetEventProcessor(WorldContextObject, EventProcessorName));
 }
 
-void UActorIOSystem::RegisterIOFunction(UObject* WorldContextObject, FActorIOFunctionList& Registry, FName FunctionId, const FText& DisplayNameText, const FText& TooltipText, FString FunctionToExec, FName SubobjectName)
+void UActorIOSystem::K2_RegisterIOFunction(UObject* WorldContextObject, FActorIOFunctionList& Registry, FName FunctionId, const FText& DisplayNameText, const FText& TooltipText, FString FunctionToExec, FName SubobjectName)
 {
     Registry.RegisterFunction(FActorIOFunction()
         .SetId(FunctionId)
