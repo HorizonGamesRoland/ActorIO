@@ -391,7 +391,7 @@ struct ACTORIO_API FActionExecutionContext
 };
 
 /**
- * API to interface with the Actor I/O system.
+ * Interface to interact with the Actor I/O system.
  */
 class ACTORIO_API IActorIO
 {

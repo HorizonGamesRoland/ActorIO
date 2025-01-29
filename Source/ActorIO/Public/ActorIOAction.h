@@ -13,7 +13,7 @@ class UActorIOComponent;
  * When executed, it will call the designated function on the target actor with the given parameters.
  * This is basically the message bus of the I/O system.
  */
-UCLASS(DefaultToInstanced, EditInlineNew)
+UCLASS(DefaultToInstanced, EditInlineNew, Within = ActorIOComponent)
 class ACTORIO_API UActorIOAction : public UObject
 {
 	GENERATED_BODY()

@@ -12,7 +12,7 @@ class UActorIOAction;
  * Base implementation of the Actor I/O Subsystem.
  * Stores the current action execution context, and exposes native I/O events and functions.
  */
-UCLASS()
+UCLASS(Blueprintable)
 class ACTORIO_API UActorIOSubsystemBase : public UWorldSubsystem
 {
 	GENERATED_BODY()
@@ -31,6 +31,9 @@ public:
 	 */
 	UPROPERTY(Transient)
 	FActionExecutionContext ActionExecContext;
+
+	/** Get the I/O subsystem of the given world. */
+	static UActorIOSubsystemBase* Get(UObject* WorldContextObject);
 
 public:
 
@@ -53,7 +56,15 @@ public:
 	 * Think stuff like reference to player character, or player controller.
 	 * Called at runtime, when executing an I/O action.
 	 */
-	virtual void SetGlobalNamedArguments(FActionExecutionContext& ExecutionContext);
+	virtual void GetGlobalNamedArguments(FActionExecutionContext& ExecutionContext);
+
+	/**
+	 * Opportunity for blueprint layer to add globally available named arguments to the current execution context.
+	 * Think stuff like reference to player character, or player controller.
+	 * Called at runtime, before executing an I/O action.
+	 */
+	UFUNCTION(BlueprintImplementableEvent, Category = "Actor IO", DisplayName = "Get Global Named Arguments", meta = (ForceAsFunction, Keywords = "IO"))
+	void K2_GetGlobalNamedArguments();
 
 private:
 
@@ -64,4 +75,10 @@ private:
 	/** Event processor for the 'OnDestroyed' event of actors. */
 	UFUNCTION()
 	void ProcessEvent_OnActorDestroyed(AActor* DestroyedActor);
+
+public:
+
+	//~ Begin UWorldSubsystem Interface
+	virtual bool ShouldCreateSubsystem(UObject* Outer) const override final;
+	//~ End UWorldSubsystem Interface
 };

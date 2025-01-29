@@ -7,9 +7,9 @@
 #include "ActorIOLibrary.generated.h"
 
 /**
- * Blueprint function library for the Actor I/O plugin.
+ * Blueprint functions for interacting with the Actor I/O system.
  */
-UCLASS()
+UCLASS(DisplayName = "Actor I/O Library")
 class ACTORIO_API UActorIOLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_BODY()
@@ -52,6 +52,10 @@ public:
 	 * Add a named argument (parameter) to the current execution context.
 	 * If it already exists then the value is simply updated.
 	 * Should only be called from within an I/O event processor!
+	 * 
+	 * @param WorldContextObject Reference to the object where this function is being called.
+	 * @param ArgumentName Text to swap into the argument value. Text must start with '$'.
+	 * @param ArgumentValue Value of the named argument.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "ActorIO", DisplayName = "Set Named Argument", meta = (WorldContext = "WorldContextObject", AutoCreateRefTerm = "ArgumentName,ArgumentValue", Keywords = "Param"))
 	static void K2_SetNamedArgument(UObject* WorldContextObject, const FString& ArgumentName, const FString& ArgumentValue);

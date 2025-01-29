@@ -7,9 +7,9 @@
 #include "ActorIOSettings.generated.h"
 
 /**
- * Config parameters of the Actor IO plugin.
+ * Settings for the Actor I/O level scripting system.
  */
-UCLASS(Config = Game)
+UCLASS(Config = Game, DefaultConfig)
 class ACTORIO_API UActorIOSettings : public UDeveloperSettings
 {
 	GENERATED_BODY()
@@ -27,6 +27,19 @@ public:
 
 public:
 
-	//UPROPERTY(Config, EditAnywhere, Category = "Debugging")
-	//bool bLogActionExecution;
+	/**
+	 * Class to use as the Actor I/O Subsystem.
+	 * If none, then the base implementation of the class is used.
+	 * Requires a level reload to fully take effect.
+	 */
+	UPROPERTY(Config, NoClear, EditAnywhere, Category = "Settings", DisplayName = "Actor I/O Subsystem Class")
+	TSubclassOf<class UActorIOSubsystemBase> ActorIOSubsystemClass;
+
+public:
+
+#if WITH_EDITOR
+	//~ Begin UDeveloperSettings Interface
+	virtual FText GetSectionText() const override { return INVTEXT("Actor I/O"); }
+	//~ End UDeveloperSettings Interface
+#endif
 };

@@ -1,10 +1,11 @@
 // Copyright 2025 Horizon Games. All Rights Reserved.
 
 #include "ActorIOSettings.h"
+#include "ActorIOSubsystemBase.h"
 
 UActorIOSettings::UActorIOSettings()
 {
-	//bLogActionExecution = true;
+	ActorIOSubsystemClass = UActorIOSubsystemBase::StaticClass();
 }
 
 const UActorIOSettings* UActorIOSettings::Get()

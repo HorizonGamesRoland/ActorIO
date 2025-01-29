@@ -11,7 +11,7 @@ class UActorIOAction;
 /**
  * Component that manages I/O actions for the actor it is attached to.
  */
-UCLASS(Blueprintable, ClassGroup = "Actor IO", DisplayName = "Actor I/O Component")
+UCLASS(ClassGroup = "Actor IO", DisplayName = "Actor I/O Component")
 class ACTORIO_API UActorIOComponent : public UActorComponent
 {
 	GENERATED_BODY()
@@ -30,10 +30,10 @@ protected:
 public:
 
 	/** Creates a new I/O action and adds it to the action list. */
-	virtual UActorIOAction* CreateNewAction();
+	UActorIOAction* CreateNewAction();
 
 	/** Removes the given action from the action list, and destroys it. */
-	virtual void RemoveAction(UActorIOAction* InAction);
+	void RemoveAction(UActorIOAction* InAction);
 
 	/** Removes all entries from the action list that are nullptr. */
 	void RemoveInvalidActions();

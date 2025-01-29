@@ -201,6 +201,8 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 
 	UE_LOG(LogActorIO, Log, TEXT("Actor '%s' executing action: %s -> %s"), *ActionOwner->GetActorNameOrLabel(), *EventId.ToString(), *FunctionId.ToString());
 
+	// #TODO: Check if we can use FFrame::KismetExecutionMessage instead of logs?
+
 	if (!IsValid(TargetActor))
 	{
 		// Do nothing if the target actor is invalid.
@@ -241,8 +243,8 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 	{
 		// Let the I/O subsystem to add globally available named arguments to the current execution context.
 		// Think stuff like reference to player character, or player controller.
-		UActorIOSubsystemBase* IOSubsystem = GetWorld()->GetSubsystem<UActorIOSubsystemBase>();
-		IOSubsystem->SetGlobalNamedArguments(ExecutionContext);
+		UActorIOSubsystemBase* IOSubsystem = UActorIOSubsystemBase::Get(this);
+		IOSubsystem->GetGlobalNamedArguments(ExecutionContext);
 
 		// Let the event processor assign values to arbitrary named arguments.
 		// We are calling the event processor with the original params memory that we received from the delegate our action is bound to.

@@ -4,6 +4,7 @@
 #include "ActorIOComponent.h"
 #include "ActorIOInterface.h"
 #include "ActorIOAction.h"
+#include "ActorIOSettings.h"
 #include "LogicActors/LogicActorBase.h"
 #include "GameFramework/Actor.h"
 #include "GameFramework/CameraBlockingVolume.h"
@@ -22,6 +23,27 @@
 UActorIOSubsystemBase::UActorIOSubsystemBase()
 {
     ActionExecContext = FActionExecutionContext();
+}
+
+UActorIOSubsystemBase* UActorIOSubsystemBase::Get(UObject* WorldContextObject)
+{
+    if (UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::Assert))
+    {
+        UActorIOSubsystemBase* IOSubsystem = World->GetSubsystem<UActorIOSubsystemBase>();
+        if (IOSubsystem)
+        {
+            return IOSubsystem;
+        }
+        else
+        {
+            // In the case of game worlds, do not exit gracefully with nullptr.
+            // This should be treated as a critical failure.
+            // The game must have a valid I/O subsystem when actions are being used.
+            checkf(!World->IsGameWorld(), TEXT("Could not get I/O subsystem from game world! Ensure that I/O subsystem class is valid in 'Project Settings -> Actor I/O'."));
+        }
+    }
+
+    return nullptr;
 }
 
 void UActorIOSubsystemBase::GetNativeEventsForObject(AActor* InObject, FActorIOEventList& EventRegistry)
@@ -255,9 +277,12 @@ void UActorIOSubsystemBase::GetNativeFunctionsForObject(AActor* InObject, FActor
     }
 }
 
-void UActorIOSubsystemBase::SetGlobalNamedArguments(FActionExecutionContext& ExecutionContext)
+void UActorIOSubsystemBase::GetGlobalNamedArguments(FActionExecutionContext& ExecutionContext)
 {
     // #TODO: Add argument for player pawn?
+
+    // Give blueprint layer a chance to add named arguments.
+    K2_GetGlobalNamedArguments();
 }
 
 void UActorIOSubsystemBase::ProcessEvent_OnActorOverlap(AActor* OverlappedActor, AActor* OtherActor)
@@ -268,6 +293,34 @@ void UActorIOSubsystemBase::ProcessEvent_OnActorOverlap(AActor* OverlappedActor,
 void UActorIOSubsystemBase::ProcessEvent_OnActorDestroyed(AActor* DestroyedActor)
 {
     ActionExecContext.SetNamedArgument(TEXT("$Actor"), IsValid(DestroyedActor) ? DestroyedActor->GetPathName() : FString());
+}
+
+bool UActorIOSubsystemBase::ShouldCreateSubsystem(UObject* Outer) const
+{
+    // Determine whether this specific subsystem should be created or not.
+    // Subsystems are registered with the engine automatically, but we only want one specific subsystem.
+
+    if (!Super::ShouldCreateSubsystem(Outer))
+    {
+        return false;
+    }
+
+    UClass* ThisClass = GetClass();
+
+    const UActorIOSettings* IOSettings = UActorIOSettings::Get();
+    if (IOSettings->ActorIOSubsystemClass != nullptr)
+    {
+        // A subsystem class is provided so only create if we are that class.
+        return ThisClass == IOSettings->ActorIOSubsystemClass;
+    }
+    else
+    {
+        // #TODO: Add validation same as in Kronos
+
+        // No subsystem class was provided so use the base implementation.
+        UE_LOG(LogActorIO, Error, TEXT("No Actor I/O Subsystem is specified in Actor I/O settings! Reverting to default implementation."));
+        return ThisClass == UActorIOSubsystemBase::StaticClass();
+    }
 }
 
 #undef LOCTEXT_NAMESPACE

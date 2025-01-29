@@ -5,19 +5,12 @@
 #include "ActorIOInterface.h"
 #include "ActorIOSubsystemBase.h"
 
-DEFINE_LOG_CATEGORY(LogActorIO)
+DEFINE_LOG_CATEGORY(LogActorIO);
 
 FActionExecutionContext& FActionExecutionContext::Get(UObject* WorldContextObject)
 {
-    if (UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull))
-    {
-        UActorIOSubsystemBase* IOSubsystem = World->GetSubsystem<UActorIOSubsystemBase>();
-        return IOSubsystem->ActionExecContext;
-    }
-
-    checkNoEntry();
-    static FActionExecutionContext InvalidContext;
-    return InvalidContext;
+    UActorIOSubsystemBase* IOSubsystem = UActorIOSubsystemBase::Get(WorldContextObject);
+    return IOSubsystem->ActionExecContext;
 }
 
 void FActionExecutionContext::EnterContext(UActorIOAction* InAction, void* InScriptParams)
@@ -85,8 +78,11 @@ FActorIOEventList IActorIO::GetEventsForObject(AActor* InObject)
             IActorIOInterface::Execute_K2_RegisterIOEvents(InObject, OutEvents);
         }
 
-        UActorIOSubsystemBase* IOSubsystem = InObject->GetWorld()->GetSubsystem<UActorIOSubsystemBase>();
-        IOSubsystem->GetNativeEventsForObject(InObject, OutEvents);
+        UActorIOSubsystemBase* IOSubsystem = UActorIOSubsystemBase::Get(InObject);
+        if (IOSubsystem)
+        {
+            IOSubsystem->GetNativeEventsForObject(InObject, OutEvents);
+        }
     }
 
     return OutEvents;
@@ -108,8 +104,11 @@ FActorIOFunctionList IActorIO::GetFunctionsForObject(AActor* InObject)
             IActorIOInterface::Execute_K2_RegisterIOFunctions(InObject, OutFunctions);
         }
 
-        UActorIOSubsystemBase* IOSubsystem = InObject->GetWorld()->GetSubsystem<UActorIOSubsystemBase>();
-        IOSubsystem->GetNativeFunctionsForObject(InObject, OutFunctions);
+        UActorIOSubsystemBase* IOSubsystem = UActorIOSubsystemBase::Get(InObject);
+        if (IOSubsystem)
+        {
+            IOSubsystem->GetNativeFunctionsForObject(InObject, OutFunctions);
+        }
     }
 
     return OutFunctions;
