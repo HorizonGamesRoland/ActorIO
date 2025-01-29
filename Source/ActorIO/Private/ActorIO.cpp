@@ -3,7 +3,7 @@
 #include "ActorIO.h"
 #include "ActorIOAction.h"
 #include "ActorIOInterface.h"
-#include "ActorIOSystem.h"
+#include "ActorIOSubsystemBase.h"
 
 DEFINE_LOG_CATEGORY(LogActorIO)
 
@@ -11,8 +11,8 @@ FActionExecutionContext& FActionExecutionContext::Get(UObject* WorldContextObjec
 {
     if (UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull))
     {
-        UActorIOSubsystemBase* IOSystem = World->GetSubsystem<UActorIOSubsystemBase>();
-        return IOSystem->ActionExecContext;
+        UActorIOSubsystemBase* IOSubsystem = World->GetSubsystem<UActorIOSubsystemBase>();
+        return IOSubsystem->ActionExecContext;
     }
 
     checkNoEntry();
@@ -85,8 +85,8 @@ FActorIOEventList IActorIO::GetEventsForObject(AActor* InObject)
             IActorIOInterface::Execute_K2_RegisterIOEvents(InObject, OutEvents);
         }
 
-        UActorIOSubsystemBase* IOSystem = InObject->GetWorld()->GetSubsystem<UActorIOSubsystemBase>();
-        IOSystem->GetNativeEventsForObject(InObject, OutEvents);
+        UActorIOSubsystemBase* IOSubsystem = InObject->GetWorld()->GetSubsystem<UActorIOSubsystemBase>();
+        IOSubsystem->GetNativeEventsForObject(InObject, OutEvents);
     }
 
     return OutEvents;
@@ -108,8 +108,8 @@ FActorIOFunctionList IActorIO::GetFunctionsForObject(AActor* InObject)
             IActorIOInterface::Execute_K2_RegisterIOFunctions(InObject, OutFunctions);
         }
 
-        UActorIOSubsystemBase* IOSystem = InObject->GetWorld()->GetSubsystem<UActorIOSubsystemBase>();
-        IOSystem->GetNativeFunctionsForObject(InObject, OutFunctions);
+        UActorIOSubsystemBase* IOSubsystem = InObject->GetWorld()->GetSubsystem<UActorIOSubsystemBase>();
+        IOSubsystem->GetNativeFunctionsForObject(InObject, OutFunctions);
     }
 
     return OutFunctions;

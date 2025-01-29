@@ -3,6 +3,7 @@
 #include "ActorIOAction.h"
 #include "ActorIOComponent.h"
 #include "ActorIOInterface.h"
+#include "ActorIOSubsystemBase.h"
 
 FName UActorIOAction::ExecuteActionSignalName(TEXT("ReceiveExecuteAction"));
 
@@ -238,6 +239,11 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 
 	if (FunctionArguments.Contains(NAMEDARGUMENT_PREFIX))
 	{
+		// Let the I/O subsystem to add globally available named arguments to the current execution context.
+		// Think stuff like reference to player character, or player controller.
+		UActorIOSubsystemBase* IOSubsystem = GetWorld()->GetSubsystem<UActorIOSubsystemBase>();
+		IOSubsystem->SetGlobalNamedArguments(ExecutionContext);
+
 		// Let the event processor assign values to arbitrary named arguments.
 		// We are calling the event processor with the original params memory that we received from the delegate our action is bound to.
 		// This way the event processor will receive the proper values for its params given that its signature matches the delegate.

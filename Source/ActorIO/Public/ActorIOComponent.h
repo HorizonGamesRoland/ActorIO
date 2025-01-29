@@ -39,7 +39,7 @@ public:
 	void RemoveInvalidActions();
 
 	/** @return Weak reference to all I/O actions. */
-	TArray<TWeakObjectPtr<UActorIOAction>> GetActions() const;
+	TArray<TWeakObjectPtr<UActorIOAction>> GetActions() const; // #TODO: Use UActorIOAction* instead of weak ptr?
 
 	/** @return Number of actions. */
 	int32 GetNumActions() const { return Actions.Num(); }

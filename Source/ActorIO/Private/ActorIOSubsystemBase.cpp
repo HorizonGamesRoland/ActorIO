@@ -255,6 +255,11 @@ void UActorIOSubsystemBase::GetNativeFunctionsForObject(AActor* InObject, FActor
     }
 }
 
+void UActorIOSubsystemBase::SetGlobalNamedArguments(FActionExecutionContext& ExecutionContext)
+{
+    // #TODO: Add argument for player pawn?
+}
+
 void UActorIOSubsystemBase::ProcessEvent_OnActorOverlap(AActor* OverlappedActor, AActor* OtherActor)
 {
     ActionExecContext.SetNamedArgument(TEXT("$Actor"), IsValid(OtherActor) ? OtherActor->GetPathName() : FString());
@@ -263,32 +268,6 @@ void UActorIOSubsystemBase::ProcessEvent_OnActorOverlap(AActor* OverlappedActor,
 void UActorIOSubsystemBase::ProcessEvent_OnActorDestroyed(AActor* DestroyedActor)
 {
     ActionExecContext.SetNamedArgument(TEXT("$Actor"), IsValid(DestroyedActor) ? DestroyedActor->GetPathName() : FString());
-}
-
-void UActorIOSubsystemBase::K2_RegisterIOEvent(UObject* WorldContextObject, FActorIOEventList& Registry, FName EventId, const FText& DisplayNameText, const FText& TooltipText, FName EventDispatcherName, FName EventProcessorName)
-{
-    Registry.RegisterEvent(FActorIOEvent()
-        .SetId(EventId)
-        .SetDisplayName(DisplayNameText)
-        .SetTooltipText(TooltipText)
-        .SetBlueprintDelegate(WorldContextObject, EventDispatcherName)
-        .SetEventProcessor(WorldContextObject, EventProcessorName));
-}
-
-void UActorIOSubsystemBase::K2_RegisterIOFunction(UObject* WorldContextObject, FActorIOFunctionList& Registry, FName FunctionId, const FText& DisplayNameText, const FText& TooltipText, FString FunctionToExec, FName SubobjectName)
-{
-    Registry.RegisterFunction(FActorIOFunction()
-        .SetId(FunctionId)
-        .SetDisplayName(DisplayNameText)
-        .SetTooltipText(TooltipText)
-        .SetFunction(FunctionToExec)
-        .SetSubobject(SubobjectName));
-}
-
-void UActorIOSubsystemBase::K2_SetNamedArgument(UObject* WorldContextObject, const FString& ArgumentName, const FString& ArgumentValue)
-{
-    FActionExecutionContext& ExecContext = FActionExecutionContext::Get(WorldContextObject);
-    ExecContext.SetNamedArgument(ArgumentName, ArgumentValue);
 }
 
 #undef LOCTEXT_NAMESPACE
