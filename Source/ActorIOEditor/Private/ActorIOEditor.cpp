@@ -38,20 +38,22 @@ void FActorIOEditor::StartupModule()
 	// Initialize the editor style of the plugin.
 	FActorIOEditorStyle::Initialize();
 
+	// Register Actor I/O editor tab.
 	FGlobalTabmanager::Get()->RegisterNomadTabSpawner(TEXT("ActorIO"), FOnSpawnTab::CreateRaw(this, &FActorIOEditor::CreateActorIOEditorTab))
 		.SetDisplayName(LOCTEXT("TabName", "Actor I/O"))
 		.SetTooltipText(LOCTEXT("TabTooltip", "Open the Actor I/O tab. Use this for level scripting."))
 		.SetGroup(WorkspaceMenu::GetMenuStructure().GetLevelEditorCategory())
 		.SetIcon(FSlateIcon(FAppStyle::GetAppStyleSetName(), "Icons.Event"));
 
-	DelegateHandle_SelectionChange = USelection::SelectionChangedEvent.AddRaw(this, &FActorIOEditor::OnObjectSelectionChanged);
-	DelegateHandle_DeleteActorsBegin = FEditorDelegates::OnDeleteActorsBegin.AddRaw(this, &FActorIOEditor::OnDeleteActorsBegin);
-
+	// Bind delegates.
 	if (GEditor)
 	{
+		DelegateHandle_SelectionChange = USelection::SelectionChangedEvent.AddRaw(this, &FActorIOEditor::OnObjectSelectionChanged);
+		DelegateHandle_DeleteActorsBegin = FEditorDelegates::OnDeleteActorsBegin.AddRaw(this, &FActorIOEditor::OnDeleteActorsBegin);
 		GEditor->OnBlueprintCompiled().AddRaw(this, &FActorIOEditor::OnBlueprintCompiled);
 	}
 
+	// Register component visualizer to draw I/O lines between actors.
 	if (GUnrealEd)
 	{
 		TSharedPtr<FComponentVisualizer> IOComponentVisualizer = MakeShared<FActorIOComponentVisualizer>();
@@ -59,6 +61,11 @@ void FActorIOEditor::StartupModule()
 		IOComponentVisualizer->OnRegister();
 	}
 
+	// Register PIE authorizer to abort PIE sessions if the plugin is configured incorrectly.
+	PIEAuthorizer = FActorIOPIEAuthorizer();
+	IModularFeatures::Get().RegisterModularFeature(FActorIOPIEAuthorizer::GetModularFeatureName(), &PIEAuthorizer);
+
+	// Register custom placement mode.
 	if (IPlacementModeModule::IsAvailable())
 	{
 		FPlacementCategoryInfo Info(LOCTEXT("ActorIOPlaceCategoryName", "Logic Actors"),
@@ -82,27 +89,34 @@ void FActorIOEditor::StartupModule()
 
 void FActorIOEditor::ShutdownModule()
 {
+	// Unregister Actor I/O editor tab.
 	FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(TEXT("ActorIO"));
 
-	USelection::SelectionChangedEvent.Remove(DelegateHandle_SelectionChange);
-	FEditorDelegates::OnDeleteActorsBegin.Remove(DelegateHandle_DeleteActorsBegin);
-
+	// Clear delegates.
 	if (GEditor)
 	{
+		USelection::SelectionChangedEvent.Remove(DelegateHandle_SelectionChange);
+		FEditorDelegates::OnDeleteActorsBegin.Remove(DelegateHandle_DeleteActorsBegin);
 		GEditor->OnBlueprintCompiled().Remove(DelegateHandle_BlueprintCompiled);
 	}
 
+	// Unregister component visualizer.
 	if (GUnrealEd)
 	{
 		GUnrealEd->UnregisterComponentVisualizer(UActorIOComponent::StaticClass()->GetFName());
 	}
 
+	// Unregister PIE authorizer.
+	IModularFeatures::Get().UnregisterModularFeature(FActorIOPIEAuthorizer::GetModularFeatureName(), &PIEAuthorizer);
+
+	// Unregister custom placement mode.
 	if (IPlacementModeModule::IsAvailable())
 	{
 		IPlacementModeModule& PlacementModeModule = IPlacementModeModule::Get();
 		PlacementModeModule.UnregisterPlacementCategory("ActorIOPlaceCategory");
 	}
 
+	// Unregister the editor style of the plugin.
 	FActorIOEditorStyle::Shutdown();
 }
 
@@ -120,6 +134,7 @@ TSharedRef<SDockTab> FActorIOEditor::CreateActorIOEditorTab(const FSpawnTabArgs&
 	const SDockTab::FOnTabClosedCallback TabClosedDelegate = SDockTab::FOnTabClosedCallback::CreateRaw(this, &FActorIOEditor::OnActorIOEditorClosed);
 	SpawnedTab->SetOnTabClosed(TabClosedDelegate);
 
+	// Refresh the editor window immediately.
 	UpdateEditorWindow();
 
 	return SpawnedTab;

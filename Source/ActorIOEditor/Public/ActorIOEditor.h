@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Modules/ModuleManager.h"
+#include "ActorIOPIEAuthorizer.h"
 
 class UActorIOComponent;
 class SActorIOEditor;
@@ -30,6 +31,9 @@ private:
 
 	/** Handle for when a blueprint is compiled in the editor. */
 	FDelegateHandle DelegateHandle_BlueprintCompiled;
+
+	/** PIE authorizer to abort PIE sessions if the plugin is configured incorrectly. */
+	FActorIOPIEAuthorizer PIEAuthorizer;
 
 public:
 
