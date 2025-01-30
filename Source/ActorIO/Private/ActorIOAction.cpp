@@ -116,7 +116,6 @@ void UActorIOAction::UnbindAction()
 		// Only case when this can happen is if your register IO events function does not always return the same list of events.
 		checkf(TargetEvent, TEXT("Could not unbind action because the I/O event that we were bound to was not found?!"));
 	}
-	
 
 	// Unbinding from multicast delegate directly.
 	FMulticastScriptDelegate* TargetDelegate = TargetEvent->MulticastDelegatePtr;
@@ -294,6 +293,7 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 	// Give the owning actor a chance to abort action execution.
 	if (ActionOwner->Implements<UActorIOInterface>())
 	{
+		// #TODO: Fix this because it still fails on blueprints by default
 		if (!IActorIOInterface::Execute_OnExecutingIOAction(ActionOwner, this))
 		{
 			return;

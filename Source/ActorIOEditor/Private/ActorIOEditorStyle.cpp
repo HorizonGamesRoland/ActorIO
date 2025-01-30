@@ -111,11 +111,13 @@ void FActorIOEditorStyle::SetupActionListColumnSizes()
 
 	StyleSet->Set("ActionListView.InputColumnWidth.Caller", 1.0f); // only visible for inputs
 	StyleSet->Set("ActionListView.InputColumnWidth.Event", 1.0f);
+	StyleSet->Set("ActionListView.OutputColumnWidth.Target", 1.0f);
 	StyleSet->Set("ActionListView.InputColumnWidth.Action", 1.0f);
 	StyleSet->Set("ActionListView.InputColumnWidth.Parameter", 1.0f);
 	StyleSet->Set("ActionListView.InputColumnWidth.Delay", 0.35f);
 	StyleSet->Set("ActionListView.InputColumnWidth.OnlyOnce", 0.5f);
 
+	StyleSet->Set("ActionListView.InputColumnWidth.Caller", 1.0f);
 	StyleSet->Set("ActionListView.OutputColumnWidth.Event", 1.0f);
 	StyleSet->Set("ActionListView.OutputColumnWidth.Target", 1.0f); // only visible for outputs
 	StyleSet->Set("ActionListView.OutputColumnWidth.Action", 1.0f);
