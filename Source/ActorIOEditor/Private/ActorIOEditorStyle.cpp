@@ -106,18 +106,18 @@ void FActorIOEditorStyle::Initialize()
 void FActorIOEditorStyle::SetupActionListColumnSizes()
 {
 	// Size values for action list columns.
-	// There must be an entry for each SActorIOActionList::ColumnId!
-	// Using two sets so that we can have different layout for inputs/outputs.
+	// There must be an entry for each resizable SActorIOActionList::ColumnId!
+	// Using two sets to support different sizes for inputs/outputs.
 
 	StyleSet->Set("ActionListView.InputColumnWidth.Caller", 1.0f); // only visible for inputs
 	StyleSet->Set("ActionListView.InputColumnWidth.Event", 1.0f);
-	StyleSet->Set("ActionListView.OutputColumnWidth.Target", 1.0f);
+	StyleSet->Set("ActionListView.InputColumnWidth.Target", 1.0f);
 	StyleSet->Set("ActionListView.InputColumnWidth.Action", 1.0f);
 	StyleSet->Set("ActionListView.InputColumnWidth.Parameter", 1.0f);
 	StyleSet->Set("ActionListView.InputColumnWidth.Delay", 0.35f);
 	StyleSet->Set("ActionListView.InputColumnWidth.OnlyOnce", 0.5f);
 
-	StyleSet->Set("ActionListView.InputColumnWidth.Caller", 1.0f);
+	StyleSet->Set("ActionListView.OutputColumnWidth.Caller", 1.0f);
 	StyleSet->Set("ActionListView.OutputColumnWidth.Event", 1.0f);
 	StyleSet->Set("ActionListView.OutputColumnWidth.Target", 1.0f); // only visible for outputs
 	StyleSet->Set("ActionListView.OutputColumnWidth.Action", 1.0f);
