@@ -14,7 +14,6 @@
 #include "Engine/TriggerBase.h"
 #include "Engine/Light.h"
 #include "Particles/Emitter.h"
-#include "NiagaraActor.h"
 #include "Sound/AmbientSound.h"
 #include "Sound/AudioVolume.h"
 
@@ -156,7 +155,12 @@ void UActorIOSubsystemBase::GetNativeFunctionsForObject(AActor* InObject, FActor
             .SetSubobject(TEXT("ParticleSystemComponent0")));
     }
 
-    if (InObject->IsA<ANiagaraActor>())
+    // In the case of ANiagaraActor, we are comparing the class name directly.
+    // This is to avoid dependency to the Niagara module.
+    // Note that this does not support class inheritance, so it only works for exact classes.
+    // Since NiagaraActor is just a component wrapper, I do not think anyone will ever subclass it anyways.
+    const UClass* ObjectClass = InObject->GetClass();
+    if (ObjectClass->GetFName() == TEXT("NiagaraActor"))
     {
         FunctionRegistry.RegisterFunction(FActorIOFunction()
             .SetId(TEXT("ANiagaraActor::Activate"))

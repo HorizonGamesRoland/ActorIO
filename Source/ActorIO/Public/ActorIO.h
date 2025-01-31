@@ -12,7 +12,7 @@
 class UActorIOAction;
 class UObject;
 
-/** Custom log category of the Actor IO plugin. */
+/** Actor I/O log category. */
 ACTORIO_API DECLARE_LOG_CATEGORY_EXTERN(LogActorIO, Log, All);
 
 /** Character to use as a separator for I/O action arguments. */

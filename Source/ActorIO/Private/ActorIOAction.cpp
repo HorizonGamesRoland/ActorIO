@@ -200,8 +200,6 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 
 	UE_LOG(LogActorIO, Log, TEXT("Actor '%s' executing action: %s -> %s"), *ActionOwner->GetActorNameOrLabel(), *EventId.ToString(), *FunctionId.ToString());
 
-	// #TODO: Check if we can use FFrame::KismetExecutionMessage instead of logs?
-
 	if (!IsValid(TargetActor))
 	{
 		// Do nothing if the target actor is invalid.

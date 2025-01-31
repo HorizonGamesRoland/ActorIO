@@ -17,11 +17,7 @@ public class ActorIO : ModuleRules
 
 		PrivateDependencyModuleNames.AddRange(new string[]
 		{
-			"Engine",
-			"Niagara" // #TODO: Remove this from dependency?
+			"Engine"
         });
-
-		// Required to have access to "Emitter.h" (Cascade effect actor)
-		PrivateIncludePaths.Add(Path.Combine(EngineDirectory, "Source/Runtime/Engine/Classes/"));
     }
 }
