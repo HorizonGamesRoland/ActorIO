@@ -1,6 +1,7 @@
 // Copyright 2025 Horizon Games. All Rights Reserved.
 
 #include "ActorIO.h"
+#include "ActorIOComponent.h"
 #include "ActorIOAction.h"
 #include "ActorIOInterface.h"
 #include "ActorIOSubsystemBase.h"
@@ -136,4 +137,32 @@ int32 IActorIO::GetNumInputActionsForObject(AActor* InObject)
 {
     TArray<TWeakObjectPtr<UActorIOAction>> InputActions = GetInputActionsForObject(InObject);
     return InputActions.Num();
+}
+
+TArray<TWeakObjectPtr<UActorIOAction>> IActorIO::GetOutputActionsForObject(AActor* InObject)
+{
+    if (IsValid(InObject))
+    {
+        UActorIOComponent* IOComponent = InObject->GetComponentByClass<UActorIOComponent>();
+        if (IOComponent)
+        {
+            return IOComponent->GetActions();
+        }
+    }
+
+    return TArray<TWeakObjectPtr<UActorIOAction>>();
+}
+
+int32 IActorIO::GetNumOutputActionsForObject(AActor* InObject)
+{
+    if (IsValid(InObject))
+    {
+        UActorIOComponent* IOComponent = InObject->GetComponentByClass<UActorIOComponent>();
+        if (IOComponent)
+        {
+            return IOComponent->GetNumActions();
+        }
+    }
+
+    return 0;
 }

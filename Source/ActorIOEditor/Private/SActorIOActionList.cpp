@@ -115,11 +115,7 @@ void SActorIOActionListView::Refresh()
 	}
 	else
 	{
-		UActorIOComponent* ActorIOComponent = SelectedActor ? SelectedActor->GetComponentByClass<UActorIOComponent>() : nullptr;
-		if (IsValid(ActorIOComponent))
-		{
-			ActionListItems = ActorIOComponent->GetActions();
-		}
+		ActionListItems = IActorIO::GetOutputActionsForObject(SelectedActor);
 	}
 
 	RebuildList();

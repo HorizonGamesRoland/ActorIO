@@ -408,4 +408,10 @@ public:
 
 	/** @return Number of I/O actions currently loaded in the world that are targeting the given actor. */
 	static int32 GetNumInputActionsForObject(AActor* InObject);
+
+	/** @return List of I/O actions owned by the given actor. */
+	static TArray<TWeakObjectPtr<UActorIOAction>> GetOutputActionsForObject(AActor* InObject);
+
+	/** @return Number of I/O actions owned by the given actor. */
+	static int32 GetNumOutputActionsForObject(AActor* InObject);
 };
