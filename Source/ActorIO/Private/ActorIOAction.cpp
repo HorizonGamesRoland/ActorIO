@@ -218,6 +218,13 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 		return;
 	}
 
+	if (TargetFunction->FunctionToExec.IsEmpty())
+	{
+		UE_LOG(LogActorIO, Error, TEXT("Actor '%s' failed to execute action. Function '%s' points to an empty func name."),
+			*ActionOwner->GetActorNameOrLabel(), *FunctionId.ToString());
+		return;
+	}
+
 	// Figure out the object that the final command will be sent to.
 	// The I/O function may want it to be executed on a subobject rather then the target actor itself.
 	UObject* ObjectToSendCommandTo = TargetActor;
@@ -232,10 +239,6 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 		}
 	}
 
-	FActorIOEventList ValidEvents = IActorIO::GetEventsForObject(ActionOwner);
-	FActorIOEvent* BoundEvent = ValidEvents.GetEvent(EventId);
-	check(BoundEvent);
-
 	if (FunctionArguments.Contains(NAMEDARGUMENT_PREFIX))
 	{
 		// Let the I/O subsystem to add globally available named arguments to the current execution context.
@@ -244,8 +247,11 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 		IOSubsystem->GetGlobalNamedArguments(ExecutionContext);
 
 		// Let the event processor assign values to arbitrary named arguments.
-		// We are calling the event processor with the original params memory that we received from the delegate our action is bound to.
+		// We are calling the event processor with the original params memory that we received from the delegate.
 		// This way the event processor will receive the proper values for its params given that its signature matches the delegate.
+		FActorIOEventList ValidEvents = IActorIO::GetEventsForObject(ActionOwner);
+		FActorIOEvent* BoundEvent = ValidEvents.GetEvent(EventId);
+		check(BoundEvent);
 		if (BoundEvent->EventProcessor.IsBound())
 		{
 			UObject* EventProcessorObject = BoundEvent->EventProcessor.GetUObject();
@@ -257,38 +263,8 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 		}
 	}
 
-	// Break up the user defined arguments string from a single line into multiple elements with no whitespaces.
-	// Then replace all named arguments with their actual value set by the 'EventProcessor' above.
-	// Everything stays in string form (including named argument values) until the very end when the final command is sent.
-	TArray<FString> Arguments;
-	if (FunctionArguments.ParseIntoArray(Arguments, ARGUMENT_SEPARATOR, true) > 0)
-	{
-		for (FString& Argument : Arguments)
-		{
-			bool bInQuote = false;
-			for (int32 CharIndex = Argument.Len() - 1; CharIndex >= 0; --CharIndex)
-			{
-				// Current character is a quote, so we either enter/exit a quote block.
-				if (Argument[CharIndex] == '"')
-				{
-					bInQuote = !bInQuote;
-				}
-				// Current character is whitespace, so remove it unless we are inside a quote block.
-				else if (FChar::IsWhitespace(Argument[CharIndex]) && !bInQuote)
-				{
-					Argument.RemoveAt(CharIndex);
-				}
-			}
-
-			if (Argument.StartsWith(NAMEDARGUMENT_PREFIX) && ExecutionContext.NamedArguments.Contains(Argument))
-			{
-				const FString NamedArgValue = ExecutionContext.NamedArguments[Argument];
-				Argument = NamedArgValue;
-			}
-		}
-	}
-
 	// Give the owning actor a chance to abort action execution.
+	// Deliberately doing this after collecting named arguments in case we want to access them.
 	if (ActionOwner->Implements<UActorIOInterface>())
 	{
 		if (IActorIOInterface::Execute_ConditionalAbortIOAction(ActionOwner, this))
@@ -298,9 +274,60 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 		}
 	}
 
+	// Break up the user defined arguments string from a single line into multiple elements.
+	// This is the text that was set by the user in the Actor I/O editor.
+	TArray<FString> Arguments;
+	if (FunctionArguments.ParseIntoArray(Arguments, ARGUMENT_SEPARATOR, true) > 0)
+	{
+		for (FString& Argument : Arguments)
+		{
+			// Remove all whitespaces unless they are between quotes.
+			// This is because the final command uses whitespace as the separator.
+			// Using reverse iteration to avoid issues with character deletion.
+			bool bInQuote = false;
+			for (int32 CharIndex = Argument.Len() - 1; CharIndex >= 0; --CharIndex)
+			{
+				if (Argument[CharIndex] == '"')
+				{
+					bInQuote = !bInQuote;
+				}
+				else if (FChar::IsWhitespace(Argument[CharIndex]) && !bInQuote)
+				{
+					Argument.RemoveAt(CharIndex);
+				}
+			}
+
+			// Replace named arguments with their actual values.
+			// Everything stays in string form until the very end when the final command is sent.
+			// Argument values will be parsed by UnrealScript.
+			if (Argument.StartsWith(NAMEDARGUMENT_PREFIX) && ExecutionContext.NamedArguments.Contains(Argument))
+			{
+				const FString NamedArgValue = ExecutionContext.NamedArguments[Argument];
+				Argument = NamedArgValue;
+			}
+		}
+	}
+
+	// Get the quoted name of the function to call on the target actor.
+	// Quotes are needed to support function names with whitespaces.
+	FString FunctionName = TargetFunction->FunctionToExec;
+	if (FunctionName.Len() > 0)
+	{
+		if (FunctionName[0] != '"')
+		{
+			FunctionName.InsertAt(0, '"');
+		}
+
+		const int32 LastCharIndex = FunctionName.Len() - 1;
+		if (FunctionName[LastCharIndex] != '"')
+		{
+			FunctionName.AppendChar('"');
+		}
+	}
+
 	// Build the final command that is sent to the target actor.
 	// Format is: FunctionName Arg1 Arg2 Arg3 (...)
-	FString Command = TargetFunction->FunctionToExec;
+	FString Command = FunctionName;
 	for (const FString& Argument : Arguments)
 	{
 		Command.Append(TEXT(" "));
