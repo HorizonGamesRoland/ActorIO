@@ -57,11 +57,14 @@ public:
 public:
 
 	/**
-	 * Called when the actor is executing one of its output I/O actions.
+	 * Called before the actor executes one of its output I/O actions.
 	 * Use this to abort action execution as needed.
-	 * If this function returns false then the action will not be executed.
+	 * If this function returns true then the execution will be aborted.
+	 * 
+	 * @param Action The action that is being executed.
+	 * @return Whether the action should be aborted.
 	 */
-	UFUNCTION(BlueprintNativeEvent, Category = "Actor IO", DisplayName = "On Executing I/O Action")
-	bool OnExecutingIOAction(UActorIOAction* Action);
-	virtual bool OnExecutingIOAction_Implementation(UActorIOAction* Action) { return true; }
+	UFUNCTION(BlueprintNativeEvent, Category = "Actor IO", DisplayName = "Conditional Abort I/O Action", meta = (Keywords = "IO"))
+	bool ConditionalAbortIOAction(UActorIOAction* Action);
+	virtual bool ConditionalAbortIOAction_Implementation(UActorIOAction* Action) { return false; }
 };

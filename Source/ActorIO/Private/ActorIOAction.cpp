@@ -293,14 +293,14 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 	// Give the owning actor a chance to abort action execution.
 	if (ActionOwner->Implements<UActorIOInterface>())
 	{
-		// #TODO: Fix this because it still fails on blueprints by default
-		if (!IActorIOInterface::Execute_OnExecutingIOAction(ActionOwner, this))
+		if (IActorIOInterface::Execute_ConditionalAbortIOAction(ActionOwner, this))
 		{
+			UE_LOG(LogActorIO, Log, TEXT("Actor '%s' aborted action execution."), *ActionOwner->GetActorNameOrLabel());
 			return;
 		}
 	}
 
-	// Build the final command that's sent to the target actor.
+	// Build the final command that is sent to the target actor.
 	// Format is: FunctionName Arg1 Arg2 Arg3 (...)
 	FString Command = TargetFunction->FunctionToExec;
 	for (const FString& Argument : Arguments)
