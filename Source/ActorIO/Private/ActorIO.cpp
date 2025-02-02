@@ -8,6 +8,26 @@
 
 DEFINE_LOG_CATEGORY(LogActorIO);
 
+//==================================
+// Console Variables
+//==================================
+
+TAutoConsoleVariable<bool> CVarDebugIOActions(
+    TEXT("ActorIO.DebugActions"), true,
+    TEXT("<bool> Enable I/O action execution messages."), ECVF_Default);
+
+TAutoConsoleVariable<bool> CVarWarnAboutIOActionInvalidTarget(
+    TEXT("ActorIO.WarnAboutInvalidTarget"), false,
+    TEXT("<bool> Warn about missing or invalid target actor when executing I/O action."), ECVF_Default);
+
+TAutoConsoleVariable<bool> CVarLogIOActionFinalCommand(
+    TEXT("ActorIO.LogFinalCommand"), false,
+    TEXT("<bool> Log the final command sent to the target actor after executing I/O action."), ECVF_Default);
+
+//==================================
+// FActionExecutionContext
+//==================================
+
 FActionExecutionContext& FActionExecutionContext::Get(UObject* WorldContextObject)
 {
     UActorIOSubsystemBase* IOSubsystem = UActorIOSubsystemBase::Get(WorldContextObject);
@@ -63,8 +83,16 @@ void FActionExecutionContext::SetNamedArgument(const FString& InName, const FStr
     }
 }
 
+//==================================
+// IActorIO
+//==================================
+
 FActorIOEventList IActorIO::GetEventsForObject(AActor* InObject)
 {
+    // Build list of registered I/O events for the object.
+    // Always re-constructing the list because storing it would not be good perf/memory tradeoff for most cases.
+    // In the future we might want to add a "cached" mode for frequently spawned actors.
+
     FActorIOEventList OutEvents = FActorIOEventList();
     if (IsValid(InObject))
     {
@@ -91,6 +119,10 @@ FActorIOEventList IActorIO::GetEventsForObject(AActor* InObject)
 
 FActorIOFunctionList IActorIO::GetFunctionsForObject(AActor* InObject)
 {
+    // Build list of registered I/O functions for the object.
+    // Always re-constructing the list because storing it would not be good perf/memory tradeoff for most cases.
+    // In the future we might want to add a "cached" mode for frequently spawned actors.
+
     FActorIOFunctionList OutFunctions = FActorIOFunctionList();
     if (IsValid(InObject))
     {
@@ -117,6 +149,10 @@ FActorIOFunctionList IActorIO::GetFunctionsForObject(AActor* InObject)
 
 TArray<TWeakObjectPtr<UActorIOAction>> IActorIO::GetInputActionsForObject(AActor* InObject)
 {
+    // Internally there is no such thing as an input action.
+    // Just actions pointing to actors.
+    // Essentially this just gets all actions that point to the given actor.
+
     TArray<TWeakObjectPtr<UActorIOAction>> OutActions = TArray<TWeakObjectPtr<UActorIOAction>>();
     if (IsValid(InObject))
     {
@@ -141,6 +177,9 @@ int32 IActorIO::GetNumInputActionsForObject(AActor* InObject)
 
 TArray<TWeakObjectPtr<UActorIOAction>> IActorIO::GetOutputActionsForObject(AActor* InObject)
 {
+    // Internally there is no such thing as an output action.
+    // All actions are "outgoing" as they always make things happen to other actors.
+
     if (IsValid(InObject))
     {
         UActorIOComponent* IOComponent = InObject->GetComponentByClass<UActorIOComponent>();

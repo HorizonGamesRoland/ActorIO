@@ -7,6 +7,7 @@
 #include "UObject/ScriptDelegates.h"
 #include "UObject/ScriptDelegateFwd.h"
 #include "UObject/SparseDelegate.h"
+#include "HAL/IConsoleManager.h"
 #include "ActorIO.generated.h"
 
 class UActorIOAction;
@@ -415,3 +416,17 @@ public:
 	/** @return Number of I/O actions owned by the given actor. */
 	static int32 GetNumOutputActionsForObject(AActor* InObject);
 };
+
+/** [Console Variable] Whether to log I/O action execution messages. */
+extern ACTORIO_API TAutoConsoleVariable<bool> CVarDebugIOActions;
+/** [Console Variable] Whether to warn about executing I/O action on missing or invalid target actor. */
+extern ACTORIO_API TAutoConsoleVariable<bool> CVarWarnAboutIOActionInvalidTarget;
+/** [Console Variable] Whether to log the final command that's sent to the target actor during I/O action execution. */
+extern ACTORIO_API TAutoConsoleVariable<bool> CVarLogIOActionFinalCommand;
+
+/** Macro to get CVarDebugIOActions value on game thread. */
+#define DebugIOActions CVarDebugIOActions.GetValueOnGameThread()
+/** Macro to get CVarWarnAboutIOActionInvalidTarget value on game thread. */
+#define WarnIOInvalidTarget CVarWarnAboutIOActionInvalidTarget.GetValueOnGameThread()
+/** Macro to get CVarLogIOActionFinalCommand value on game thread. */
+#define LogIOFinalCommand CVarLogIOActionFinalCommand.GetValueOnGameThread()

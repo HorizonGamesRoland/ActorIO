@@ -11,13 +11,13 @@ public class ActorIO : ModuleRules
 		PublicDependencyModuleNames.AddRange(new string[]
 		{
 			"Core",
-            "CoreUObject",
-			"DeveloperSettings"
+			"CoreUObject"
         });
 
 		PrivateDependencyModuleNames.AddRange(new string[]
 		{
-			"Engine"
+			"Engine",
+			"DeveloperSettings"
         });
     }
 }

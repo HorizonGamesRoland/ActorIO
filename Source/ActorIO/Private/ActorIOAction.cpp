@@ -28,7 +28,7 @@ void UActorIOAction::BindAction()
 
 	if (bIsBound)
 	{
-		UE_LOG(LogActorIO, Error, TEXT("Actor '%s' could not bind action to '%s' - Action is already bound!"), *ActionOwner->GetActorNameOrLabel(), *EventId.ToString());
+		UE_CLOG(DebugIOActions, LogActorIO, Error, TEXT("Actor '%s' could not bind action to '%s' - Action is already bound!"), *ActionOwner->GetActorNameOrLabel(), *EventId.ToString());
 		return;
 	}
 
@@ -36,13 +36,13 @@ void UActorIOAction::BindAction()
 	const FActorIOEvent* TargetEvent = ValidEvents.GetEvent(EventId);
 	if (!TargetEvent)
 	{
-		UE_LOG(LogActorIO, Error, TEXT("Actor '%s' could not bind action to '%s' - Event was not found."), *ActionOwner->GetActorNameOrLabel(), *EventId.ToString());
+		UE_CLOG(DebugIOActions, LogActorIO, Error, TEXT("Actor '%s' could not bind action to '%s' - Event was not found."), *ActionOwner->GetActorNameOrLabel(), *EventId.ToString());
 		return;
 	}
 
 	if (!IsValid(TargetEvent->DelegateOwner))
 	{
-		UE_LOG(LogActorIO, Error, TEXT("Actor '%s' could not bind action to '%s' - Delegate owner was invalid (destroyed?)."), *ActionOwner->GetActorNameOrLabel(), *EventId.ToString());
+		UE_CLOG(DebugIOActions, LogActorIO, Error, TEXT("Actor '%s' could not bind action to '%s' - Delegate owner was invalid (destroyed?)."), *ActionOwner->GetActorNameOrLabel(), *EventId.ToString());
 		return;
 	}
 
@@ -69,7 +69,7 @@ void UActorIOAction::BindAction()
 			bIsBound = true;
 		}
 		
-		UE_CLOG(!bIsBound, LogActorIO, Error, TEXT("Actor '%s' could not bind action to '%s' - Failed to resolve sparse delegate with name '%s'."),
+		UE_CLOG(DebugIOActions && !bIsBound, LogActorIO, Error, TEXT("Actor '%s' could not bind action to '%s' - Failed to resolve sparse delegate with name '%s'."),
 			*ActionOwner->GetActorNameOrLabel(), *EventId.ToString(), *TargetEvent->SparseDelegateName.ToString());
 	}
 
@@ -86,7 +86,7 @@ void UActorIOAction::BindAction()
 			bIsBound = true;
 		}
 
-		UE_CLOG(!bIsBound, LogActorIO, Error, TEXT("Actor '%s' could not bind action to '%s' - No event dispatcher found with name '%s'."),
+		UE_CLOG(DebugIOActions && !bIsBound, LogActorIO, Error, TEXT("Actor '%s' could not bind action to '%s' - No event dispatcher found with name '%s'."),
 			*ActionOwner->GetActorNameOrLabel(), *EventId.ToString(), *TargetEvent->BlueprintDelegateName.ToString());
 	}
 }
@@ -135,7 +135,7 @@ void UActorIOAction::UnbindAction()
 			bIsBound = false;
 		}
 
-		UE_CLOG(bIsBound, LogActorIO, Error, TEXT("Actor '%s' could not unbind action from '%s' - Failed to resolve sparse delegate with name '%s'."),
+		UE_CLOG(DebugIOActions && bIsBound, LogActorIO, Error, TEXT("Actor '%s' could not unbind action from '%s' - Failed to resolve sparse delegate with name '%s'."),
 			*ActionOwner->GetActorNameOrLabel(), *EventId.ToString(), *TargetEvent->SparseDelegateName.ToString());
 	}
 
@@ -150,7 +150,7 @@ void UActorIOAction::UnbindAction()
 			bIsBound = false;
 		}
 
-		UE_CLOG(bIsBound, LogActorIO, Error, TEXT("Actor '%s' could not unbind action from '%s' - No event dispatcher found with name '%s'."),
+		UE_CLOG(DebugIOActions && bIsBound, LogActorIO, Error, TEXT("Actor '%s' could not unbind action from '%s' - No event dispatcher found with name '%s'."),
 			*ActionOwner->GetActorNameOrLabel(), *EventId.ToString(), *TargetEvent->BlueprintDelegateName.ToString());
 	}
 }
@@ -198,14 +198,13 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 		return;
 	}
 
-	UE_LOG(LogActorIO, Log, TEXT("Actor '%s' executing action: %s -> %s"), *ActionOwner->GetActorNameOrLabel(), *EventId.ToString(), *FunctionId.ToString());
+	UE_CLOG(DebugIOActions, LogActorIO, Log, TEXT("Executing action: %s -> %s (Caller: '%s')"), *EventId.ToString(), *FunctionId.ToString(), *ActionOwner->GetActorNameOrLabel());
 
 	if (!IsValid(TargetActor))
 	{
 		// Do nothing if the target actor is invalid.
 		// The actor was most likely destroyed at runtime.
-		UE_LOG(LogActorIO, Warning, TEXT("Actor '%s' failed to execute action. Could not find target actor '%s'. Actor was destroyed?"),
-			*ActionOwner->GetActorNameOrLabel(), *TargetActor->GetActorNameOrLabel());
+		UE_CLOG(DebugIOActions && WarnIOInvalidTarget, LogActorIO, Warning, TEXT("Could not find target actor. Actor was destroyed?"));
 		return;
 	}
 
@@ -213,15 +212,16 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 	FActorIOFunction* TargetFunction = ValidFunctions.GetFunction(FunctionId);
 	if (!TargetFunction)
 	{
-		UE_LOG(LogActorIO, Error, TEXT("Actor '%s' failed to execute action. Could not find function '%s' on target actor '%s'."),
-			*ActionOwner->GetActorNameOrLabel(), *FunctionId.ToString(), *TargetActor->GetActorNameOrLabel());
+		UE_CLOG(DebugIOActions, LogActorIO, Error, TEXT("Could not find function '%s' on target actor '%s'."),
+			*FunctionId.ToString(), *TargetActor->GetActorNameOrLabel());
 		return;
 	}
 
+	// #TODO: Do not allow registering invalid function?
 	if (TargetFunction->FunctionToExec.IsEmpty())
 	{
-		UE_LOG(LogActorIO, Error, TEXT("Actor '%s' failed to execute action. Function '%s' points to an empty func name."),
-			*ActionOwner->GetActorNameOrLabel(), *FunctionId.ToString());
+		UE_CLOG(DebugIOActions, LogActorIO, Error, TEXT("Function '%s' points to an empty func name."),
+			*FunctionId.ToString());
 		return;
 	}
 
@@ -233,8 +233,8 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 		ObjectToSendCommandTo = TargetActor->GetDefaultSubobjectByName(TargetFunction->TargetSubobject);
 		if (!IsValid(ObjectToSendCommandTo))
 		{
-			UE_LOG(LogActorIO, Error, TEXT("Actor '%s' failed to execute action. Could not find default subobject '%s' on target actor '%s'."),
-				*ActionOwner->GetActorNameOrLabel(), *TargetFunction->TargetSubobject.ToString(), *TargetActor->GetActorNameOrLabel());
+			UE_CLOG(DebugIOActions, LogActorIO, Error, TEXT("Could not find default subobject '%s' on target actor '%s'."),
+				*TargetFunction->TargetSubobject.ToString(), *TargetActor->GetActorNameOrLabel());
 			return;
 		}
 	}
@@ -269,7 +269,7 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 	{
 		if (IActorIOInterface::Execute_ConditionalAbortIOAction(ActionOwner, this))
 		{
-			UE_LOG(LogActorIO, Log, TEXT("Actor '%s' aborted action execution."), *ActionOwner->GetActorNameOrLabel());
+			UE_CLOG(DebugIOActions, LogActorIO, Log, TEXT("Action aborted by actor."));
 			return;
 		}
 	}
@@ -334,6 +334,8 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 		Command.Append(Argument);
 	}
 
+	UE_CLOG(DebugIOActions && LogIOFinalCommand, LogActorIO, Log, TEXT("  Final command sent : %s"), *Command);
+
 	ExecutionContext.ExitContext();
 	bWasExecuted = true;
 
@@ -360,7 +362,7 @@ void UActorIOAction::SendCommand(UObject* TargetObject, FString Command)
 		// Log execution errors.
 		if (!Ar.IsEmpty())
 		{
-			UE_LOG(LogActorIO, Error, TEXT("%s - Original command: '%s'"), *Ar, *Command);
+			UE_CLOG(DebugIOActions, LogActorIO, Error, TEXT("%s - Original command: '%s'"), *Ar, *Command);
 		}
 	}
 }
