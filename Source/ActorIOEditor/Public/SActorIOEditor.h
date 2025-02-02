@@ -8,7 +8,7 @@
 /**
  * Widget inside the I/O editor tab.
  */
-class SActorIOEditor : public SCompoundWidget
+class ACTORIOEDITOR_API SActorIOEditor : public SCompoundWidget
 {
     SLATE_DECLARE_WIDGET(SActorIOEditor, SCompoundWidget)
 

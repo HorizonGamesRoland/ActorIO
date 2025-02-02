@@ -27,7 +27,7 @@ namespace ColumnId
 /**
  * Widget rendering a list of I/O actions found for an actor.
  */
-class SActorIOActionListView : public SListView<TWeakObjectPtr<UActorIOAction>>
+class ACTORIOEDITOR_API SActorIOActionListView : public SListView<TWeakObjectPtr<UActorIOAction>>
 {
     SLATE_DECLARE_WIDGET(SActorIOActionListView, SListView<TWeakObjectPtr<UActorIOAction>>)
 
@@ -82,7 +82,7 @@ protected:
  * Widget of a single row in the action list.
  * This is basically the UI representation of an I/O action.
  */
-class SActorIOActionListViewRow : public SMultiColumnTableRow<TWeakObjectPtr<UActorIOAction>>
+class ACTORIOEDITOR_API SActorIOActionListViewRow : public SMultiColumnTableRow<TWeakObjectPtr<UActorIOAction>>
 {
     SLATE_DECLARE_WIDGET(SActorIOActionListViewRow, SMultiColumnTableRow<TWeakObjectPtr<UActorIOAction>>)
 
