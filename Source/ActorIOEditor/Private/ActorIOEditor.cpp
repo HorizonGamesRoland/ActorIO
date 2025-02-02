@@ -168,14 +168,9 @@ void FActorIOEditor::OnDeleteActorsBegin()
 	for (FSelectionIterator It(GEditor->GetSelectedActorIterator()); It; ++It)
 	{
 		AActor* Actor = static_cast<AActor*>(*It);
-		TArray<TWeakObjectPtr<UActorIOAction>> InputActions = IActorIO::GetInputActionsForObject(Actor);
-		for (int32 ActionIdx = 0; ActionIdx != InputActions.Num(); ++ActionIdx)
+		for (UActorIOAction* InputAction : IActorIO::GetInputActionsForObject(Actor))
 		{
-			UActorIOAction* ActionPtr = InputActions[ActionIdx].Get();
-			if (IsValid(ActionPtr))
-			{
-				ActionPtr->Modify();
-			}
+			InputAction->Modify();
 		}
 	}
 }

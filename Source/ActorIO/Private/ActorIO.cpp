@@ -147,13 +147,13 @@ FActorIOFunctionList IActorIO::GetFunctionsForObject(AActor* InObject)
     return OutFunctions;
 }
 
-TArray<TWeakObjectPtr<UActorIOAction>> IActorIO::GetInputActionsForObject(AActor* InObject)
+const TArray<UActorIOAction*> IActorIO::GetInputActionsForObject(AActor* InObject)
 {
     // Internally there is no such thing as an input action.
     // Just actions pointing to actors.
     // Essentially this just gets all actions that point to the given actor.
 
-    TArray<TWeakObjectPtr<UActorIOAction>> OutActions = TArray<TWeakObjectPtr<UActorIOAction>>();
+    TArray<UActorIOAction*> OutActions = TArray<UActorIOAction*>();
     if (IsValid(InObject))
     {
         for (TObjectIterator<UActorIOAction> ActionItr; ActionItr; ++ActionItr)
@@ -171,15 +171,16 @@ TArray<TWeakObjectPtr<UActorIOAction>> IActorIO::GetInputActionsForObject(AActor
 
 int32 IActorIO::GetNumInputActionsForObject(AActor* InObject)
 {
-    TArray<TWeakObjectPtr<UActorIOAction>> InputActions = GetInputActionsForObject(InObject);
+    const TArray<UActorIOAction*> InputActions = GetInputActionsForObject(InObject);
     return InputActions.Num();
 }
 
-TArray<TWeakObjectPtr<UActorIOAction>> IActorIO::GetOutputActionsForObject(AActor* InObject)
+const TArray<UActorIOAction*> IActorIO::GetOutputActionsForObject(AActor* InObject)
 {
     // Internally there is no such thing as an output action.
-    // All actions are "outgoing" as they always make things happen to other actors.
+    // All actions are "outputs" as they always make things happen to other actors.
 
+    TArray<UActorIOAction*> OutActions = TArray<UActorIOAction*>();
     if (IsValid(InObject))
     {
         UActorIOComponent* IOComponent = InObject->GetComponentByClass<UActorIOComponent>();
@@ -189,7 +190,7 @@ TArray<TWeakObjectPtr<UActorIOAction>> IActorIO::GetOutputActionsForObject(AActo
         }
     }
 
-    return TArray<TWeakObjectPtr<UActorIOAction>>();
+    return OutActions;
 }
 
 int32 IActorIO::GetNumOutputActionsForObject(AActor* InObject)

@@ -3,7 +3,6 @@
 #include "SActorIOActionList.h"
 #include "SActorIOEditor.h"
 #include "ActorIOComponent.h"
-#include "ActorIOAction.h"
 #include "ActorIOEditor.h"
 #include "ActorIOEditorStyle.h"
 #include "Widgets/Input/SSpinBox.h"
@@ -121,14 +120,14 @@ void SActorIOActionListView::Refresh()
 	RebuildList();
 }
 
-TSharedRef<ITableRow> SActorIOActionListView::OnGenerateRowItem(TWeakObjectPtr<UActorIOAction> Item, const TSharedRef<STableViewBase>& OwnerTable)
+TSharedRef<ITableRow> SActorIOActionListView::OnGenerateRowItem(UActorIOAction* Item, const TSharedRef<STableViewBase>& OwnerTable)
 {
 	// Figure out if this is the last row so that we can add extra padding at the bottom.
 	// I couldn't find a better solution for this.
 	bool bIsLastItem = false;
-	if (Item.IsValid() && ActionListItems.Num() > 0)
+	if (Item && ActionListItems.Num() > 0)
 	{
-		bIsLastItem = Item.Get() == ActionListItems.Last().Get();
+		bIsLastItem = Item == ActionListItems.Last();
 	}
 
     return SNew(SActorIOActionListViewRow, OwnerTable, Item)
@@ -166,7 +165,7 @@ void SActorIOActionListViewRow::PrivateRegisterAttributes(FSlateAttributeInitial
 {
 }
 
-void SActorIOActionListViewRow::Construct(const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTableView, TWeakObjectPtr<UActorIOAction> InActionPtr)
+void SActorIOActionListViewRow::Construct(const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTableView, UActorIOAction* InActionPtr)
 {
 	ActionPtr = InActionPtr;
 	bIsInputAction = InArgs._IsInputAction;
@@ -187,7 +186,7 @@ TSharedRef<SWidget> SActorIOActionListViewRow::GenerateWidgetForColumn(const FNa
 	TSharedRef<SBox> OutWidget = SNew(SBox)
 		.HeightOverride(FActorIOEditorStyle::Get().GetFloat("ActionListView.ActionHeight"));
 
-	if (!ActionPtr.IsValid())
+	if (!ActionPtr)
 	{
 		// Do nothing if the action is invalid somehow.
 		return OutWidget;
@@ -567,7 +566,7 @@ FReply SActorIOActionListViewRow::OnClick_RemoveOrViewAction()
 
 		UActorIOComponent* ActionOwner = ActionPtr->GetOwnerIOComponent();
 		ActionOwner->Modify();
-		ActionOwner->RemoveAction(ActionPtr.Get());
+		ActionOwner->RemoveAction(ActionPtr);
 
 		FActorIOEditor& ActorIOEditor = FActorIOEditor::Get();
 		ActorIOEditor.UpdateEditorWindow();

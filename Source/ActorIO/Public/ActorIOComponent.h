@@ -38,8 +38,8 @@ public:
 	/** Removes all entries from the action list that are nullptr. */
 	void RemoveInvalidActions();
 
-	/** @return Weak reference to all I/O actions. */
-	TArray<TWeakObjectPtr<UActorIOAction>> GetActions() const; // #TODO: Use UActorIOAction* instead of weak ptr?
+	/** @return List I/O actions managed by the component. */
+	const TArray<TObjectPtr<UActorIOAction>>& GetActions() const { return Actions; }
 
 	/** @return Number of actions. */
 	int32 GetNumActions() const { return Actions.Num(); }

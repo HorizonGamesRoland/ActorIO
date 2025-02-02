@@ -58,20 +58,6 @@ void UActorIOComponent::RemoveInvalidActions()
 	}
 }
 
-TArray<TWeakObjectPtr<UActorIOAction>> UActorIOComponent::GetActions() const
-{
-	TArray<TWeakObjectPtr<UActorIOAction>> OutActions = TArray<TWeakObjectPtr<UActorIOAction>>();
-	for (UActorIOAction* Action : Actions)
-	{
-		if (IsValid(Action))
-		{
-			OutActions.Add(Action);
-		}
-	}
-
-	return OutActions;
-}
-
 float UActorIOComponent::GetDurationOfLongestDelay() const
 {
 	float OutLongestDelay = 0.0f;
