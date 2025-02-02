@@ -24,7 +24,7 @@ private:
 	TWeakObjectPtr<AActor> SelectedActor;
 
 	/** Handle for when a new object is selected in the editor. */
-	FDelegateHandle DelegateHandle_SelectionChange;
+	FDelegateHandle DelegateHandle_SelectionChanged;
 
 	/** Handle for when an actor is deleted in the level editor. */
 	FDelegateHandle DelegateHandle_DeleteActorsBegin;

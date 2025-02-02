@@ -217,7 +217,6 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 		return;
 	}
 
-	// #TODO: Do not allow registering invalid function?
 	if (TargetFunction->FunctionToExec.IsEmpty())
 	{
 		UE_CLOG(DebugIOActions, LogActorIO, Error, TEXT("Function '%s' points to an empty func name."),

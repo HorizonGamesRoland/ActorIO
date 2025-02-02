@@ -48,9 +48,9 @@ void FActorIOEditor::StartupModule()
 	// Bind delegates.
 	if (GEditor)
 	{
-		DelegateHandle_SelectionChange = USelection::SelectionChangedEvent.AddRaw(this, &FActorIOEditor::OnObjectSelectionChanged);
+		DelegateHandle_SelectionChanged = USelection::SelectionChangedEvent.AddRaw(this, &FActorIOEditor::OnObjectSelectionChanged);
 		DelegateHandle_DeleteActorsBegin = FEditorDelegates::OnDeleteActorsBegin.AddRaw(this, &FActorIOEditor::OnDeleteActorsBegin);
-		GEditor->OnBlueprintCompiled().AddRaw(this, &FActorIOEditor::OnBlueprintCompiled);
+		DelegateHandle_BlueprintCompiled = GEditor->OnBlueprintCompiled().AddRaw(this, &FActorIOEditor::OnBlueprintCompiled);
 	}
 
 	// Register component visualizer to draw I/O lines between actors.
@@ -95,7 +95,7 @@ void FActorIOEditor::ShutdownModule()
 	// Clear delegates.
 	if (GEditor)
 	{
-		USelection::SelectionChangedEvent.Remove(DelegateHandle_SelectionChange);
+		USelection::SelectionChangedEvent.Remove(DelegateHandle_SelectionChanged);
 		FEditorDelegates::OnDeleteActorsBegin.Remove(DelegateHandle_DeleteActorsBegin);
 		GEditor->OnBlueprintCompiled().Remove(DelegateHandle_BlueprintCompiled);
 	}

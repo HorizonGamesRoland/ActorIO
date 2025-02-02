@@ -23,8 +23,8 @@ public:
 
 protected:
 
-	/** List of actions tied to the component. */
-	UPROPERTY(Instanced, EditInstanceOnly)
+	/** List of I/O actions managed by the component for the owning actor. */
+	UPROPERTY(Instanced, EditInstanceOnly, EditFixedSize, NoClear)
 	TArray<TObjectPtr<UActorIOAction>> Actions;
 
 public:
