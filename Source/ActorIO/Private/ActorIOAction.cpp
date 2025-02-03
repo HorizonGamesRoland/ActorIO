@@ -266,9 +266,9 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 	// Log named arguments to console for debugging if needed.
 	if (LogIONamedArgs)
 	{
+		UE_LOG(LogActorIO, Log, TEXT("  Named Arguments: (%d)"), ExecutionContext.NamedArguments.Num());
 		if (bProcessNamedArgs)
 		{
-			UE_LOG(LogActorIO, Log, TEXT("  Named Arguments: (%d)"), ExecutionContext.NamedArguments.Num());
 			for (const TPair<FString, FString>& NamedArg : ExecutionContext.NamedArguments)
 			{
 				UE_LOG(LogActorIO, Log, TEXT("  - %s = %s"), *NamedArg.Key, *NamedArg.Value);
@@ -276,7 +276,7 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 		}
 		else
 		{
-			UE_LOG(LogActorIO, Log, TEXT("   Named Arguments: Skipped because 'Parameters' field of the action didn't contain any named args."));
+			UE_LOG(LogActorIO, Log, TEXT("  - Skipped because the action's 'Parameters' field didn't contain any named args."));
 		}
 	}
 
