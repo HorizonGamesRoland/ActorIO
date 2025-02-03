@@ -4,6 +4,7 @@
 
 #include "ActorIO.h"
 #include "ActorIOAction.h"
+#include "SActorIOTooltip.h"
 #include "Widgets/Views/SListView.h"
 #include "Widgets/Views/STableRow.h"
 
@@ -216,18 +217,18 @@ protected:
     /** Finds the display name of the given I/O event. */
     FText GetEventDisplayName(FName InEventId) const;
 
-    /** Finds the tooltipp text of the given I/O event. */
-    FText GetEventTooltipText(FName InEventId) const;
-
     /** @return Color based on whether the given I/O event is valid or not. */
-    FSlateColor GetEventTextColor(FName InEventId) const;
+    FSlateColor GetEventDisplayColor(FName InEventId) const;
+
+    /** @return Tooltip widget to use for I/O events. */
+    TSharedPtr<SActorIOTooltip> GetEventTooltip(FName InEventId) const;
 
     /** Finds the display name of the given I/O function. */
     FText GetFunctionDisplayName(FName InFunctionId) const;
 
-    /** Finds the tooltipp text of the given I/O function. */
-    FText GetFunctionTooltipText(FName InFunctionId) const;
-
     /** @return Color based on whether the given I/O function is valid or not. */
-    FSlateColor GetFunctionTextColor(FName InFunctionId) const;
+    FSlateColor GetFunctionDisplayColor(FName InFunctionId) const;
+
+    /** @return Tooltip widget to use for I/O functions. */
+    TSharedPtr<SActorIOTooltip> GetFunctionTooltip(FName InFunctionId) const;
 };

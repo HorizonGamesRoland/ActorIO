@@ -232,8 +232,8 @@ TSharedRef<SWidget> SActorIOActionListViewRow::GenerateWidgetForColumn(const FNa
 						SAssignNew(EventText, STextBlock)
 						.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont")) // PropertyEditorConstants::PropertyFontStyle
 						.Text(GetEventDisplayName(ActionPtr->EventId))
-						.ToolTipText(GetEventTooltipText(ActionPtr->EventId))
-						.ColorAndOpacity(GetEventTextColor(ActionPtr->EventId))
+						.ToolTip(GetEventTooltip(ActionPtr->EventId))
+						.ColorAndOpacity(GetEventDisplayColor(ActionPtr->EventId))
 					]
 				]
 				+ SWidgetSwitcher::Slot()
@@ -241,7 +241,7 @@ TSharedRef<SWidget> SActorIOActionListViewRow::GenerateWidgetForColumn(const FNa
 					SNew(SEditableTextBox)
 					.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont"))
 					.Text(GetEventDisplayName(ActionPtr->EventId))
-					.ForegroundColor(GetEventTextColor(ActionPtr->EventId))
+					.ForegroundColor(GetEventDisplayColor(ActionPtr->EventId))
 					.IsEnabled(false)
 				]
 			]
@@ -288,8 +288,8 @@ TSharedRef<SWidget> SActorIOActionListViewRow::GenerateWidgetForColumn(const FNa
 					SAssignNew(FunctionText, STextBlock)
 					.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont"))
 					.Text(GetFunctionDisplayName(ActionPtr->FunctionId))
-					.ToolTipText(GetFunctionTooltipText(ActionPtr->FunctionId))
-					.ColorAndOpacity(GetFunctionTextColor(ActionPtr->FunctionId))
+					.ToolTip(GetFunctionTooltip(ActionPtr->FunctionId))
+					.ColorAndOpacity(GetFunctionDisplayColor(ActionPtr->FunctionId))
 				]
 			]
 			+ SWidgetSwitcher::Slot()
@@ -297,7 +297,7 @@ TSharedRef<SWidget> SActorIOActionListViewRow::GenerateWidgetForColumn(const FNa
 				SNew(SEditableTextBox)
 				.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont"))
 				.Text(GetFunctionDisplayName(ActionPtr->FunctionId))
-				.ForegroundColor(GetFunctionTextColor(ActionPtr->FunctionId))
+				.ForegroundColor(GetFunctionDisplayColor(ActionPtr->FunctionId))
 				.IsEnabled(false)
 			]
 		);
@@ -411,7 +411,7 @@ TSharedRef<SWidget> SActorIOActionListViewRow::OnGenerateEventComboBoxWidget(FNa
 	return SNew(STextBlock)
 		.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont")) // PropertyEditorConstants::PropertyFontStyle
 		.Text(GetEventDisplayName(InName))
-		.ToolTipText(GetEventTooltipText(InName));
+		.ToolTip(GetEventTooltip(InName));
 }
 
 void SActorIOActionListViewRow::OnEventComboBoxOpening()
@@ -427,8 +427,8 @@ void SActorIOActionListViewRow::OnEventComboBoxSelectionChanged(FName InName, ES
 	}
 
 	EventText->SetText(GetEventDisplayName(InName));
-	EventText->SetToolTipText(GetEventTooltipText(InName));
-	EventText->SetColorAndOpacity(GetEventTextColor(InName));
+	EventText->SetToolTip(GetEventTooltip(InName));
+	EventText->SetColorAndOpacity(GetEventDisplayColor(InName));
 
 	if (InSelectType != ESelectInfo::Direct)
 	{
@@ -474,7 +474,7 @@ TSharedRef<SWidget> SActorIOActionListViewRow::OnGenerateFunctionComboBoxWidget(
 	return SNew(STextBlock)
 		.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont")) // PropertyEditorConstants::PropertyFontStyle
 		.Text(GetFunctionDisplayName(InName))
-		.ToolTipText(GetFunctionTooltipText(InName));
+		.ToolTip(GetFunctionTooltip(InName));
 }
 
 void SActorIOActionListViewRow::OnFunctionComboBoxOpening()
@@ -490,8 +490,8 @@ void SActorIOActionListViewRow::OnFunctionComboBoxSelectionChanged(FName InName,
 	}
 
 	FunctionText->SetText(GetFunctionDisplayName(InName));
-	FunctionText->SetToolTipText(GetFunctionTooltipText(InName));
-	FunctionText->SetColorAndOpacity(GetFunctionTextColor(InName));
+	FunctionText->SetToolTip(GetFunctionTooltip(InName));
+	FunctionText->SetColorAndOpacity(GetFunctionDisplayColor(InName));
 
 	if (InSelectType != ESelectInfo::Direct)
 	{
@@ -624,18 +624,7 @@ FText SActorIOActionListViewRow::GetEventDisplayName(FName InEventId) const
 	return FText::FromName(InEventId);
 }
 
-FText SActorIOActionListViewRow::GetEventTooltipText(FName InEventId) const
-{
-	const FActorIOEvent* TargetEvent = ValidEvents.GetEvent(InEventId);
-	if (TargetEvent)
-	{
-		return TargetEvent->TooltipText;
-	}
-
-	return FText::GetEmpty();
-}
-
-FSlateColor SActorIOActionListViewRow::GetEventTextColor(FName InEventId) const
+FSlateColor SActorIOActionListViewRow::GetEventDisplayColor(FName InEventId) const
 {
 	if (InEventId == NAME_None)
 	{
@@ -645,6 +634,23 @@ FSlateColor SActorIOActionListViewRow::GetEventTextColor(FName InEventId) const
 
 	const FActorIOEvent* TargetEvent = ValidEvents.GetEvent(InEventId);
 	return TargetEvent ? FSlateColor::UseForeground() : FStyleColors::Error;
+}
+
+TSharedPtr<SActorIOTooltip> SActorIOActionListViewRow::GetEventTooltip(FName InEventId) const
+{
+	FText TooltipText = FText::GetEmpty();
+
+	const FActorIOEvent* TargetEvent = ValidEvents.GetEvent(InEventId);
+	if (TargetEvent)
+	{
+		TooltipText = TargetEvent->TooltipText;
+	}
+
+	TSharedRef<SActorIOTooltip> TooltipWidget = SNew(SActorIOTooltip)
+		.RegistryId(InEventId)
+		.Description(TooltipText);
+
+	return TooltipWidget.ToSharedPtr();
 }
 
 FText SActorIOActionListViewRow::GetFunctionDisplayName(FName InFunctionId) const
@@ -658,18 +664,7 @@ FText SActorIOActionListViewRow::GetFunctionDisplayName(FName InFunctionId) cons
 	return FText::FromName(InFunctionId);
 }
 
-FText SActorIOActionListViewRow::GetFunctionTooltipText(FName InFunctionId) const
-{
-	const FActorIOFunction* TargetFunction = ValidFunctions.GetFunction(InFunctionId);
-	if (TargetFunction)
-	{
-		return TargetFunction->TooltipText;
-	}
-
-	return FText::GetEmpty();
-}
-
-FSlateColor SActorIOActionListViewRow::GetFunctionTextColor(FName InFunctionId) const
+FSlateColor SActorIOActionListViewRow::GetFunctionDisplayColor(FName InFunctionId) const
 {
 	if (InFunctionId == NAME_None)
 	{
@@ -679,6 +674,23 @@ FSlateColor SActorIOActionListViewRow::GetFunctionTextColor(FName InFunctionId) 
 
 	const FActorIOFunction* TargetFunction = ValidFunctions.GetFunction(InFunctionId);
 	return TargetFunction ? FSlateColor::UseForeground() : FStyleColors::Error;
+}
+
+TSharedPtr<SActorIOTooltip> SActorIOActionListViewRow::GetFunctionTooltip(FName InFunctionId) const
+{
+	FText TooltipText = FText::GetEmpty();
+
+	const FActorIOFunction* TargetFunction = ValidFunctions.GetFunction(InFunctionId);
+	if (TargetFunction)
+	{
+		TooltipText = TargetFunction->TooltipText;
+	}
+
+	TSharedRef<SActorIOTooltip> TooltipWidget = SNew(SActorIOTooltip)
+		.RegistryId(InFunctionId)
+		.Description(TooltipText);
+
+	return TooltipWidget.ToSharedPtr();
 }
 
 #undef LOCTEXT_NAMESPACE
