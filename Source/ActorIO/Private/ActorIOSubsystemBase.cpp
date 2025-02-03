@@ -111,12 +111,11 @@ void UActorIOSubsystemBase::GetNativeFunctionsForObject(AActor* InObject, FActor
             .SetFunction(TEXT("SetIntensity"))
             .SetSubobject(TEXT("LightComponent0")));
 
-        // #TODO: Test how this works
         FunctionRegistry.RegisterFunction(FActorIOFunction()
             .SetId(TEXT("ALight::SetLightColor"))
             .SetDisplayName(LOCTEXT("Light.SetLightColor", "SetLightColor"))
             .SetTooltipText(LOCTEXT("Light.SetLightColorTooltip", "Set color of the light."))
-            .SetFunction(TEXT("SetLightFColor"))
+            .SetFunction(TEXT("SetLightColor"))
             .SetSubobject(TEXT("LightComponent0")));
 
         FunctionRegistry.RegisterFunction(FActorIOFunction()
@@ -159,8 +158,7 @@ void UActorIOSubsystemBase::GetNativeFunctionsForObject(AActor* InObject, FActor
     // This is to avoid dependency to the Niagara module.
     // Note that this does not support class inheritance, so it only works for exact classes.
     // Since NiagaraActor is just a component wrapper, I do not think anyone will ever subclass it anyways.
-    const UClass* ObjectClass = InObject->GetClass();
-    if (ObjectClass->GetFName() == TEXT("NiagaraActor"))
+    if (InObject->GetClass()->GetFName() == TEXT("NiagaraActor"))
     {
         FunctionRegistry.RegisterFunction(FActorIOFunction()
             .SetId(TEXT("ANiagaraActor::Activate"))

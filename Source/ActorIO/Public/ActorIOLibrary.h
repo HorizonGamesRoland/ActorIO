@@ -29,7 +29,7 @@ public:
 	 * @param EventDispatcherName Name of the event dispatcher that should be exposed.
 	 * @param EventProcessorName Name of a function that should be called when firing this event. Use this to handle named arguments (params) for this event.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "Actor IO", DisplayName = "Register I/O Event", meta = (WorldContext = "WorldContextObject", AutoCreateRefTerm = "DisplayNameText,TooltipText", AdvancedDisplay = "EventProcessorName", Keywords = "IO"))
+	UFUNCTION(BlueprintCallable, Category = "Actor IO", DisplayName = "Register I/O Event", meta = (WorldContext = "WorldContextObject", AutoCreateRefTerm = "DisplayNameText,TooltipText", AdvancedDisplay = "EventProcessorName", Keywords = "IO,Add"))
 	static void K2_RegisterIOEvent(UObject* WorldContextObject, UPARAM(Ref) FActorIOEventList& Registry, FName EventId, const FText& DisplayNameText, const FText& TooltipText, FName EventDispatcherName, FName EventProcessorName);
 
 	/**
@@ -45,7 +45,7 @@ public:
 	 * @param FunctionToExec Name of the blueprint function that should be exposed.
 	 * @param SubobjectName Specific subobject to call the function on instead of the actor itself.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "Actor IO", DisplayName = "Register I/O Function", meta = (WorldContext = "WorldContextObject", AutoCreateRefTerm = "DisplayNameText,TooltipText", AdvancedDisplay = "SubobjectName", Keywords = "IO"))
+	UFUNCTION(BlueprintCallable, Category = "Actor IO", DisplayName = "Register I/O Function", meta = (WorldContext = "WorldContextObject", AutoCreateRefTerm = "DisplayNameText,TooltipText", AdvancedDisplay = "SubobjectName", Keywords = "IO,Add"))
 	static void K2_RegisterIOFunction(UObject* WorldContextObject, UPARAM(Ref) FActorIOFunctionList& Registry, FName FunctionId, const FText& DisplayNameText, const FText& TooltipText, FString FunctionToExec, FName SubobjectName);
 
 	/**
