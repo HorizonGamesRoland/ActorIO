@@ -20,6 +20,10 @@ TAutoConsoleVariable<bool> CVarWarnAboutIOActionInvalidTarget(
     TEXT("ActorIO.WarnAboutInvalidTarget"), false,
     TEXT("<bool> Warn about missing or invalid target actor when executing I/O action."), ECVF_Default);
 
+TAutoConsoleVariable<bool> CVarLogIOActionNamedArgs(
+    TEXT("ActorIO.LogNamedArgs"), false,
+    TEXT("<bool> Log named arguments to console when executing I/O action."), ECVF_Default);
+
 TAutoConsoleVariable<bool> CVarLogIOActionFinalCommand(
     TEXT("ActorIO.LogFinalCommand"), false,
     TEXT("<bool> Log the final command sent to the target actor after executing I/O action."), ECVF_Default);

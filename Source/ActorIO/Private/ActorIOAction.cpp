@@ -238,7 +238,8 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 		}
 	}
 
-	if (FunctionArguments.Contains(NAMEDARGUMENT_PREFIX))
+	const bool bProcessNamedArgs = FunctionArguments.Contains(NAMEDARGUMENT_PREFIX);
+	if (bProcessNamedArgs)
 	{
 		// Let the I/O subsystem to add globally available named arguments to the current execution context.
 		// Think stuff like reference to player character, or player controller.
@@ -259,6 +260,23 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 				UFunction* Func_EventProcessor = EventProcessorObject->GetClass()->FindFunctionByName(BoundEvent->EventProcessor.GetFunctionName());
 				EventProcessorObject->ProcessEvent(Func_EventProcessor, ExecutionContext.ScriptParams);
 			}
+		}
+	}
+
+	// Log named arguments to console for debugging if needed.
+	if (LogIONamedArgs)
+	{
+		if (bProcessNamedArgs)
+		{
+			UE_LOG(LogActorIO, Log, TEXT("  Named Arguments: (%d)"), ExecutionContext.NamedArguments.Num());
+			for (const TPair<FString, FString>& NamedArg : ExecutionContext.NamedArguments)
+			{
+				UE_LOG(LogActorIO, Log, TEXT("  - %s = %s"), *NamedArg.Key, *NamedArg.Value);
+			}
+		}
+		else
+		{
+			UE_LOG(LogActorIO, Log, TEXT("   Named Arguments: Skipped because 'Parameters' field of the action didn't contain any named args."));
 		}
 	}
 

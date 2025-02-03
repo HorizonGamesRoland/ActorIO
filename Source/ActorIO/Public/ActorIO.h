@@ -419,14 +419,18 @@ public:
 
 /** [Console Variable] Whether to log I/O action execution messages. */
 extern ACTORIO_API TAutoConsoleVariable<bool> CVarDebugIOActions;
-/** [Console Variable] Whether to warn about executing I/O action on missing or invalid target actor. */
+/** [Console Variable] Whether to warn about missing or invalid target actor when executing I/O action. */
 extern ACTORIO_API TAutoConsoleVariable<bool> CVarWarnAboutIOActionInvalidTarget;
-/** [Console Variable] Whether to log the final command that's sent to the target actor during I/O action execution. */
+/** [Console Variable] Whether to log named arguments to console when executing I/O action. */
+extern ACTORIO_API TAutoConsoleVariable<bool> CVarLogIOActionNamedArgs;
+/** [Console Variable] Whether to log the final command sent to the target actor after executing I/O action. */
 extern ACTORIO_API TAutoConsoleVariable<bool> CVarLogIOActionFinalCommand;
 
 /** Macro to get CVarDebugIOActions value on game thread. */
 #define DebugIOActions CVarDebugIOActions.GetValueOnGameThread()
 /** Macro to get CVarWarnAboutIOActionInvalidTarget value on game thread. */
 #define WarnIOInvalidTarget CVarWarnAboutIOActionInvalidTarget.GetValueOnGameThread()
+/** Macro to get CVarLogIOActionNamedArgs value on game thread. */
+#define LogIONamedArgs CVarLogIOActionNamedArgs.GetValueOnGameThread()
 /** Macro to get CVarLogIOActionFinalCommand value on game thread. */
 #define LogIOFinalCommand CVarLogIOActionFinalCommand.GetValueOnGameThread()
