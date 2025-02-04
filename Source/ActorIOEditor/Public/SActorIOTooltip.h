@@ -29,8 +29,8 @@ public:
 
 protected:
 
-	/** Whether the tooltip is empty. If empty, the tooltip will not be displayed. */
-	bool bIsTooltipEmpty;
+	/** Whether the tooltip should ever be displayed. */
+	bool bTooltipVisible;
 
 public:
 
