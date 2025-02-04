@@ -16,6 +16,7 @@
 #include "Particles/Emitter.h"
 #include "Sound/AmbientSound.h"
 #include "Sound/AudioVolume.h"
+#include "Kismet/GameplayStatics.h"
 
 #define LOCTEXT_NAMESPACE "ActorIO"
 
@@ -281,9 +282,11 @@ void UActorIOSubsystemBase::GetNativeFunctionsForObject(AActor* InObject, FActor
 
 void UActorIOSubsystemBase::GetGlobalNamedArguments(FActionExecutionContext& ExecutionContext)
 {
-    // #TODO: Add argument for player pawn?
+    // Make the local player pawn always accessible as an argument for all functions.
+    const APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(this, 0);
+    ExecutionContext.SetNamedArgument(TEXT("$Player"), IsValid(PlayerPawn) ? PlayerPawn->GetPathName() : FString());
 
-    // Give blueprint layer a chance to add named arguments.
+    // Give blueprint layer a chance to add global named arguments.
     K2_GetGlobalNamedArguments();
 }
 

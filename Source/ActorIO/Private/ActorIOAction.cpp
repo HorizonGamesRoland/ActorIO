@@ -276,7 +276,7 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 		}
 		else
 		{
-			UE_LOG(LogActorIO, Log, TEXT("  - Skipped because the action's 'Parameters' field didn't contain any named args."));
+			UE_LOG(LogActorIO, Log, TEXT("  - Skipped because parameters field didn't contain any named args."));
 		}
 	}
 
