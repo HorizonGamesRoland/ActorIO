@@ -32,6 +32,15 @@ struct ACTORIO_API FActorIOEvent
 {
 	GENERATED_BODY()
 
+	/** Supported delegate types that can be assigned. */
+	enum Type
+	{
+		Null,
+		MulticastDelegate,
+		SparseDelegate,
+		BlueprintDelegate
+	};
+
 	/** Unique id of the event on a per class basis. */
 	FName EventId;
 
@@ -44,6 +53,9 @@ struct ACTORIO_API FActorIOEvent
 	/** The owner of the assigned delegate. */
 	UPROPERTY()
 	TObjectPtr<UObject> DelegateOwner;
+
+	/** The type of the assigned delegate. */
+	Type DelegateType;
 
 	/** Reference to a multicast script delegate. */
 	FMulticastScriptDelegate* MulticastDelegatePtr;
@@ -67,6 +79,7 @@ struct ACTORIO_API FActorIOEvent
 		DisplayName(FText::GetEmpty()),
 		TooltipText(FText::GetEmpty()),
 		DelegateOwner(nullptr),
+		DelegateType(FActorIOEvent::Type::Null),
 		MulticastDelegatePtr(nullptr),
 		SparseDelegateName(NAME_None),
 		BlueprintDelegateName(NAME_None),
@@ -102,6 +115,7 @@ struct ACTORIO_API FActorIOEvent
 	{
 		DelegateOwner = InDelegateOwner;
 		MulticastDelegatePtr = InMulticastDelegate;
+		DelegateType = FActorIOEvent::Type::MulticastDelegate;
 		return *this;
 	}
 
@@ -110,6 +124,7 @@ struct ACTORIO_API FActorIOEvent
 	{
 		DelegateOwner = InDelegateOwner;
 		SparseDelegateName = InSparseDelegateName;
+		DelegateType = FActorIOEvent::Type::SparseDelegate;
 		return *this;
 	}
 
@@ -118,6 +133,7 @@ struct ACTORIO_API FActorIOEvent
 	{
 		DelegateOwner = InDelegateOwner;
 		BlueprintDelegateName = InBlueprintDelegateName;
+		DelegateType = FActorIOEvent::Type::BlueprintDelegate;
 		return *this;
 	}
 
@@ -173,7 +189,13 @@ struct ACTORIO_API FActorIOEventList
 	/** Add a new I/O event to the list. */
 	void RegisterEvent(const FActorIOEvent& InEvent)
 	{
-		// #TODO: Raise error in editor if event already contained?
+		const FActorIOEvent* ExistingEvent = EventRegistry.FindByKey(InEvent.EventId);
+		if (ExistingEvent)
+		{
+			UE_LOG(LogActorIO, Error, TEXT("Could not register I/O event '%s' - An event with the same id already exists!"), *InEvent.EventId.ToString());
+			return;
+		}
+
 		EventRegistry.Add(InEvent);
 	}
 
@@ -316,7 +338,13 @@ struct ACTORIO_API FActorIOFunctionList
 	/** Add a new I/O function to the list. */
 	void RegisterFunction(const FActorIOFunction& InFunction)
 	{
-		// #TODO: Raise error in editor if function already contained?
+		const FActorIOFunction* ExistingFunction = FunctionRegistry.FindByKey(InFunction.FunctionId);
+		if (ExistingFunction)
+		{
+			UE_LOG(LogActorIO, Error, TEXT("Could not register I/O function '%s' - A function with the same id already exists!"), *InFunction.FunctionId.ToString());
+			return;
+		}
+
 		FunctionRegistry.Add(InFunction);
 	}
 

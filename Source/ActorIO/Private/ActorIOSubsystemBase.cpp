@@ -320,8 +320,6 @@ bool UActorIOSubsystemBase::ShouldCreateSubsystem(UObject* Outer) const
     }
     else
     {
-        // #TODO: Add validation same as in Kronos
-
         // No subsystem class was provided so use the base implementation.
         UE_LOG(LogActorIO, Error, TEXT("No Actor I/O Subsystem is specified in Actor I/O settings! Reverting to default implementation."));
         return ThisClass == UActorIOSubsystemBase::StaticClass();

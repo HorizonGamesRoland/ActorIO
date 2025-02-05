@@ -49,45 +49,61 @@ void UActorIOAction::BindAction()
 	ActionDelegate = FScriptDelegate();
 	ActionDelegate.BindUFunction(this, ExecuteActionSignalName);
 
-	// Binding to multicast delegate directly:
-	// Since we have a direct reference to the delegate, we can simply add to it.
-	if (TargetEvent->MulticastDelegatePtr)
+	switch (TargetEvent->DelegateType)
 	{
-		TargetEvent->MulticastDelegatePtr->Add(ActionDelegate);
-		bIsBound = true;
-	}
-
-	// Binding to a sparse delegate.
-	// These delegates are stored in a global storage so we need to resolve it first.
-	// Then we have to use the interal add function because there's no other way to set the bIsBound param for it.
-	else if (!TargetEvent->SparseDelegateName.IsNone())
-	{
-		FSparseDelegate* SparseDelegate = FSparseDelegateStorage::ResolveSparseDelegate(TargetEvent->DelegateOwner, TargetEvent->SparseDelegateName);
-		if (SparseDelegate)
+		// Binding to multicast delegate directly.
+		// Since we have a direct reference to the delegate, we can simply add to it.
+		case FActorIOEvent::Type::MulticastDelegate:
 		{
-			SparseDelegate->__Internal_AddUnique(TargetEvent->DelegateOwner, TargetEvent->SparseDelegateName, ActionDelegate);
-			bIsBound = true;
+			if (TargetEvent->MulticastDelegatePtr)
+			{
+				TargetEvent->MulticastDelegatePtr->Add(ActionDelegate);
+				bIsBound = true;
+			}
+
+			UE_CLOG(DebugIOActions && !bIsBound, LogActorIO, Error, TEXT("Actor '%s' could not bind action to '%s' - Delegate reference was nullptr."), *ActionOwner->GetActorNameOrLabel(), *EventId.ToString());
+			break;
 		}
 		
-		UE_CLOG(DebugIOActions && !bIsBound, LogActorIO, Error, TEXT("Actor '%s' could not bind action to '%s' - Failed to resolve sparse delegate with name '%s'."),
-			*ActionOwner->GetActorNameOrLabel(), *EventId.ToString(), *TargetEvent->SparseDelegateName.ToString());
-	}
-
-	// Binding to blueprint delegate.
-	// These are the event dispatchers created in blueprints.
-	// Each event dispatcher is basically just an FMulticastDelegateProperty that we can add to.
-	else if (!TargetEvent->BlueprintDelegateName.IsNone())
-	{
-		UClass* DelegateOwnerClass = TargetEvent->DelegateOwner->GetClass();
-		FMulticastDelegateProperty* DelegateProp = CastField<FMulticastDelegateProperty>(DelegateOwnerClass->FindPropertyByName(TargetEvent->BlueprintDelegateName));
-		if (DelegateProp)
+		// Binding to a sparse delegate.
+		// These delegates are stored in a global storage so we need to resolve it first.
+		// Then we have to use the interal add function because there's no other way to set the bIsBound param for it.
+		// If the bIsBound param is not set, the delegate will not execute.
+		case FActorIOEvent::Type::SparseDelegate:
 		{
-			DelegateProp->AddDelegate(ActionDelegate, TargetEvent->DelegateOwner);
-			bIsBound = true;
+			FSparseDelegate* SparseDelegate = FSparseDelegateStorage::ResolveSparseDelegate(TargetEvent->DelegateOwner, TargetEvent->SparseDelegateName);
+			if (SparseDelegate)
+			{
+				SparseDelegate->__Internal_AddUnique(TargetEvent->DelegateOwner, TargetEvent->SparseDelegateName, ActionDelegate);
+				bIsBound = true;
+			}
+
+			UE_CLOG(DebugIOActions && !bIsBound, LogActorIO, Error, TEXT("Actor '%s' could not bind action to '%s' - Failed to resolve sparse delegate with name '%s'."), *ActionOwner->GetActorNameOrLabel(), *EventId.ToString(), *TargetEvent->SparseDelegateName.ToString());
+			break;
+		}
+		
+		// Binding to blueprint delegate.
+		// These are the event dispatchers created in blueprints.
+		// Each event dispatcher is basically just an FMulticastDelegateProperty that we can add to.
+		case FActorIOEvent::Type::BlueprintDelegate:
+		{
+			UClass* DelegateOwnerClass = TargetEvent->DelegateOwner->GetClass();
+			FMulticastDelegateProperty* DelegateProp = CastField<FMulticastDelegateProperty>(DelegateOwnerClass->FindPropertyByName(TargetEvent->BlueprintDelegateName));
+			if (DelegateProp)
+			{
+				DelegateProp->AddDelegate(ActionDelegate, TargetEvent->DelegateOwner);
+				bIsBound = true;
+			}
+
+			UE_CLOG(DebugIOActions && !bIsBound, LogActorIO, Error, TEXT("Actor '%s' could not bind action to '%s' - No event dispatcher found with name '%s'."), *ActionOwner->GetActorNameOrLabel(), *EventId.ToString(), *TargetEvent->BlueprintDelegateName.ToString());
+			break;
 		}
 
-		UE_CLOG(DebugIOActions && !bIsBound, LogActorIO, Error, TEXT("Actor '%s' could not bind action to '%s' - No event dispatcher found with name '%s'."),
-			*ActionOwner->GetActorNameOrLabel(), *EventId.ToString(), *TargetEvent->BlueprintDelegateName.ToString());
+		case FActorIOEvent::Type::Null:
+		{
+			UE_CLOG(DebugIOActions, LogActorIO, Error, TEXT("Actor '%s' could not bind action to '%s' - Delegate type was null! Forgot to set a delegate?"), *ActionOwner->GetActorNameOrLabel(), *EventId.ToString(), *TargetEvent->BlueprintDelegateName.ToString());
+			break;
+		}
 	}
 }
 
@@ -114,44 +130,63 @@ void UActorIOAction::UnbindAction()
 		// This should be impossible to reach.
 		// Basically the I/O event that the action is bound to was not found.
 		// Only case when this can happen is if your register IO events function does not always return the same list of events.
-		checkf(TargetEvent, TEXT("Could not unbind action because the I/O event that we were bound to was not found?!"));
+		checkf(false, TEXT("Could not unbind action because the I/O event that we were bound to was not found?!"));
 	}
 
-	// Unbinding from multicast delegate directly.
-	FMulticastScriptDelegate* TargetDelegate = TargetEvent->MulticastDelegatePtr;
-	if (TargetDelegate)
+	if (!TargetEvent->DelegateOwner)
 	{
-		TargetDelegate->Remove(ActionDelegate);
-		bIsBound = false;
+		UE_CLOG(DebugIOActions, LogActorIO, Error, TEXT("Actor '%s' could not unbind action from '%s' - Delegate owner was nullptr."), *ActionOwner->GetActorNameOrLabel(), *EventId.ToString());
+		return;
 	}
 
-	// Unbinding from a sparse delegate.
-	else if (!TargetEvent->SparseDelegateName.IsNone())
+	switch (TargetEvent->DelegateType)
 	{
-		FSparseDelegate* SparseDelegate = FSparseDelegateStorage::ResolveSparseDelegate(TargetEvent->DelegateOwner, TargetEvent->SparseDelegateName);
-		if (SparseDelegate)
+		case FActorIOEvent::Type::MulticastDelegate:
 		{
-			SparseDelegate->__Internal_Remove(TargetEvent->DelegateOwner, TargetEvent->SparseDelegateName, ActionDelegate);
-			bIsBound = false;
+			FMulticastScriptDelegate* TargetDelegate = TargetEvent->MulticastDelegatePtr;
+			if (TargetDelegate)
+			{
+				TargetDelegate->Remove(ActionDelegate);
+				bIsBound = false;
+			}
+
+			UE_CLOG(DebugIOActions && bIsBound, LogActorIO, Error, TEXT("Actor '%s' could not unbind action from '%s' - Delegate reference was nullptr."), *ActionOwner->GetActorNameOrLabel(), *EventId.ToString());
+			break;
 		}
 
-		UE_CLOG(DebugIOActions && bIsBound, LogActorIO, Error, TEXT("Actor '%s' could not unbind action from '%s' - Failed to resolve sparse delegate with name '%s'."),
-			*ActionOwner->GetActorNameOrLabel(), *EventId.ToString(), *TargetEvent->SparseDelegateName.ToString());
-	}
-
-	// Unbinding from a blueprint delegate.
-	else if (!TargetEvent->BlueprintDelegateName.IsNone())
-	{
-		UClass* DelegateOwnerClass = TargetEvent->DelegateOwner->GetClass();
-		FMulticastDelegateProperty* DelegateProp = CastField<FMulticastDelegateProperty>(DelegateOwnerClass->FindPropertyByName(TargetEvent->BlueprintDelegateName));
-		if (DelegateProp)
+		case FActorIOEvent::Type::SparseDelegate:
 		{
-			DelegateProp->RemoveDelegate(ActionDelegate, TargetEvent->DelegateOwner);
-			bIsBound = false;
+			FSparseDelegate* SparseDelegate = FSparseDelegateStorage::ResolveSparseDelegate(TargetEvent->DelegateOwner, TargetEvent->SparseDelegateName);
+			if (SparseDelegate)
+			{
+				SparseDelegate->__Internal_Remove(TargetEvent->DelegateOwner, TargetEvent->SparseDelegateName, ActionDelegate);
+				bIsBound = false;
+			}
+
+			UE_CLOG(DebugIOActions && bIsBound, LogActorIO, Error, TEXT("Actor '%s' could not unbind action from '%s' - Failed to resolve sparse delegate with name '%s'."), *ActionOwner->GetActorNameOrLabel(), *EventId.ToString(), *TargetEvent->SparseDelegateName.ToString());
+			break;
 		}
 
-		UE_CLOG(DebugIOActions && bIsBound, LogActorIO, Error, TEXT("Actor '%s' could not unbind action from '%s' - No event dispatcher found with name '%s'."),
-			*ActionOwner->GetActorNameOrLabel(), *EventId.ToString(), *TargetEvent->BlueprintDelegateName.ToString());
+		case FActorIOEvent::Type::BlueprintDelegate:
+		{
+			UClass* DelegateOwnerClass = TargetEvent->DelegateOwner->GetClass();
+			FMulticastDelegateProperty* DelegateProp = CastField<FMulticastDelegateProperty>(DelegateOwnerClass->FindPropertyByName(TargetEvent->BlueprintDelegateName));
+			if (DelegateProp)
+			{
+				DelegateProp->RemoveDelegate(ActionDelegate, TargetEvent->DelegateOwner);
+				bIsBound = false;
+			}
+
+			UE_CLOG(DebugIOActions && bIsBound, LogActorIO, Error, TEXT("Actor '%s' could not unbind action from '%s' - No event dispatcher found with name '%s'."), *ActionOwner->GetActorNameOrLabel(), *EventId.ToString(), *TargetEvent->BlueprintDelegateName.ToString());
+			break;
+		}
+
+		case FActorIOEvent::Type::Null:
+		{
+			// This should be impossible to reach.
+			// Implies that the action was bound to an I/O event successfully before, but now the event reverted to null type.
+			checkf(false, TEXT("Could not unbind action because the I/O event delegate type is null?!"));
+		}
 	}
 }
 
@@ -212,15 +247,13 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 	FActorIOFunction* TargetFunction = ValidFunctions.GetFunction(FunctionId);
 	if (!TargetFunction)
 	{
-		UE_CLOG(DebugIOActions, LogActorIO, Error, TEXT("Could not find function '%s' on target actor '%s'."),
-			*FunctionId.ToString(), *TargetActor->GetActorNameOrLabel());
+		UE_CLOG(DebugIOActions, LogActorIO, Error, TEXT("Could not find function '%s' on target actor '%s'."), *FunctionId.ToString(), *TargetActor->GetActorNameOrLabel());
 		return;
 	}
 
 	if (TargetFunction->FunctionToExec.IsEmpty())
 	{
-		UE_CLOG(DebugIOActions, LogActorIO, Error, TEXT("Function '%s' points to an empty func name."),
-			*FunctionId.ToString());
+		UE_CLOG(DebugIOActions, LogActorIO, Error, TEXT("Function '%s' points to an empty func name."), *FunctionId.ToString());
 		return;
 	}
 
@@ -232,8 +265,7 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 		ObjectToSendCommandTo = TargetActor->GetDefaultSubobjectByName(TargetFunction->TargetSubobject);
 		if (!IsValid(ObjectToSendCommandTo))
 		{
-			UE_CLOG(DebugIOActions, LogActorIO, Error, TEXT("Could not find default subobject '%s' on target actor '%s'."),
-				*TargetFunction->TargetSubobject.ToString(), *TargetActor->GetActorNameOrLabel());
+			UE_CLOG(DebugIOActions, LogActorIO, Error, TEXT("Could not find default subobject '%s' on target actor '%s'."), *TargetFunction->TargetSubobject.ToString(), *TargetActor->GetActorNameOrLabel());
 			return;
 		}
 	}
