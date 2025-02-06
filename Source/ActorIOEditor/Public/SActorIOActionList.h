@@ -158,6 +158,9 @@ protected:
     /** @return Name of the actor that owns the action. Only used when showing input actions. */
     FText OnGetCallerNameText() const;
 
+    /** @return Reference path of the actor that owns the action. Only used when showing input actions. */
+    FText OnGetCallerTooltipText() const;
+
     /** Called when generating an entry for the event combo box. */
     TSharedRef<SWidget> OnGenerateEventComboBoxWidget(FName InName) const;
 
@@ -183,7 +186,7 @@ protected:
     void OnFunctionComboBoxSelectionChanged(FName InName, ESelectInfo::Type InSelectType);
 
     /** Called when the function parameters are changed in the text box. */
-    void OnFunctionParametersChanged(const FText& InText, ETextCommit::Type InCommitType);
+    void OnFunctionArgumentsChanged(const FText& InText, ETextCommit::Type InCommitType);
 
     /** @return Delay of the action. */
     float OnGetActionDelay() const;

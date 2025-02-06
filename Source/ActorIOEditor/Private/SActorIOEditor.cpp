@@ -124,6 +124,7 @@ void SActorIOEditor::Construct(const FArguments& InArgs)
                     [
                         SAssignNew(NewActionButton, SPositiveActionButton)
                         .Text(LOCTEXT("NewAction", "New Action"))
+                        .ToolTipText(LOCTEXT("NewActionTooltip", "Add a new output action to the selected actor."))
                         .OnClicked(this, &SActorIOEditor::OnClick_NewAction)
                     ]
                 ]
@@ -152,15 +153,15 @@ void SActorIOEditor::Refresh()
     UActorIOComponent* ActorIOComponent = SelectedActor ? SelectedActor->GetComponentByClass<UActorIOComponent>() : nullptr;
 
     const FString ActorName = SelectedActor ? SelectedActor->GetActorNameOrLabel() : TEXT("None");
+    const FString ActorPath = SelectedActor ? SelectedActor->GetPathName() : TEXT("None");
     SelectedActorText->SetText(FText::FromString(ActorName));
+    SelectedActorText->SetToolTipText(FText::FormatOrdered(LOCTEXT("SelectedActorTooltip", "Reference to Actor ID '{0}'"), FText::FromString(ActorPath)));
 
     const int32 NumOutputActions = ActorIOComponent ? ActorIOComponent->GetNumActions() : 0;
-    OutputsButtonText->SetText(FText::FormatNamed(LOCTEXT("OutputsButton", "Outputs ({Count})"),
-        TEXT("Count"), NumOutputActions));
+    OutputsButtonText->SetText(FText::FormatOrdered(LOCTEXT("OutputsButton", "Outputs ({0})"), FText::AsNumber(NumOutputActions)));
 
     const int32 NumInputActions = IActorIO::GetNumInputActionsForObject(SelectedActor);
-    InputsButtonText->SetText(FText::FormatNamed(LOCTEXT("InputsButton", "Inputs ({Count})"),
-        TEXT("Count"), NumInputActions));
+    InputsButtonText->SetText(FText::FormatOrdered(LOCTEXT("InputsButton", "Inputs ({0})"), FText::AsNumber(NumInputActions)));
 
     const bool bCanAddAction = IsValid(SelectedActor) && !bViewInputActions;
     NewActionButton->SetEnabled(bCanAddAction);

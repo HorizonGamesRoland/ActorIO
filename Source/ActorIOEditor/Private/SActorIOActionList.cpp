@@ -209,6 +209,7 @@ TSharedRef<SWidget> SActorIOActionListViewRow::GenerateWidgetForColumn(const FNa
 			SNew(SEditableTextBox)
 			.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont"))
 			.Text(this, &SActorIOActionListViewRow::OnGetCallerNameText)
+			.ToolTipText(this, &SActorIOActionListViewRow::OnGetCallerTooltipText)
 			.IsEnabled(false)
 		);
 	}
@@ -241,6 +242,7 @@ TSharedRef<SWidget> SActorIOActionListViewRow::GenerateWidgetForColumn(const FNa
 					SNew(SEditableTextBox)
 					.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont"))
 					.Text(GetEventDisplayName(ActionPtr->EventId))
+					.ToolTip(GetEventTooltip(ActionPtr->EventId))
 					.ForegroundColor(GetEventDisplayColor(ActionPtr->EventId))
 					.IsEnabled(false)
 				]
@@ -297,6 +299,7 @@ TSharedRef<SWidget> SActorIOActionListViewRow::GenerateWidgetForColumn(const FNa
 				SNew(SEditableTextBox)
 				.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont"))
 				.Text(GetFunctionDisplayName(ActionPtr->FunctionId))
+				.ToolTip(GetFunctionTooltip(ActionPtr->FunctionId))
 				.ForegroundColor(GetFunctionDisplayColor(ActionPtr->FunctionId))
 				.IsEnabled(false)
 			]
@@ -310,7 +313,7 @@ TSharedRef<SWidget> SActorIOActionListViewRow::GenerateWidgetForColumn(const FNa
 			SNew(SEditableTextBox)
 			.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont"))
 			.Text(FText::FromString(ActionPtr->FunctionArguments))
-			.OnTextCommitted(this, &SActorIOActionListViewRow::OnFunctionParametersChanged)
+			.OnTextCommitted(this, &SActorIOActionListViewRow::OnFunctionArgumentsChanged)
 			.IsEnabled(!bIsInputAction)
 		);
 	}
@@ -403,7 +406,19 @@ FText SActorIOActionListViewRow::OnGetCallerNameText() const
 		return FText::FromString(ActionOwner->GetActorNameOrLabel());
 	}
 
-	return FText::FromString(TEXT("Null"));
+	return FText::FromString(TEXT("None"));
+}
+
+FText SActorIOActionListViewRow::OnGetCallerTooltipText() const
+{
+	const AActor* ActionOwner = ActionPtr->GetOwnerActor();
+	if (IsValid(ActionOwner))
+	{
+		const FString ActorPath = ActionOwner->GetPathName();
+		return FText::FormatOrdered(LOCTEXT("ActionListViewRow.CallerTooltip", "Reference to Actor ID '{0}'"), FText::FromString(ActorPath));
+	}
+
+	return FText::GetEmpty();
 }
 
 TSharedRef<SWidget> SActorIOActionListViewRow::OnGenerateEventComboBoxWidget(FName InName) const
@@ -451,11 +466,9 @@ void SActorIOActionListViewRow::OnTargetActorChanged(const FAssetData& InAssetDa
 
 	AActor* NewTarget = Cast<AActor>(InAssetData.GetAsset());
 	ActionPtr->TargetActor = NewTarget;
-	ActionPtr->FunctionId = NAME_None;
-	ActionPtr->FunctionArguments = FString();
 
 	// Add an I/O component to the selected actor.
-	// This is needed for rendering the connection lines.
+	// This is always needed for rendering logic connection lines.
 	if (IsValid(NewTarget))
 	{
 		UActorIOComponent* TargetIOComponent = NewTarget->GetComponentByClass<UActorIOComponent>();
@@ -501,11 +514,12 @@ void SActorIOActionListViewRow::OnFunctionComboBoxSelectionChanged(FName InName,
 		ActionPtr->FunctionId = InName;
 		ActionPtr->FunctionArguments = FString();
 
+		// Need to refresh to get function arguments widget to update.
 		GetOwnerActionListView()->Refresh();
 	}
 }
 
-void SActorIOActionListViewRow::OnFunctionParametersChanged(const FText& InText, ETextCommit::Type InCommitType)
+void SActorIOActionListViewRow::OnFunctionArgumentsChanged(const FText& InText, ETextCommit::Type InCommitType)
 {
 	const FScopedTransaction Transaction(LOCTEXT("ModifyActorIOAction", "Modify ActorIO Action"));
 	ActionPtr->Modify();
@@ -576,6 +590,11 @@ FReply SActorIOActionListViewRow::OnClick_RemoveOrViewAction()
 		AActor* OwnerActor = ActionPtr->GetOwnerActor();
 		if (GEditor && IsValid(OwnerActor))
 		{
+			// The transaction here is created with a unique context 'ViewIOAction'.
+			// The editor module uses this to react to undo/redo of this specific transaction to revert 'bViewInputActions' param.
+			// @see FActorIOEditor::PostUndo
+			const FScopedTransaction Transaction(TEXT("ViewIOAction"), LOCTEXT("ViewIOAction", "View ActorIO Action"), nullptr);
+
 			// Need to clear selection first, otherwise we are just adding to the selection.
 			GEditor->SelectNone(false, true);
 			GEditor->SelectActor(OwnerActor, true, true);
