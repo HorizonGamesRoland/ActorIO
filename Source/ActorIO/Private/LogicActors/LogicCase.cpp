@@ -10,7 +10,7 @@ ALogicCase::ALogicCase()
 	Cases.Init(FString(), 4);
 
 #if WITH_EDITORONLY_DATA
-	ConstructorHelpers::FObjectFinderOptional<UTexture2D> SpriteTexture(TEXT("/ActorIO/S_Case"));
+	ConstructorHelpers::FObjectFinderOptional<UTexture2D> SpriteTexture(TEXT("/ActorIO/AssetIcons/S_Case"));
 	if (SpriteComponent && SpriteTexture.Succeeded())
 	{
 		SpriteComponent->SetSprite(SpriteTexture.Get());

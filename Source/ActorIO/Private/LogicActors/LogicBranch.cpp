@@ -10,7 +10,7 @@ ALogicBranch::ALogicBranch()
 	bCurrentValue = false;
 
 #if WITH_EDITORONLY_DATA
-	ConstructorHelpers::FObjectFinderOptional<UTexture2D> SpriteTexture(TEXT("/ActorIO/S_Branch"));
+	ConstructorHelpers::FObjectFinderOptional<UTexture2D> SpriteTexture(TEXT("/ActorIO/AssetIcons/S_Branch"));
 	if (SpriteComponent && SpriteTexture.Succeeded())
 	{
 		SpriteComponent->SetSprite(SpriteTexture.Get());

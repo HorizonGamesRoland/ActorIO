@@ -9,7 +9,7 @@ ALogicTimer::ALogicTimer()
 	CurrentTimerHandle = FTimerHandle();
 
 #if WITH_EDITORONLY_DATA
-	ConstructorHelpers::FObjectFinderOptional<UTexture2D> SpriteTexture(TEXT("/ActorIO/S_Timer"));
+	ConstructorHelpers::FObjectFinderOptional<UTexture2D> SpriteTexture(TEXT("/ActorIO/AssetIcons/S_Timer"));
 	if (SpriteComponent && SpriteTexture.Succeeded())
 	{
 		SpriteComponent->SetSprite(SpriteTexture.Get());

@@ -7,7 +7,7 @@
 ALogicGlobalEvent::ALogicGlobalEvent()
 {
 #if WITH_EDITORONLY_DATA
-	ConstructorHelpers::FObjectFinderOptional<UTexture2D> SpriteTexture(TEXT("/ActorIO/S_GlobalEvent"));
+	ConstructorHelpers::FObjectFinderOptional<UTexture2D> SpriteTexture(TEXT("/ActorIO/AssetIcons/S_GlobalEvent"));
 	if (SpriteComponent && SpriteTexture.Succeeded())
 	{
 		SpriteComponent->SetSprite(SpriteTexture.Get());

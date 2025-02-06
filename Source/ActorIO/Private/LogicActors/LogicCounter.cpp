@@ -12,7 +12,7 @@ ALogicCounter::ALogicCounter()
 	CurrentValue = 0;
 
 #if WITH_EDITORONLY_DATA
-	ConstructorHelpers::FObjectFinderOptional<UTexture2D> SpriteTexture(TEXT("/ActorIO/S_Counter"));
+	ConstructorHelpers::FObjectFinderOptional<UTexture2D> SpriteTexture(TEXT("/ActorIO/AssetIcons/S_Counter"));
 	if (SpriteComponent && SpriteTexture.Succeeded())
 	{
 		SpriteComponent->SetSprite(SpriteTexture.Get());

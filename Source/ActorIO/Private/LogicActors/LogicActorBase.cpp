@@ -24,7 +24,7 @@ ALogicActorBase::ALogicActorBase()
 			FName ID_LogicActor;
 			FText NAME_LogicActor;
 			FConstructorStatics()
-				: SpriteTexture(TEXT("/ActorIO/S_LogicActor"))
+				: SpriteTexture(TEXT("/ActorIO/AssetIcons/S_LogicActor"))
 				, ID_LogicActor(TEXT("LogicActor"))
 				, NAME_LogicActor(NSLOCTEXT("SpriteCategory", "LogicActor", "Logic Actors"))
 			{}
