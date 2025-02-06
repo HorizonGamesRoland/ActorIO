@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Modules/ModuleManager.h"
 #include "ActorIOPIEAuthorizer.h"
+#include "EditorUndoClient.h"
 
 class UActorIOComponent;
 class SActorIOEditor;
@@ -13,7 +14,7 @@ class SDockTab;
 /**
  * Editor module implementation of the Actor I/O plugin.
  */
-class FActorIOEditor : public IModuleInterface
+class FActorIOEditor : public IModuleInterface, public FEditorUndoClient
 {
 private:
 
@@ -74,4 +75,12 @@ private:
 
 	/** Called when a blueprint is compiled in the editor. */
 	void OnBlueprintCompiled();
+
+public:
+
+	//~ Begin FEditorUndoClient Interface
+	virtual bool MatchesContext(const FTransactionContext& InContext, const TArray<TPair<UObject*, FTransactionObjectEvent>>& TransactionObjects) const override;
+	virtual void PostUndo(bool bSuccess) override;
+	virtual void PostRedo(bool bSuccess) override;
+	//~ End FEditorUndoClient Interface
 };

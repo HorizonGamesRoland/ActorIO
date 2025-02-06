@@ -45,12 +45,15 @@ void FActorIOEditor::StartupModule()
 		.SetGroup(WorkspaceMenu::GetMenuStructure().GetLevelEditorCategory())
 		.SetIcon(FSlateIcon(FAppStyle::GetAppStyleSetName(), "Icons.Event"));
 
-	// Bind delegates.
 	if (GEditor)
 	{
+		// Bind delegates.
 		DelegateHandle_SelectionChanged = USelection::SelectionChangedEvent.AddRaw(this, &FActorIOEditor::OnObjectSelectionChanged);
 		DelegateHandle_DeleteActorsBegin = FEditorDelegates::OnDeleteActorsBegin.AddRaw(this, &FActorIOEditor::OnDeleteActorsBegin);
 		DelegateHandle_BlueprintCompiled = GEditor->OnBlueprintCompiled().AddRaw(this, &FActorIOEditor::OnBlueprintCompiled);
+
+		// Register undo client.
+		GEditor->RegisterForUndo(this);
 	}
 
 	// Register component visualizer to draw I/O lines between actors.
@@ -92,12 +95,15 @@ void FActorIOEditor::ShutdownModule()
 	// Unregister Actor I/O editor tab.
 	FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(TEXT("ActorIO"));
 
-	// Clear delegates.
 	if (GEditor)
 	{
+		// Clear delegates.
 		USelection::SelectionChangedEvent.Remove(DelegateHandle_SelectionChanged);
 		FEditorDelegates::OnDeleteActorsBegin.Remove(DelegateHandle_DeleteActorsBegin);
 		GEditor->OnBlueprintCompiled().Remove(DelegateHandle_BlueprintCompiled);
+
+		// Unegister undo client.
+		GEditor->UnregisterForUndo(this);
 	}
 
 	// Unregister component visualizer.
@@ -214,6 +220,35 @@ UActorIOComponent* FActorIOEditor::AddIOComponentToActor(AActor* TargetActor, bo
 	}
 
 	return NewComponent;
+}
+
+bool FActorIOEditor::MatchesContext(const FTransactionContext& InContext, const TArray<TPair<UObject*, FTransactionObjectEvent>>& TransactionObjects) const
+{
+	// Ensure that we only react to a very specific transaction called 'ViewIOAction'.
+	// For more info see PostUndo below.
+	return InContext.Context == TEXT("ViewIOAction");
+}
+
+void FActorIOEditor::PostUndo(bool bSuccess)
+{
+	// We are undoing a 'ViewIOAction' transaction.
+	// This means the user was viewing input actions, and clicked on one an action's view button.
+	// This resulted in the actor being selected and the I/O editor switching to outputs tab.
+	// Since the 'bViewInputActions' param is not UPROPERTY we need to manually revert it.
+	if (bSuccess && EditorWindow.IsValid())
+	{
+		EditorWindow->SetViewInputActions(true);
+	}
+}
+
+void FActorIOEditor::PostRedo(bool bSuccess)
+{
+	// We are redoing a 'ViewIOAction' transaction.
+	// Do the opposite of PostUndo.
+	if (bSuccess && EditorWindow.IsValid())
+	{
+		EditorWindow->SetViewInputActions(false);
+	}
 }
 
 #undef LOCTEXT_NAMESPACE
