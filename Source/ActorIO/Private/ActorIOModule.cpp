@@ -1,4 +1,4 @@
-// Copyright 2025 Horizon Games. All Rights Reserved.
+// Copyright 2024-2025 Horizon Games and all contributors at https://github.com/HorizonGamesRoland/ActorIO
 
 #include "ActorIOModule.h"
 
