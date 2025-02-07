@@ -28,3 +28,8 @@ You may be wondering why use this over blueprint interfaces? Aren't these the sa
 While the system may look similar to regular interfaces, behind the scenes they are completely different. In fact, this is much closer to event binding rather than interfaces. There is nothing wrong with using interfaces for hooking up game logic together, but it requires you to have a fairly robust system to be flexible enough. Again, not an issue just a different approach.
 
 The biggest advantage of this approach is reduced memory usage, since you can avoid blueprint Casting with the I/O system. This can significantly lower memory usage, as the Cast node in Unreal causes the selected class to be loaded into memory with the blueprint. In larger projects, this can quickly spiral out of control if not managed properly. The I/O system can help you cut down on a lot of Cast nodes as the system uses the C++ reflection system to access members of a class, without casting to it.
+
+# Help
+
+- Discord: [Horizon Games](https://discord.gg/t8STNrGcU3)
+- Email: horizongames.contact@gmail.com
