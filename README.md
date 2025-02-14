@@ -1,6 +1,5 @@
 [![GitHub Repo stars](https://img.shields.io/github/stars/HorizonGamesRoland/ActorIO?style=plastic&color=yellow&logo=github)](https://github.com/HorizonGamesRoland/ActorIO/stargazers) [![GitHub License](https://img.shields.io/github/license/HorizonGamesRoland/ActorIO?style=plastic&logo=apache)](https://www.apache.org/licenses/LICENSE-2.0) [![Discord](https://img.shields.io/discord/1337396883366219808?style=plastic&logo=discord&logoColor=white&label=discord&color=%235865F2)](https://discord.gg/t8STNrGcU3) [![Static Badge](https://img.shields.io/badge/Documentation-blue?style=plastic&logo=gitbook&logoColor=white)](https://horizongames.gitbook.io/actorio)
 
-
 # About
 
 Actor I/O is a level scripting tool for Unreal Engine, featuring an input/output system similar to the **Source Engine** by Valve™ Software. At its heart, the plugin is an event binding system where actions are executed in reaction to an event being triggered. Using the C++ reflection system of Unreal Engine, the system can react to any dynamic delegate be it C++ or blueprint, and essentially call any function by name with parameters.
@@ -41,6 +40,15 @@ You may be wondering why use this over blueprint interfaces? Aren't these the sa
 While the system may look similar to regular interfaces, behind the scenes they are completely different. In fact, this is much closer to event bindings rather than interfaces. There is nothing wrong with using interfaces for hooking up game logic together, but it requires you to have a fairly robust system to be flexible enough. Again, not an issue just a different approach.
 
 The biggest advantage of this approach is reduced memory usage, since you can avoid blueprint Casting with the I/O system. This can significantly lower memory usage, as the Cast node in Unreal causes the selected class to be loaded into memory with the blueprint. In larger projects, this can quickly spiral out of control if not managed properly. The I/O system can help you cut down on a lot of Cast nodes as the system uses the C++ reflection system to access members of a class, without casting to it.
+
+# Debugging
+
+All error messages and issues are logged to the [Output Log](https://dev.epicgames.com/documentation/en-us/unreal-engine/logging-in-unreal-engine) in **Window → Output Log**. Use the `-log` launch parameter to see logs when you are not playing in the editor (e.g. in Standalone Game play mode, or packaged builds). Useful console commands to use:
+
+- `ActorIO.DebugActions <bool>`: Enable I/O action execution messages. Enabled by default.
+- `ActorIO.WarnAboutInvalidTarget <bool>`: Warn about missing or invalid target actor when executing I/O action.
+- `ActorIO.LogNamedArgs <bool>`: Log named arguments to console when executing I/O action.
+- `ActorIO.LogFinalCommand <bool>`: Log the final command sent to the target actor after executing I/O action.
 
 # Help
 
