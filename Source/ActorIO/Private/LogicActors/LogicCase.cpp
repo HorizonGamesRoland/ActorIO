@@ -116,6 +116,12 @@ void ALogicCase::RegisterIOEvents(FActorIOEventList& EventRegistry)
 		.SetDisplayName(LOCTEXT("LogicCase.OnCase16", "OnCase16"))
 		.SetTooltipText(LOCTEXT("LogicCase.OnCase16Tooltip", "Event when the input value equals the case value at index 15."))
 		.SetMulticastDelegate(this, &OnCase16));
+
+	EventRegistry.RegisterEvent(FActorIOEvent()
+		.SetId(TEXT("ALogicCase::OnDefault"))
+		.SetDisplayName(LOCTEXT("LogicCase.OnDefault", "OnDefault"))
+		.SetTooltipText(LOCTEXT("LogicCase.OnDefaultTooltip", "Event when the input value does not equal any of the cases."))
+		.SetMulticastDelegate(this, &OnDefault));
 }
 
 void ALogicCase::RegisterIOFunctions(FActorIOFunctionList& FunctionRegistry)
