@@ -25,6 +25,7 @@
 #include "Editor.h"
 #include "UnrealEdGlobals.h"
 #include "Editor/UnrealEdEngine.h"
+#include "Misc/EngineVersionComparison.h"
 
 #define LOCTEXT_NAMESPACE "ActorIOEditor"
 
@@ -74,7 +75,9 @@ void FActorIOEditor::StartupModule()
 		FPlacementCategoryInfo Info(LOCTEXT("ActorIOPlaceCategoryName", "Logic Actors"),
 			FSlateIcon(FAppStyle::GetAppStyleSetName(), "Icons.Event"), "ActorIOPlaceCategory", TEXT("PMActorIOPlaceCategory"), 45);
 
+#if UE_VERSION_NEWER_THAN(5, 5, 0)
 		Info.ShortDisplayName = LOCTEXT("ActorIOPlaceCategoryShortName", "Logic");
+#endif
 
 		IPlacementModeModule& PlacementModeModule = IPlacementModeModule::Get();
 		PlacementModeModule.RegisterPlacementCategory(Info);
