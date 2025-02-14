@@ -119,7 +119,7 @@ void ALogicCompare::Compare()
 	if (CurrentValue.IsNumeric() && CompareValue.IsNumeric())
 	{
 		const float NumericCurrentValue = FCString::Atof(*CurrentValue);
-		const float NumericCompareValue = FCString::Atof(*CurrentValue);
+		const float NumericCompareValue = FCString::Atof(*CompareValue);
 
 		if (NumericCurrentValue < NumericCompareValue)
 		{
