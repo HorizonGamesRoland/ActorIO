@@ -51,6 +51,7 @@ void FActorIOEditor::StartupModule()
 		// Bind delegates.
 		DelegateHandle_SelectionChanged = USelection::SelectionChangedEvent.AddRaw(this, &FActorIOEditor::OnObjectSelectionChanged);
 		DelegateHandle_DeleteActorsBegin = FEditorDelegates::OnDeleteActorsBegin.AddRaw(this, &FActorIOEditor::OnDeleteActorsBegin);
+		DelegateHandle_ActorReplaced = FEditorDelegates::OnEditorActorReplaced.AddRaw(this, &FActorIOEditor::OnActorReplaced);
 		DelegateHandle_BlueprintCompiled = GEditor->OnBlueprintCompiled().AddRaw(this, &FActorIOEditor::OnBlueprintCompiled);
 
 		// Register undo client.
@@ -103,6 +104,7 @@ void FActorIOEditor::ShutdownModule()
 		// Clear delegates.
 		USelection::SelectionChangedEvent.Remove(DelegateHandle_SelectionChanged);
 		FEditorDelegates::OnDeleteActorsBegin.Remove(DelegateHandle_DeleteActorsBegin);
+		FEditorDelegates::OnEditorActorReplaced.Remove(DelegateHandle_ActorReplaced);
 		GEditor->OnBlueprintCompiled().Remove(DelegateHandle_BlueprintCompiled);
 
 		// Unegister undo client.
@@ -172,7 +174,7 @@ void FActorIOEditor::OnObjectSelectionChanged(UObject* NewSelection)
 
 void FActorIOEditor::OnDeleteActorsBegin()
 {
-	// Modify all actions who's caller is about to deleted for proper undo/redo support.
+	// Modify all actions who's caller is about to be deleted for proper undo/redo support.
 	// The transaction is already active at this point.
 	for (FSelectionIterator It(GEditor->GetSelectedActorIterator()); It; ++It)
 	{
@@ -180,6 +182,26 @@ void FActorIOEditor::OnDeleteActorsBegin()
 		for (UActorIOAction* InputAction : IActorIO::GetInputActionsForObject(Actor))
 		{
 			InputAction->Modify();
+		}
+	}
+}
+
+void FActorIOEditor::OnActorReplaced(AActor* OldActor, AActor* NewActor)
+{
+	// Modify all actions that point to the old actor.
+	const TArray<UActorIOAction*> InputActions = IActorIO::GetInputActionsForObject(OldActor);
+	for (UActorIOAction* InputAction : InputActions)
+	{
+		InputAction->Modify();
+		InputAction->TargetActor = NewActor;
+	}
+
+	// Auto add an IO component to the new actor if needed.
+	if (OldActor->GetComponentByClass<UActorIOComponent>() || InputActions.Num() > 0)
+	{
+		if (!NewActor->GetComponentByClass<UActorIOComponent>())
+		{
+			AddIOComponentToActor(NewActor, false);
 		}
 	}
 }
@@ -205,7 +227,7 @@ AActor* FActorIOEditor::GetSelectedActor() const
 UActorIOComponent* FActorIOEditor::AddIOComponentToActor(AActor* TargetActor, bool bSelectActor)
 {
 	// Modify the actor to support undo/redo.
-	// The transaction is already active at this point.
+	// The transaction should already be active at this point.
 	TargetActor->Modify();
 
 	UActorIOComponent* NewComponent = NewObject<UActorIOComponent>(TargetActor, TEXT("ActorIOComponent"), RF_Transactional);

@@ -30,6 +30,9 @@ private:
 	/** Handle for when an actor is deleted in the level editor. */
 	FDelegateHandle DelegateHandle_DeleteActorsBegin;
 
+	/** Handle for when an actor is replaced in the level editor. */
+	FDelegateHandle DelegateHandle_ActorReplaced;
+
 	/** Handle for when a blueprint is compiled in the editor. */
 	FDelegateHandle DelegateHandle_BlueprintCompiled;
 
@@ -72,6 +75,9 @@ private:
 
 	/** Called when an actor is deleted in the level editor. */
 	void OnDeleteActorsBegin();
+
+	/** Called when an actor is replaced in the level editor. */
+	void OnActorReplaced(AActor* OldActor, AActor* NewActor);
 
 	/** Called when a blueprint is compiled in the editor. */
 	void OnBlueprintCompiled();
