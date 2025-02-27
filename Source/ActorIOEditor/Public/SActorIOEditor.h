@@ -32,6 +32,9 @@ public:
 
 protected:
 
+    /** Image displaying the selected actor's icon. */
+    TSharedPtr<class SImage> SelectedActorIcon;
+
     /** Text block displaying the selected actor's name. */
     TSharedPtr<class STextBlock> SelectedActorText;
 
