@@ -234,4 +234,25 @@ protected:
 
     /** @return Tooltip widget to use for I/O functions. */
     TSharedPtr<SActorIOTooltip> GetFunctionTooltip(FName InFunctionId) const;
+
+public:
+
+    //~ Begin Drag & Drop
+    FReply HandleDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
+    TOptional<EItemDropZone> HandleCanAcceptDrop(const FDragDropEvent& DragDropEvent, EItemDropZone DropZone, UActorIOAction* TargetItem);
+    FReply HandleAcceptDrop(const FDragDropEvent& DragDropEvent, EItemDropZone DropZone, UActorIOAction* TargetItem);
+    //~ End Drag & Drop
+};
+
+/**
+ * Drag & Drop operation for SActorIOActionListViewRow.
+ */
+class ACTORIOEDITOR_API FActorIOActionDragDropOp : public FDragDropOperation
+{
+public:
+
+    DRAG_DROP_OPERATOR_TYPE(FActorIOActionDragDropOp, FDragDropOperation)
+
+    /** The IO action that is being dragged. */
+    UActorIOAction* Element;
 };

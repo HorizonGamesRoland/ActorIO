@@ -31,7 +31,7 @@ void SActorIOActionListView::Construct(const FArguments& InArgs)
         SListView::FArguments()
 		.ListViewStyle(&FActorIOEditorStyle::Get().GetWidgetStyle<FTableViewStyle>("ActionListView"))
         .ListItemsSource(&ActionListItems)
-		.SelectionMode(ESelectionMode::None)
+		.SelectionMode(ESelectionMode::Single)
         .OnGenerateRow(this, &SActorIOActionListView::OnGenerateRowItem)
         .HeaderRow
         (
@@ -175,6 +175,10 @@ void SActorIOActionListViewRow::Construct(const FArguments& InArgs, const TShare
 
 	const float ActionSpacing = FActorIOEditorStyle::Get().GetFloat("ActionListView.ActionSpacing");
 	FTableRowArgs RowArgs = FTableRowArgs()
+		.ShowSelection(false)
+		.OnDragDetected(this, &SActorIOActionListViewRow::HandleDragDetected)
+		.OnCanAcceptDrop(this, &SActorIOActionListViewRow::HandleCanAcceptDrop)
+		.OnAcceptDrop(this, &SActorIOActionListViewRow::HandleAcceptDrop)
 		.Padding(FMargin(0.0f, ActionSpacing, 0.0f, InArgs._IsLastItemInList ? ActionSpacing : 0.0f));
 
 	FSuperRowType::Construct(RowArgs, InOwnerTableView);
@@ -710,6 +714,61 @@ TSharedPtr<SActorIOTooltip> SActorIOActionListViewRow::GetFunctionTooltip(FName 
 		.Description(TooltipText);
 
 	return TooltipWidget.ToSharedPtr();
+}
+
+FReply SActorIOActionListViewRow::HandleDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+{
+	if (MouseEvent.IsMouseButtonDown(EKeys::LeftMouseButton) && !bIsInputAction)
+	{
+		TSharedRef<FActorIOActionDragDropOp> DragDropOp = MakeShared<FActorIOActionDragDropOp>();
+		DragDropOp->Element = ActionPtr;
+
+		return FReply::Handled().BeginDragDrop(DragDropOp);
+	}
+
+	return FReply::Unhandled();
+}
+
+TOptional<EItemDropZone> SActorIOActionListViewRow::HandleCanAcceptDrop(const FDragDropEvent& DragDropEvent, EItemDropZone DropZone, UActorIOAction* TargetItem)
+{
+	// Similar implementation to array properties in the editor.
+	// @see SDetailSingleItemRow::OnArrayCanAcceptDrop
+
+	const FGeometry& Geometry = GetTickSpaceGeometry();
+	const float LocalPointerY = Geometry.AbsoluteToLocal(DragDropEvent.GetScreenSpacePosition()).Y;
+	const EItemDropZone OverrideDropZone = LocalPointerY < Geometry.GetLocalSize().Y * 0.5f ? EItemDropZone::AboveItem : EItemDropZone::BelowItem;
+	return OverrideDropZone;
+}
+
+FReply SActorIOActionListViewRow::HandleAcceptDrop(const FDragDropEvent& DragDropEvent, EItemDropZone DropZone, UActorIOAction* TargetItem)
+{
+	const TSharedPtr<FActorIOActionDragDropOp> DragDropOp = DragDropEvent.GetOperationAs<FActorIOActionDragDropOp>();
+	if (!DragDropOp.IsValid())
+	{
+		return FReply::Unhandled();
+	}
+
+	UActorIOComponent* IOComponent = TargetItem ? TargetItem->GetOwnerIOComponent() : nullptr;
+	if (!IsValid(IOComponent))
+	{
+		return FReply::Unhandled();
+	}
+
+	int32 FromIdx = IOComponent->GetActions().IndexOfByKey(DragDropOp->Element);
+	int32 ToIdx = IOComponent->GetActions().IndexOfByKey(TargetItem);
+	if (FromIdx == INDEX_NONE || ToIdx == INDEX_NONE)
+	{
+		return FReply::Unhandled();
+	}
+
+	const FScopedTransaction Transaction(LOCTEXT("MoveActorIOAction", "Move ActorIO Action"));
+	IOComponent->Modify();
+	IOComponent->MoveAction(FromIdx, ToIdx);
+
+	// Need to refresh since the order of actions changed.
+	GetOwnerActionListView()->Refresh();
+
+	return FReply::Handled();
 }
 
 #undef LOCTEXT_NAMESPACE

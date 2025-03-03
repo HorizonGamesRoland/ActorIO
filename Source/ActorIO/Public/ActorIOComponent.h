@@ -38,6 +38,12 @@ public:
 	/** Removes all entries from the action list that are nullptr. */
 	void RemoveInvalidActions();
 
+	/**
+	 * Rearranges the action list by moving the action from original index to new index.
+	 * Used for drag & drop in the editor.
+	 */
+	void MoveAction(int32 OriginalIndex, int32 NewIndex);
+
 	/** @return List I/O actions managed by the component. */
 	const TArray<TObjectPtr<UActorIOAction>>& GetActions() const { return Actions; }
 

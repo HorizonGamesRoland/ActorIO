@@ -58,6 +58,25 @@ void UActorIOComponent::RemoveInvalidActions()
 	}
 }
 
+void UActorIOComponent::MoveAction(int32 OriginalIndex, int32 NewIndex)
+{
+	// Uses same move implementation as properties in the editor.
+	// @see FPropertyValueImpl::MoveElementTo
+
+	if (NewIndex > OriginalIndex)
+	{
+		Actions.InsertDefaulted(NewIndex + 1);
+		Actions.Swap(OriginalIndex, NewIndex + 1);
+		Actions.RemoveAt(OriginalIndex);
+	}
+	else if (NewIndex < OriginalIndex)
+	{
+		Actions.InsertDefaulted(NewIndex);
+		Actions.Swap(OriginalIndex + 1, NewIndex);
+		Actions.RemoveAt(OriginalIndex + 1);
+	}
+}
+
 float UActorIOComponent::GetDurationOfLongestDelay() const
 {
 	float OutLongestDelay = 0.0f;
