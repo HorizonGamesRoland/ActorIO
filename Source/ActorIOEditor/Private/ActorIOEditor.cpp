@@ -51,7 +51,9 @@ void FActorIOEditor::StartupModule()
 		// Bind delegates.
 		DelegateHandle_SelectionChanged = USelection::SelectionChangedEvent.AddRaw(this, &FActorIOEditor::OnObjectSelectionChanged);
 		DelegateHandle_DeleteActorsBegin = FEditorDelegates::OnDeleteActorsBegin.AddRaw(this, &FActorIOEditor::OnDeleteActorsBegin);
+#if UE_VERSION_NEWER_THAN(5, 5, 0)
 		DelegateHandle_ActorReplaced = FEditorDelegates::OnEditorActorReplaced.AddRaw(this, &FActorIOEditor::OnActorReplaced);
+#endif
 		DelegateHandle_BlueprintCompiled = GEditor->OnBlueprintCompiled().AddRaw(this, &FActorIOEditor::OnBlueprintCompiled);
 
 		// Register undo client.
@@ -104,7 +106,9 @@ void FActorIOEditor::ShutdownModule()
 		// Clear delegates.
 		USelection::SelectionChangedEvent.Remove(DelegateHandle_SelectionChanged);
 		FEditorDelegates::OnDeleteActorsBegin.Remove(DelegateHandle_DeleteActorsBegin);
+#if UE_VERSION_NEWER_THAN(5, 5, 0)
 		FEditorDelegates::OnEditorActorReplaced.Remove(DelegateHandle_ActorReplaced);
+#endif
 		GEditor->OnBlueprintCompiled().Remove(DelegateHandle_BlueprintCompiled);
 
 		// Unegister undo client.

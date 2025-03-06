@@ -13,7 +13,7 @@ ALogicActorBase::ALogicActorBase()
 
 #if UE_VERSION_NEWER_THAN(5, 5, 0)
 	SetNetUpdateFrequency(10.0f);
-#elif
+#else
 	NetUpdateFrequency = 10.0f;
 #endif
 
