@@ -4,6 +4,7 @@
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/Layout/SSpacer.h"
+#include "SlateOptMacros.h"
 
 SLATE_IMPLEMENT_WIDGET(SActorIOTooltip)
 void SActorIOTooltip::PrivateRegisterAttributes(FSlateAttributeInitializer& AttributeInitializer)

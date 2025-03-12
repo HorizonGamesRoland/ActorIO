@@ -4,6 +4,9 @@
 #include "ActorIOComponent.h"
 #include "ActorIOInterface.h"
 #include "ActorIOSubsystemBase.h"
+#include "GameFramework/Actor.h"
+#include "Engine/World.h"
+#include "TimerManager.h"
 
 FName UActorIOAction::ExecuteActionSignalName(TEXT("ReceiveExecuteAction"));
 

@@ -5,10 +5,16 @@
 #include "ActorIOComponent.h"
 #include "ActorIOEditor.h"
 #include "ActorIOEditorStyle.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/Input/SCheckBox.h"
 #include "Widgets/Input/SSpinBox.h"
+#include "Widgets/Input/SEditableTextBox.h"
+#include "Widgets/Input/SComboBox.h"
 #include "Widgets/Layout/SWidgetSwitcher.h"
+#include "Widgets/Layout/SSpacer.h"
 #include "PropertyCustomizationHelpers.h"
 #include "Misc/Optional.h"
+#include "SlateOptMacros.h"
 
 #define LOCTEXT_NAMESPACE "ActorIOEditor"
 

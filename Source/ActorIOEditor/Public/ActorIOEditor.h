@@ -6,10 +6,13 @@
 #include "Modules/ModuleManager.h"
 #include "ActorIOPIEAuthorizer.h"
 #include "EditorUndoClient.h"
+#include "UObject/WeakObjectPtrTemplatesFwd.h"
 
 class UActorIOComponent;
 class SActorIOEditor;
 class SDockTab;
+class FSpawnTabArgs;
+class AActor;
 
 /**
  * Editor module implementation of the Actor I/O plugin.

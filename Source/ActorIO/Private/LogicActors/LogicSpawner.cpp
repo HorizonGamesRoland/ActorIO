@@ -1,6 +1,8 @@
 // Copyright 2024-2025 Horizon Games and all contributors at https://github.com/HorizonGamesRoland/ActorIO/graphs/contributors
 
 #include "LogicActors/LogicSpawner.h"
+#include "Engine/World.h"
+#include "TimerManager.h"
 
 #define LOCTEXT_NAMESPACE "ActorIO"
 

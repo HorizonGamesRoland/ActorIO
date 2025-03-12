@@ -6,6 +6,8 @@
 #include "ActorIOInterface.h"
 #include "GameFramework/Actor.h"
 #include "Components/BillboardComponent.h"
+#include "Engine/Texture2D.h"
+#include "UObject/ConstructorHelpers.h"
 #include "LogicActorBase.generated.h"
 
 /** A dynamic multicast delegate with no params. */
