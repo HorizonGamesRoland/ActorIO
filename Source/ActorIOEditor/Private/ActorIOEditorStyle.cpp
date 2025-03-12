@@ -4,7 +4,6 @@
 #include "Styling/SlateStyleRegistry.h"
 #include "Styling/SlateStyleMacros.h"
 #include "Styling/SlateTypes.h"
-#include "Styling/StyleColors.h"
 #include "Interfaces/IPluginManager.h"
 #include "Brushes/SlateRoundedBoxBrush.h"
 

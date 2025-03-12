@@ -5,7 +5,9 @@
 #include "ActorIOComponent.h"
 #include "ActorIOEditor.h"
 #include "ActorIOEditorStyle.h"
+#include "GameFramework/Actor.h"
 #include "Widgets/SBoxPanel.h"
+#include "Widgets/Input/SButton.h"
 #include "Widgets/Input/SCheckBox.h"
 #include "Widgets/Input/SSpinBox.h"
 #include "Widgets/Input/SEditableTextBox.h"
@@ -13,6 +15,8 @@
 #include "Widgets/Layout/SWidgetSwitcher.h"
 #include "Widgets/Layout/SSpacer.h"
 #include "PropertyCustomizationHelpers.h"
+#include "Editor.h"
+#include "ScopedTransaction.h"
 #include "Misc/Optional.h"
 #include "SlateOptMacros.h"
 

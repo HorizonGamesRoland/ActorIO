@@ -6,7 +6,7 @@
 #include "Modules/ModuleManager.h"
 #include "ActorIOPIEAuthorizer.h"
 #include "EditorUndoClient.h"
-#include "UObject/WeakObjectPtrTemplatesFwd.h"
+#include "UObject/WeakObjectPtr.h"
 
 class UActorIOComponent;
 class SActorIOEditor;

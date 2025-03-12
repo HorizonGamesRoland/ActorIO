@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Styling/SlateStyle.h"
+#include "Styling/StyleColors.h"
 
 /**
  * Custom style set used by the Actor I/O editor module.
