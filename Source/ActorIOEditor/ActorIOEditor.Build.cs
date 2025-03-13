@@ -8,10 +8,6 @@ public class ActorIOEditor : ModuleRules
     {
         PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 
-        // Opt-in to using the "Include-What-You-Use" mode as per engine plugin standard.
-        // Implies that PCHUsage is set to UseExplicitOrSharedPCHs.
-        //IWYUSupport = IWYUSupport.Full;
-
         PublicDependencyModuleNames.AddRange(new string[]
         {
             "Core",
