@@ -236,6 +236,12 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 		return;
 	}
 
+	if (bExecuteOnlyOnce && bWasExecuted)
+	{
+		// Do nothing if execute only once is enabled and the action was executed already.
+		return;
+	}
+
 	UE_CLOG(DebugIOActions, LogActorIO, Log, TEXT("Executing action: %s -> %s (Caller: '%s')"), *EventId.ToString(), *FunctionId.ToString(), *ActionOwner->GetActorNameOrLabel());
 
 	if (!IsValid(TargetActor))
