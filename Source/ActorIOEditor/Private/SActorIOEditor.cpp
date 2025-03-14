@@ -7,10 +7,15 @@
 #include "ActorIOComponent.h"
 #include "ActorIOAction.h"
 #include "GameFramework/Actor.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/Layout/SSpacer.h"
+#include "Widgets/Input/SCheckBox.h"
 #include "SPositiveActionButton.h"
 #include "Styling/SlateIconFinder.h"
 #include "Styling/SlateTypes.h"
+#include "ScopedTransaction.h"
 #include "Misc/Optional.h"
+#include "SlateOptMacros.h"
 
 #define LOCTEXT_NAMESPACE "ActorIOEditor"
 

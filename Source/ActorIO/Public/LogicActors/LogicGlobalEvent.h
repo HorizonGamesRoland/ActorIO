@@ -6,6 +6,8 @@
 #include "LogicActors/LogicActorBase.h"
 #include "LogicGlobalEvent.generated.h"
 
+struct FActorsInitializedParams;
+
 /**
  * An actor that listens for global world events.
  */

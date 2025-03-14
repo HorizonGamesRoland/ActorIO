@@ -4,6 +4,7 @@
 
 #include "ActorIO.h"
 #include "Engine/DeveloperSettings.h"
+#include "Templates/SubclassOf.h"
 #include "ActorIOSettings.generated.h"
 
 /**

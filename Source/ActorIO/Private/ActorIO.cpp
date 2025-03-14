@@ -5,6 +5,8 @@
 #include "ActorIOAction.h"
 #include "ActorIOInterface.h"
 #include "ActorIOSubsystemBase.h"
+#include "GameFramework/Actor.h"
+#include "UObject/UObjectIterator.h"
 
 DEFINE_LOG_CATEGORY(LogActorIO);
 

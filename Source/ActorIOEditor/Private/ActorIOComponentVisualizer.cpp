@@ -3,6 +3,7 @@
 #include "ActorIOComponentVisualizer.h"
 #include "ActorIOComponent.h"
 #include "ActorIOAction.h"
+#include "SceneManagement.h"
 
 void FActorIOComponentVisualizer::DrawVisualization(const UActorComponent* Component, const FSceneView* View, FPrimitiveDrawInterface* PDI)
 {

@@ -24,7 +24,7 @@ public:
 protected:
 
 	/** List of I/O actions managed by the component for the owning actor. */
-	UPROPERTY(Instanced, EditInstanceOnly, EditFixedSize, NoClear)
+	UPROPERTY(Instanced, EditInstanceOnly, EditFixedSize, NoClear, Category = "ActorIO")
 	TArray<TObjectPtr<UActorIOAction>> Actions;
 
 public:

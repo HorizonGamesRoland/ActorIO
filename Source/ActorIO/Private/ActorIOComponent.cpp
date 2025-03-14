@@ -2,6 +2,9 @@
 
 #include "ActorIOComponent.h"
 #include "ActorIOAction.h"
+#include "GameFramework/Actor.h"
+#include "Engine/World.h"
+#include "TimerManager.h"
 #include "Logging/MessageLog.h"
 #include "Misc/UObjectToken.h"
 

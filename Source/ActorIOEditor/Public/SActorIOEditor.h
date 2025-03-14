@@ -5,6 +5,9 @@
 #include "CoreMinimal.h"
 #include "Widgets/SCompoundWidget.h"
 
+class FReply;
+enum class ECheckBoxState : uint8;
+
 /**
  * Widget inside the I/O editor tab.
  */

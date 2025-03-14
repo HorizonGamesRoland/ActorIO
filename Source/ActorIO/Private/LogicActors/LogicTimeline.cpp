@@ -1,6 +1,8 @@
 // Copyright 2024-2025 Horizon Games and all contributors at https://github.com/HorizonGamesRoland/ActorIO/graphs/contributors
 
 #include "LogicActors/LogicTimeline.h"
+#include "GameFramework/WorldSettings.h"
+#include "Engine/World.h"
 
 #define LOCTEXT_NAMESPACE "ActorIO"
 

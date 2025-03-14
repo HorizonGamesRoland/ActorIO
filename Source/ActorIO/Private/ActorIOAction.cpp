@@ -4,6 +4,9 @@
 #include "ActorIOComponent.h"
 #include "ActorIOInterface.h"
 #include "ActorIOSubsystemBase.h"
+#include "GameFramework/Actor.h"
+#include "Engine/World.h"
+#include "TimerManager.h"
 
 FName UActorIOAction::ExecuteActionSignalName(TEXT("ReceiveExecuteAction"));
 
@@ -230,6 +233,12 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 	if (!IsValid(ActionOwner))
 	{
 		// Do not attempt to execute an action if we are about to be destroyed.
+		return;
+	}
+
+	if (bExecuteOnlyOnce && bWasExecuted)
+	{
+		// Do nothing if execute only once is enabled and the action was executed already.
 		return;
 	}
 

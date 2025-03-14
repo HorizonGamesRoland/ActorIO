@@ -19,12 +19,14 @@
 #include "Widgets/Docking/SDockTab.h"
 #include "GameFramework/Actor.h"
 #include "IPlacementModeModule.h"
+#include "Features/IModularFeature.h"
 #include "WorkspaceMenuStructure.h"
 #include "WorkspaceMenuStructureModule.h"
 #include "Selection.h"
 #include "Editor.h"
 #include "UnrealEdGlobals.h"
 #include "Editor/UnrealEdEngine.h"
+#include "Misc/ITransaction.h"
 #include "Misc/EngineVersionComparison.h"
 
 #define LOCTEXT_NAMESPACE "ActorIOEditor"
@@ -69,6 +71,7 @@ void FActorIOEditor::StartupModule()
 	}
 
 	// Register PIE authorizer to abort PIE sessions if the plugin is configured incorrectly.
+	// #NOTE: IModularFeatures won't compile in IWYU mode.
 	PIEAuthorizer = FActorIOPIEAuthorizer();
 	IModularFeatures::Get().RegisterModularFeature(FActorIOPIEAuthorizer::GetModularFeatureName(), &PIEAuthorizer);
 
