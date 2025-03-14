@@ -4,8 +4,7 @@
 
 Actor I/O is a level scripting tool for Unreal Engine, featuring an input/output system similar to the **Source Engine** by Valve™ Software. At its heart, the plugin is an event binding system where actions are executed in reaction to an event being triggered. Using the C++ reflection system of Unreal Engine, the system can react to any dynamic delegate be it C++ or blueprint, and essentially call any function by name with parameters.
 
-> [!IMPORTANT]
-> Please note that the plugin is currently in **Beta**! It should be stable enough to be used in projects, but certain issues or bugs can still exist. Please make sure to use version control before adding it to your project, or test it in a separate project.
+The plugin is also available on FAB: [Actor IO Level Scripting](https://www.fab.com/listings/b3a3142b-8890-469a-b04f-626c5acf0d2e)
 
 # Usage
 
