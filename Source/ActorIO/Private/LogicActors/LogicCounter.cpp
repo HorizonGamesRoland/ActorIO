@@ -37,6 +37,12 @@ void ALogicCounter::RegisterIOEvents(FActorIOEventList& EventRegistry)
 		.SetMulticastDelegate(this, &OnTargetValueReached));
 
 	EventRegistry.RegisterEvent(FActorIOEvent()
+		.SetId(TEXT("ALogicCounter::OnTargetValueChanged"))
+		.SetDisplayName(LOCTEXT("ALogicCounter.OnTargetValueChanged", "OnTargetValueChanged"))
+		.SetTooltipText(LOCTEXT("ALogicCounter.OnTargetValueChangedTooltip", "Event when the target value is changed."))
+		.SetMulticastDelegate(this, &OnTargetValueChanged));
+
+	EventRegistry.RegisterEvent(FActorIOEvent()
 		.SetId(TEXT("ALogicCounter::OnGetValue"))
 		.SetDisplayName(LOCTEXT("ALogicCounter.OnGetValue", "OnGetValue"))
 		.SetTooltipText(LOCTEXT("ALogicCounter.OnGetValueTooltip", "Event when the current value is read using the 'GetValue' function."))
@@ -167,7 +173,13 @@ void ALogicCounter::SetValue(int32 Value)
 
 void ALogicCounter::SetTargetValue(int32 Value)
 {
+	const int32 PreviousValue = TargetValue;
 	TargetValue = Value;
+
+	if (TargetValue != PreviousValue)
+	{
+		OnTargetValueChanged.Broadcast(TargetValue);
+	}
 
 	if (bClampValue)
 	{
