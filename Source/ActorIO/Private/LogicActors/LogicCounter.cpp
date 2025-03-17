@@ -99,7 +99,7 @@ void ALogicCounter::Add(int32 Amount)
 		Amount = 1;
 	}
 
-	int32 PreviousValue = CurrentValue;
+	const int32 PreviousValue = CurrentValue;
 	CurrentValue += Amount;
 
 	if (bClampValue)
@@ -125,7 +125,7 @@ void ALogicCounter::Subtract(int32 Amount)
 		Amount = 1;
 	}
 
-	int32 PreviousValue = CurrentValue;
+	const int32 PreviousValue = CurrentValue;
 	CurrentValue -= Amount;
 
 	if (bClampValue)
@@ -146,7 +146,7 @@ void ALogicCounter::Subtract(int32 Amount)
 
 void ALogicCounter::SetValue(int32 Value)
 {
-	int32 PreviousValue = CurrentValue;
+	const int32 PreviousValue = CurrentValue;
 	CurrentValue = Value;
 
 	if (bClampValue)
@@ -167,7 +167,6 @@ void ALogicCounter::SetValue(int32 Value)
 
 void ALogicCounter::SetTargetValue(int32 Value)
 {
-	int32 PreviousValue = CurrentValue;
 	TargetValue = Value;
 
 	if (bClampValue)
@@ -175,11 +174,6 @@ void ALogicCounter::SetTargetValue(int32 Value)
 		CurrentValue = FMath::Clamp(CurrentValue, 0, TargetValue);
 	}
 
-	if (CurrentValue != PreviousValue)
-	{
-		OnValueChanged.Broadcast(CurrentValue);
-	}
-	
 	if (CurrentValue >= TargetValue)
 	{
 		OnTargetValueReached.Broadcast(CurrentValue);
