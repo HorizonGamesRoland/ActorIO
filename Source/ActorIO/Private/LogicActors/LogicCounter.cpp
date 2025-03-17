@@ -28,7 +28,8 @@ void ALogicCounter::RegisterIOEvents(FActorIOEventList& EventRegistry)
 		.SetId(TEXT("ALogicCounter::OnValueChanged"))
 		.SetDisplayName(LOCTEXT("ALogicCounter.OnValueChanged", "OnValueChanged"))
 		.SetTooltipText(LOCTEXT("ALogicCounter.OnValueChangedTooltip", "Event when the current value is changed."))
-		.SetMulticastDelegate(this, &OnValueChanged));
+		.SetMulticastDelegate(this, &OnValueChanged)
+		.SetEventProcessor(this, TEXT("ProcessEvent_OnValueChanged")));
 
 	EventRegistry.RegisterEvent(FActorIOEvent()
 		.SetId(TEXT("ALogicCounter::OnTargetValueReached"))
@@ -40,7 +41,8 @@ void ALogicCounter::RegisterIOEvents(FActorIOEventList& EventRegistry)
 		.SetId(TEXT("ALogicCounter::OnTargetValueChanged"))
 		.SetDisplayName(LOCTEXT("ALogicCounter.OnTargetValueChanged", "OnTargetValueChanged"))
 		.SetTooltipText(LOCTEXT("ALogicCounter.OnTargetValueChangedTooltip", "Event when the target value is changed."))
-		.SetMulticastDelegate(this, &OnTargetValueChanged));
+		.SetMulticastDelegate(this, &OnTargetValueChanged)
+		.SetEventProcessor(this, TEXT("ProcessEvent_OnValueChanged")));
 
 	EventRegistry.RegisterEvent(FActorIOEvent()
 		.SetId(TEXT("ALogicCounter::OnGetValue"))
@@ -202,6 +204,12 @@ int32 ALogicCounter::GetValue() const
 {
 	OnGetValue.Broadcast(CurrentValue);
 	return CurrentValue;
+}
+
+void ALogicCounter::ProcessEvent_OnValueChanged(int32 Value)
+{
+	FActionExecutionContext& ExecContext = FActionExecutionContext::Get(this);
+	ExecContext.SetNamedArgument(TEXT("$Value"), FString::FromInt(Value));
 }
 
 void ALogicCounter::ProcessEvent_OnGetValue(int32 Value)

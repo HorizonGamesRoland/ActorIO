@@ -6,7 +6,7 @@
 #include "LogicActors/LogicActorBase.h"
 #include "LogicCounter.generated.h"
 
-/** Delegate when the counter's current or target value changes. */
+/** Delegate with the counter's current or target value. */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCounterValue, int32, Value);
 
 /**
@@ -93,6 +93,10 @@ public:
     int32 GetValue() const;
 
 protected:
+
+    /** Event processor for the 'OnValueChanged' and 'OnTargetValueChanged' events. */
+    UFUNCTION()
+    void ProcessEvent_OnValueChanged(int32 Value);
 
     /** Event processor for the 'OnGetValue' event. */
     UFUNCTION()
