@@ -183,7 +183,13 @@ void ALogicCounter::SetTargetValue(int32 Value)
 
 	if (bClampValue)
 	{
+		const int32 OldCurrentValue = CurrentValue;
 		CurrentValue = FMath::Clamp(CurrentValue, 0, TargetValue);
+
+		if (CurrentValue != OldCurrentValue)
+		{
+			OnValueChanged.Broadcast(CurrentValue);
+		}
 	}
 
 	if (CurrentValue >= TargetValue)
