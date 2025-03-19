@@ -6,7 +6,7 @@
 #include "LogicActors/LogicActorBase.h"
 #include "LogicCounter.generated.h"
 
-/** Delegate with the counter's current value. */
+/** Delegate with the counter's current or target value. */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCounterValue, int32, Value);
 
 /**
@@ -44,6 +44,10 @@ public:
     /** Event when the current value is changed. */
     UPROPERTY(BlueprintAssignable, Category = "Counter")
     FOnCounterValue OnValueChanged;
+
+    /** Event when the target value is changed. */
+    UPROPERTY(BlueprintAssignable, Category = "Counter")
+    FOnCounterValue OnTargetValueChanged;
 
     /** Event when the current value equals or greater then the target value. */
     UPROPERTY(BlueprintAssignable, Category = "Counter")
@@ -89,6 +93,10 @@ public:
     int32 GetValue() const;
 
 protected:
+
+    /** Event processor for the 'OnValueChanged' and 'OnTargetValueChanged' events. */
+    UFUNCTION()
+    void ProcessEvent_OnValueChanged(int32 Value);
 
     /** Event processor for the 'OnGetValue' event. */
     UFUNCTION()

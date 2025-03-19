@@ -28,13 +28,21 @@ void ALogicCounter::RegisterIOEvents(FActorIOEventList& EventRegistry)
 		.SetId(TEXT("ALogicCounter::OnValueChanged"))
 		.SetDisplayName(LOCTEXT("ALogicCounter.OnValueChanged", "OnValueChanged"))
 		.SetTooltipText(LOCTEXT("ALogicCounter.OnValueChangedTooltip", "Event when the current value is changed."))
-		.SetMulticastDelegate(this, &OnValueChanged));
+		.SetMulticastDelegate(this, &OnValueChanged)
+		.SetEventProcessor(this, TEXT("ProcessEvent_OnValueChanged")));
 
 	EventRegistry.RegisterEvent(FActorIOEvent()
 		.SetId(TEXT("ALogicCounter::OnTargetValueReached"))
 		.SetDisplayName(LOCTEXT("ALogicCounter.OnTargetValueReached", "OnTargetValueReached"))
 		.SetTooltipText(LOCTEXT("ALogicCounter.OnTargetValueReachedeTooltip", "Event when the current value equals or greater then the target value."))
 		.SetMulticastDelegate(this, &OnTargetValueReached));
+
+	EventRegistry.RegisterEvent(FActorIOEvent()
+		.SetId(TEXT("ALogicCounter::OnTargetValueChanged"))
+		.SetDisplayName(LOCTEXT("ALogicCounter.OnTargetValueChanged", "OnTargetValueChanged"))
+		.SetTooltipText(LOCTEXT("ALogicCounter.OnTargetValueChangedTooltip", "Event when the target value is changed."))
+		.SetMulticastDelegate(this, &OnTargetValueChanged)
+		.SetEventProcessor(this, TEXT("ProcessEvent_OnValueChanged")));
 
 	EventRegistry.RegisterEvent(FActorIOEvent()
 		.SetId(TEXT("ALogicCounter::OnGetValue"))
@@ -98,12 +106,18 @@ void ALogicCounter::Add(int32 Amount)
 	{
 		Amount = 1;
 	}
-	
+
+	const int32 PreviousValue = CurrentValue;
 	CurrentValue += Amount;
 
 	if (bClampValue)
 	{
 		CurrentValue = FMath::Clamp(CurrentValue, 0, TargetValue);
+	}
+
+	if (CurrentValue != PreviousValue)
+	{
+		OnValueChanged.Broadcast(CurrentValue);
 	}
 
 	if (CurrentValue >= TargetValue)
@@ -119,11 +133,17 @@ void ALogicCounter::Subtract(int32 Amount)
 		Amount = 1;
 	}
 
+	const int32 PreviousValue = CurrentValue;
 	CurrentValue -= Amount;
 
 	if (bClampValue)
 	{
 		CurrentValue = FMath::Clamp(CurrentValue, 0, TargetValue);
+	}
+
+	if (CurrentValue != PreviousValue)
+	{
+		OnValueChanged.Broadcast(CurrentValue);
 	}
 
 	if (CurrentValue >= TargetValue)
@@ -134,11 +154,17 @@ void ALogicCounter::Subtract(int32 Amount)
 
 void ALogicCounter::SetValue(int32 Value)
 {
+	const int32 PreviousValue = CurrentValue;
 	CurrentValue = Value;
 
 	if (bClampValue)
 	{
 		CurrentValue = FMath::Clamp(CurrentValue, 0, TargetValue);
+	}
+
+	if (CurrentValue != PreviousValue)
+	{
+		OnValueChanged.Broadcast(CurrentValue);
 	}
 
 	if (CurrentValue >= TargetValue)
@@ -149,11 +175,23 @@ void ALogicCounter::SetValue(int32 Value)
 
 void ALogicCounter::SetTargetValue(int32 Value)
 {
+	const int32 PreviousValue = TargetValue;
 	TargetValue = Value;
+
+	if (TargetValue != PreviousValue)
+	{
+		OnTargetValueChanged.Broadcast(TargetValue);
+	}
 
 	if (bClampValue)
 	{
+		const int32 OldCurrentValue = CurrentValue;
 		CurrentValue = FMath::Clamp(CurrentValue, 0, TargetValue);
+
+		if (CurrentValue != OldCurrentValue)
+		{
+			OnValueChanged.Broadcast(CurrentValue);
+		}
 	}
 
 	if (CurrentValue >= TargetValue)
@@ -166,6 +204,12 @@ int32 ALogicCounter::GetValue() const
 {
 	OnGetValue.Broadcast(CurrentValue);
 	return CurrentValue;
+}
+
+void ALogicCounter::ProcessEvent_OnValueChanged(int32 Value)
+{
+	FActionExecutionContext& ExecContext = FActionExecutionContext::Get(this);
+	ExecContext.SetNamedArgument(TEXT("$Value"), FString::FromInt(Value));
 }
 
 void ALogicCounter::ProcessEvent_OnGetValue(int32 Value)
