@@ -12,6 +12,9 @@
 
 UActorIOComponent::UActorIOComponent()
 {
+	// Required for component initialize/deinitialize callbacks.
+	bWantsInitializeComponent = true;
+
 	Actions = TArray<TObjectPtr<UActorIOAction>>();
 }
 
@@ -19,19 +22,21 @@ void UActorIOComponent::OnRegister()
 {
 	Super::OnRegister();
 
+	// Clean up the action list whenever the component is (re)registered.
 	RemoveInvalidActions();
+}
 
-	UWorld* MyWorld = GetWorld();
-	if (MyWorld && MyWorld->IsGameWorld())
+void UActorIOComponent::InitializeComponent()
+{
+	Super::InitializeComponent();
+
+	AActor* MyOwner = GetOwner();
+	if (!MyOwner->IsActorTickEnabled())
 	{
-		AActor* MyOwner = GetOwner();
-		if (!MyOwner->IsActorTickEnabled())
-		{
-			MyOwner->SetActorTickEnabled(true);
-		}
-
-		BindActions();
+		MyOwner->SetActorTickEnabled(true);
 	}
+
+	BindActions();
 }
 
 UActorIOAction* UActorIOComponent::CreateNewAction()
@@ -121,15 +126,11 @@ void UActorIOComponent::UnbindActions()
 	}
 }
 
-void UActorIOComponent::OnUnregister()
+void UActorIOComponent::UninitializeComponent()
 {
-	UWorld* MyWorld = GetWorld();
-	if (MyWorld && MyWorld->IsGameWorld())
-	{
-		UnbindActions();
-	}
+	UnbindActions();
 
-	Super::OnUnregister();
+	Super::UninitializeComponent();
 }
 
 #if WITH_EDITOR
