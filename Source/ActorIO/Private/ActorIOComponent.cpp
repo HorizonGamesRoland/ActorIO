@@ -30,12 +30,6 @@ void UActorIOComponent::InitializeComponent()
 {
 	Super::InitializeComponent();
 
-	AActor* MyOwner = GetOwner();
-	if (!MyOwner->IsActorTickEnabled())
-	{
-		MyOwner->SetActorTickEnabled(true);
-	}
-
 	BindActions();
 }
 
