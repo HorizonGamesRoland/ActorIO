@@ -143,7 +143,6 @@ void UActorIOComponent::CheckForErrors()
 	if (NumActions > 0)
 	{
 		const FActorIOEventList ValidEvents = IActorIO::GetEventsForObject(Owner);
-		const FActorIOFunctionList ValidFunctions = IActorIO::GetFunctionsForObject(Owner);
 
 		for (int32 ActionIdx = 0; ActionIdx != NumActions; ++ActionIdx)
 		{
@@ -166,21 +165,24 @@ void UActorIOComponent::CheckForErrors()
 						->AddToken(FTextToken::Create(LOCTEXT("MapCheck_Message_IOActionInvalidEvent", "contains an action with invalid event selected.")));
 				}
 
-				const FActorIOFunction* TargetFunction = ValidFunctions.GetFunction(Action->FunctionId);
-				if (!TargetFunction)
-				{
-					FMessageLog("MapCheck").Warning()
-						->AddToken(FTextToken::Create(LOCTEXT("MapCheck_Message_IOPrefix", "[I/O]")))
-						->AddToken(FUObjectToken::Create(Owner))
-						->AddToken(FTextToken::Create(LOCTEXT("MapCheck_Message_IOActionInvalidFunction", "contains an action with invalid target function selected.")));
-				}
-
 				if (!IsValid(Action->TargetActor))
 				{
 					FMessageLog("MapCheck").Warning()
 						->AddToken(FTextToken::Create(LOCTEXT("MapCheck_Message_IOPrefix", "[I/O]")))
 						->AddToken(FUObjectToken::Create(Owner))
 						->AddToken(FTextToken::Create(LOCTEXT("MapCheck_Message_IOActionInvalidTarget", "contains an action with invalid target actor selected.")));
+				}
+				else
+				{
+					const FActorIOFunctionList ValidFunctions = IActorIO::GetFunctionsForObject(Action->TargetActor);
+					const FActorIOFunction* TargetFunction = ValidFunctions.GetFunction(Action->FunctionId);
+					if (!TargetFunction)
+					{
+						FMessageLog("MapCheck").Warning()
+							->AddToken(FTextToken::Create(LOCTEXT("MapCheck_Message_IOPrefix", "[I/O]")))
+							->AddToken(FUObjectToken::Create(Owner))
+							->AddToken(FTextToken::Create(LOCTEXT("MapCheck_Message_IOActionInvalidFunction", "contains an action with invalid target function selected.")));
+					}
 				}
 			}
 		}
