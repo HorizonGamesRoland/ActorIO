@@ -73,6 +73,38 @@ void UActorIOSubsystemBase::GetNativeEventsForObject(AActor* InObject, FActorIOE
     }
 
     //==================================
+    // Sequence Actors
+    //==================================
+
+    // In the case of ALevelSequenceActor, we are comparing the class name directly to avoid dependency to LevelSequence module.
+    // Note that this does not support class inheritance, so it only works for exact classes.
+    // Since LevelSequenceActor is just a component wrapper, I do not think anyone will ever subclass it anyways.
+    if (InObject->GetClass()->GetFName() == TEXT("LevelSequenceActor"))
+    {
+        // The callback events are in the ULevelSequencePlayer subobject of the ALevelSequenceActor.
+        // We can simply get it as a UObject and use reflection data to bind to it (via SetBlueprintDelegate).
+        UObject* LevelSequencePlayer = InObject->GetDefaultSubobjectByName(TEXT("AnimationPlayer"));
+
+        EventRegistry.RegisterEvent(FActorIOEvent()
+            .SetId(TEXT("ALevelSequenceActor::OnPlay"))
+            .SetDisplayName(LOCTEXT("LevelSequenceActor.OnPlay", "OnPlay"))
+            .SetTooltipText(LOCTEXT("LevelSequenceActor.OnPlayTooltip", "Event when the level sequence is started."))
+            .SetBlueprintDelegate(LevelSequencePlayer, TEXT("OnPlay")));
+
+        EventRegistry.RegisterEvent(FActorIOEvent()
+            .SetId(TEXT("ALevelSequenceActor::OnStop"))
+            .SetDisplayName(LOCTEXT("LevelSequenceActor.OnStop", "OnStop"))
+            .SetTooltipText(LOCTEXT("LevelSequenceActor.OnStopTooltip", "Event when the level sequence is stopped."))
+            .SetBlueprintDelegate(LevelSequencePlayer, TEXT("OnStop")));
+
+        EventRegistry.RegisterEvent(FActorIOEvent()
+            .SetId(TEXT("ALevelSequenceActor::OnFinished"))
+            .SetDisplayName(LOCTEXT("LevelSequenceActor.OnFinished", "OnFinished"))
+            .SetTooltipText(LOCTEXT("LevelSequenceActor.OnFinishedTooltip", "Event when the level sequence finishes naturally (without explicitly calling stop)."))
+            .SetBlueprintDelegate(LevelSequencePlayer, TEXT("OnFinished")));
+    }
+
+    //==================================
     // Non Logic Actors
     //==================================
 
@@ -158,8 +190,7 @@ void UActorIOSubsystemBase::GetNativeFunctionsForObject(AActor* InObject, FActor
             .SetSubobject(TEXT("ParticleSystemComponent0")));
     }
 
-    // In the case of ANiagaraActor, we are comparing the class name directly.
-    // This is to avoid dependency to the Niagara module.
+    // In the case of ANiagaraActor, we are comparing the class name directly to avoid dependency to Niagara module.
     // Note that this does not support class inheritance, so it only works for exact classes.
     // Since NiagaraActor is just a component wrapper, I do not think anyone will ever subclass it anyways.
     if (InObject->GetClass()->GetFName() == TEXT("NiagaraActor"))
@@ -267,6 +298,30 @@ void UActorIOSubsystemBase::GetNativeFunctionsForObject(AActor* InObject, FActor
             .SetDisplayName(LOCTEXT("StaticMeshActor.SetHiddenInGame", "SetHiddenInGame"))
             .SetTooltipText(LOCTEXT("StaticMeshActor.SetHiddenInGameTooltip", "Set whether the actor is hidden or not."))
             .SetFunction(TEXT("SetActorHiddenInGame")));
+    }
+
+    //==================================
+    // Sequence Actors
+    //==================================
+
+    // In the case of ALevelSequenceActor, we are comparing the class name directly to avoid dependency to LevelSequence module.
+    // Note that this does not support class inheritance, so it only works for exact classes.
+    // Since LevelSequenceActor is just a component wrapper, I do not think anyone will ever subclass it anyways.
+    if (InObject->GetClass()->GetFName() == TEXT("LevelSequenceActor"))
+    {
+        FunctionRegistry.RegisterFunction(FActorIOFunction()
+            .SetId(TEXT("ALevelSequenceActor::Play"))
+            .SetDisplayName(LOCTEXT("LevelSequenceActor.Play", "Play"))
+            .SetTooltipText(LOCTEXT("LevelSequenceActor.PlayTooltip", "Start playing the sequence."))
+            .SetFunction(TEXT("Play"))
+            .SetSubobject(TEXT("AnimationPlayer")));
+
+        FunctionRegistry.RegisterFunction(FActorIOFunction()
+            .SetId(TEXT("ALevelSequenceActor::Stop"))
+            .SetDisplayName(LOCTEXT("LevelSequenceActor.Stop", "Stop"))
+            .SetTooltipText(LOCTEXT("LevelSequenceActor.StopTooltip", "Go to end of the sequence and stop. Adheres to 'When Finished' section rules."))
+            .SetFunction(TEXT("GoToEndAndStop"))
+            .SetSubobject(TEXT("AnimationPlayer")));
     }
 
     //==================================
