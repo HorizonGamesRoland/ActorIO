@@ -109,6 +109,9 @@ protected:
 	 */
 	void SendCommand(UObject* TargetObject, FString Command);
 
+	/** Process the command on the target actor. */
+	bool SendCommandInternal(UObject* TargetObject, const TCHAR* Str, FOutputDevice& Ar, UObject* Executor);
+
 public:
 
 	//~ Begin UObject Interface
