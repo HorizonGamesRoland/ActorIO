@@ -28,7 +28,7 @@ The I/O system was designed in a way to be easily extensible. You can register c
 
 # Logic Actors
 
-Logic Actors are small "script-like" actors that only server one specific purpose. They usually only do one small task, so they can easily be combined when scripting levels. The plugin comes with a collection of Logic Actors that you can use for level scripting. You can find all of them in the **Place Actors** tab of the engine. You can also create custom logic actors by subclassing the `LogicActorBase` class.
+Logic Actors are small "script-like" actors that only serve one specific purpose. They usually only do one small task, so they can easily be combined when scripting levels. The plugin comes with a collection of Logic Actors that you can use for level scripting. You can find all of them in the **Place Actors** tab of the engine. You can also create custom logic actors by subclassing the `LogicActorBase` class.
 
 ![Logic Actors](https://horizongames.gitbook.io/~gitbook/image?url=https%3A%2F%2F1586816513-files.gitbook.io%2F%7E%2Ffiles%2Fv0%2Fb%2Fgitbook-x-prod.appspot.com%2Fo%2Fspaces%252FJUOUKxX4X7uzzyzY7fQb%252Fuploads%252Fk5eu7DgVGh4bDsHeuxyl%252FAbout.jpg%3Falt%3Dmedia%26token%3D0af4c6dc-5d2c-4ceb-8f34-fabb1f2c07e9&width=768&dpr=1&quality=100&sign=8635e146&sv=2)
 
