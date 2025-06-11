@@ -38,6 +38,16 @@ public:
 public:
 
 	/**
+	 * Invokes a function on the target object with parameters using the reflection system.
+	 * 
+	 * @param Target Object to call the function on.
+	 * @param Str The command to execute. Contains function name followed by the params, delimited by whitespaces.
+	 * @param Ar Output device to push error messages to. Use FOutputDeviceNull if not needed.
+	 * @param Executor Object that is executing the function.
+	 */
+	virtual bool ExecuteCommand(UObject* Target, const TCHAR* Str, FOutputDevice& Ar, UObject* Executor);
+
+	/**
 	 * Exposes events from base Unreal Engine classes to the I/O system.
 	 * Used to avoid the need of subclassing these base classes in order to expose them.
 	 * Called in editor and at runtime, when registering I/O events.

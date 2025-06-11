@@ -105,12 +105,9 @@ protected:
 
 	/**
 	 * Sends the final command to the target actor.
-	 * The command contains the function name and parameter list that will be processed by Unreal Script.
+	 * The command contains the function name and parameters that will be processed by Unreal Script.
 	 */
-	void SendCommand(UObject* TargetObject, FString Command);
-
-	/** Process the command on the target actor. */
-	bool SendCommandInternal(UObject* TargetObject, const TCHAR* Str, FOutputDevice& Ar, UObject* Executor);
+	void SendCommand(UObject* Target, FString Command);
 
 public:
 
