@@ -1,7 +1,9 @@
 // Copyright 2024-2025 Horizon Games and all contributors at https://github.com/HorizonGamesRoland/ActorIO/graphs/contributors
 
 #include "LogicActors/LogicGlobalEvent.h"
+#include "ActorIOSubsystemBase.h"
 #include "Engine/World.h"
+#include "Engine/LevelScriptActor.h"
 
 #define LOCTEXT_NAMESPACE "ActorIO"
 
@@ -38,6 +40,15 @@ void ALogicGlobalEvent::RegisterIOEvents(FActorIOEventList& EventRegistry)
 		.SetMulticastDelegate(this, &OnWorldTeardown));
 }
 
+void ALogicGlobalEvent::RegisterIOFunctions(FActorIOFunctionList& FunctionRegistry)
+{
+	FunctionRegistry.RegisterFunction(FActorIOFunction()
+		.SetId(TEXT("ALogicGlobalEvent::CallLevelBlueprintFunction"))
+		.SetDisplayName(LOCTEXT("ALogicGlobalEvent.CallLevelBlueprintFunction", "CallLevelBlueprintFunction"))
+		.SetTooltipText(LOCTEXT("ALogicGlobalEvent.CallLevelBlueprintFunctionTooltip", "Call a function on the level blueprint of the level. Can pass in function params in following format: \"FuncName Param1 Param2 Param3 ...\""))
+		.SetFunction(TEXT("CallLevelBlueprintFunction")));
+}
+
 void ALogicGlobalEvent::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
@@ -65,9 +76,23 @@ void ALogicGlobalEvent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	Super::EndPlay(EndPlayReason);
 }
 
-void ALogicGlobalEvent::RegisterIOFunctions(FActorIOFunctionList& FunctionRegistry)
+void ALogicGlobalEvent::CallLevelBlueprintFunction(FString Command)
 {
-	// No functions.
+	ALevelScriptActor* LevelScriptActor = GetWorld()->GetLevelScriptActor();
+	if (IsValid(LevelScriptActor))
+	{
+		FStringOutputDevice Ar;
+
+		// Invoke the function.
+		UActorIOSubsystemBase* IOSubsystem = UActorIOSubsystemBase::Get(this);
+		IOSubsystem->ExecuteCommand(LevelScriptActor, *Command, Ar, this);
+
+		// Log execution errors.
+		if (!Ar.IsEmpty())
+		{
+			UE_LOG(LogActorIO, Error, TEXT("%s"), *Ar);
+		}
+	}
 }
 
 void ALogicGlobalEvent::OnWorldInitializedCallback(const FActorsInitializedParams& ActorInitParams)

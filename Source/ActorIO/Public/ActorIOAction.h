@@ -9,8 +9,8 @@
 class UActorIOComponent;
 
 /**
- * An action that will be execute when the assigned I/O event is triggered.
- * When executed, it will call the designated function on the target actor with the given parameters.
+ * An action that is executed when the assigned I/O event is triggered.
+ * When executed, it calls the designated function on the target actor with the given parameters.
  * This is basically the message bus of the I/O system.
  */
 UCLASS(DefaultToInstanced, EditInlineNew, Within = ActorIOComponent, DisplayName = "Actor I/O Action")
