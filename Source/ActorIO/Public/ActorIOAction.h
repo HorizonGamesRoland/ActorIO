@@ -83,6 +83,15 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Action")
 	AActor* GetOwnerActor() const;
 
+	/**
+	 * Get the object that the final command will be sent to by this action.
+	 * In most cases this will be the target actor, but the I/O function may want it to be executed on a subobject rather then the actor itself.
+	 * This function is public because we might want to access the target object from outside this class as well.
+	 * 
+	 * @param TargetFunction Optimization in case we already know which I/O function is called by this action.
+	 */
+	UObject* ResolveTargetObject(const FActorIOFunction* TargetFunction = nullptr) const;
+
 protected:
 
 	/**

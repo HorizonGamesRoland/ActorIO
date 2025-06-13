@@ -266,17 +266,13 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 		return;
 	}
 
-	// Figure out the object that the final command will be sent to.
-	// The I/O function may want it to be executed on a subobject rather then the target actor itself.
-	UObject* ObjectToSendCommandTo = TargetActor;
-	if (!TargetFunction->TargetSubobject.IsNone())
+	// Figure out which object the final command should be sent to.
+	// In most cases this will be the target actor, but the I/O function may want it to be executed on a subobject rather then the actor itself.
+	UObject* ObjectToSendCommandTo = ResolveTargetObject(TargetFunction);
+	if (!IsValid(ObjectToSendCommandTo))
 	{
-		ObjectToSendCommandTo = TargetActor->GetDefaultSubobjectByName(TargetFunction->TargetSubobject);
-		if (!IsValid(ObjectToSendCommandTo))
-		{
-			UE_CLOG(DebugIOActions, LogActorIO, Error, TEXT("Could not find default subobject '%s' on target actor '%s'."), *TargetFunction->TargetSubobject.ToString(), *TargetActor->GetActorNameOrLabel());
-			return;
-		}
+		UE_CLOG(DebugIOActions, LogActorIO, Error, TEXT("Could not find default subobject '%s' on target actor '%s'."), *TargetFunction->TargetSubobject.ToString(), *TargetActor->GetActorNameOrLabel());
+		return;
 	}
 
 	const bool bProcessNamedArgs = FunctionArguments.Contains(NAMEDARGUMENT_PREFIX);
@@ -438,4 +434,30 @@ AActor* UActorIOAction::GetOwnerActor() const
 {
 	UActorIOComponent* OwnerComponent = GetOwnerIOComponent();
 	return OwnerComponent ? OwnerComponent->GetOwner() : nullptr;
+}
+
+UObject* UActorIOAction::ResolveTargetObject(const FActorIOFunction* TargetFunction) const
+{
+	UObject* OutTarget = nullptr;
+
+	// Figure out which I/O function is called by this action if not provided already.
+	if (!TargetFunction)
+	{
+		FActorIOFunctionList ValidFunctions = IActorIO::GetFunctionsForObject(TargetActor);
+		TargetFunction = ValidFunctions.GetFunction(FunctionId);
+	}
+
+	if (TargetFunction && IsValid(TargetActor))
+	{
+		// If a subobject is provided, find it on the target actor.
+		// Otherwise just return the target actor.
+
+		OutTarget = TargetActor.Get();
+		if (!TargetFunction->TargetSubobject.IsNone())
+		{
+			OutTarget = TargetActor->GetDefaultSubobjectByName(TargetFunction->TargetSubobject);
+		}
+	}
+
+	return OutTarget;
 }
