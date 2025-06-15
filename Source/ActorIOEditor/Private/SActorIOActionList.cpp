@@ -2,6 +2,7 @@
 
 #include "SActorIOActionList.h"
 #include "SActorIOEditor.h"
+#include "SActorIOErrorText.h"
 #include "ActorIOComponent.h"
 #include "ActorIOEditor.h"
 #include "ActorIOEditorStyle.h"
@@ -324,12 +325,17 @@ TSharedRef<SWidget> SActorIOActionListViewRow::GenerateWidgetForColumn(const FNa
 		OutWidget->SetPadding(FMargin(1.0f, 0.0f, 1.0f, 0.0f));
 		OutWidget->SetContent
 		(
-			SNew(SEditableTextBox)
+			SAssignNew(ArgumentsBox, SEditableTextBox)
 			.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont"))
 			.Text(FText::FromString(ActionPtr->FunctionArguments))
-			.OnTextCommitted(this, &SActorIOActionListViewRow::OnFunctionArgumentsChanged)
+			.OnTextChanged(this, &SActorIOActionListViewRow::OnFunctionArgumentsChanged)
+			.OnTextCommitted(this, &SActorIOActionListViewRow::OnFunctionArgumentsCommitted)
+			.ErrorReporting(SAssignNew(ArgumentsErrorText, SActorIOErrorText))
 			.IsEnabled(!bIsInputAction)
 		);
+
+		// Update error text and close popup to avoid stealing input.
+		UpdateFunctionArgumentsErrorText(ArgumentsBox->GetText(), true);
 	}
 	else if (ColumnName == ColumnId::Delay)
 	{
@@ -533,12 +539,20 @@ void SActorIOActionListViewRow::OnFunctionComboBoxSelectionChanged(FName InName,
 	}
 }
 
-void SActorIOActionListViewRow::OnFunctionArgumentsChanged(const FText& InText, ETextCommit::Type InCommitType)
+void SActorIOActionListViewRow::OnFunctionArgumentsChanged(const FText& InText)
+{
+	UpdateFunctionArgumentsErrorText(InText);
+}
+
+void SActorIOActionListViewRow::OnFunctionArgumentsCommitted(const FText& InText, ETextCommit::Type InCommitType)
 {
 	const FScopedTransaction Transaction(LOCTEXT("ModifyActorIOAction", "Modify ActorIO Action"));
 	ActionPtr->Modify();
 
 	ActionPtr->FunctionArguments = InText.ToString();
+
+	// Update error text and close popup to avoid stealing input.
+	UpdateFunctionArgumentsErrorText(InText, true);
 }
 
 float SActorIOActionListViewRow::OnGetActionDelay() const
@@ -724,6 +738,60 @@ TSharedPtr<SActorIOTooltip> SActorIOActionListViewRow::GetFunctionTooltip(FName 
 		.Description(TooltipText);
 
 	return TooltipWidget.ToSharedPtr();
+}
+
+void SActorIOActionListViewRow::UpdateFunctionArgumentsErrorText(const FText& InArguments, bool bShouldCloseErrorPopup)
+{
+	FText ErrorText = FText::GetEmpty();
+	ValidateFunctionArguments(InArguments, ErrorText);
+
+	// Update error reporting widget.
+	// If error text is empty, the error is cleared.
+	ArgumentsBox->SetError(ErrorText);
+
+	// Close the popup immediately if needed to stop it from stealing input.
+	if (bShouldCloseErrorPopup)
+	{
+		ArgumentsErrorText->SetIsOpen(false);
+	}
+}
+
+bool SActorIOActionListViewRow::ValidateFunctionArguments(const FText& InText, FText& OutError)
+{
+	const FActorIOFunction* TargetFunction = ValidFunctions.GetFunction(ActionPtr->FunctionId);
+	if (!TargetFunction)
+	{
+		return true; // not error because we only want to report issue with function params
+	}
+
+	UObject* TargetObject = ActionPtr->ResolveTargetObject(TargetFunction);
+	UFunction* Func = IsValid(TargetObject) ? TargetObject->FindFunction(FName(TargetFunction->FunctionToExec)) : nullptr;
+	if (!Func)
+	{
+		return true; // not error because we only want to report issue with function params
+	}
+
+	int32 NumParamsExpected = 0;
+	for (TFieldIterator<FProperty> It(Func); It && It->HasAnyPropertyFlags(CPF_Parm); ++It)
+	{
+		NumParamsExpected++;
+	}
+
+	TArray<FString> Arguments;
+	InText.ToString().ParseIntoArray(Arguments, ARGUMENT_SEPARATOR, true);
+
+	if (Arguments.Num() > NumParamsExpected)
+	{
+		OutError = LOCTEXT("ActionListView.Error.TooManyParams", "Too many parameters");
+		return false;
+	}
+	else if (Arguments.Num() < NumParamsExpected)
+	{
+		OutError = LOCTEXT("ActionListView.Error.NotEnoughParams", "Not enough parameters");
+		return false;
+	}
+
+	return true;
 }
 
 FReply SActorIOActionListViewRow::HandleDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)

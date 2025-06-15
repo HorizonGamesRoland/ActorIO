@@ -150,6 +150,12 @@ protected:
     /** Text block of the function combo box. */
     TSharedPtr<class STextBlock> FunctionText;
 
+    /** Editable text box where function arguments are inputted. */
+    TSharedPtr<class SEditableTextBox> ArgumentsBox;
+
+    /** Error reporting widget of the function arguments edit box. */
+    TSharedPtr<class SActorIOErrorText> ArgumentsErrorText;
+
 protected:
 
     /** @return Icon to be displayed at the very beginning of the row. */
@@ -186,7 +192,10 @@ protected:
     void OnFunctionComboBoxSelectionChanged(FName InName, ESelectInfo::Type InSelectType);
 
     /** Called when the function parameters are changed in the text box. */
-    void OnFunctionArgumentsChanged(const FText& InText, ETextCommit::Type InCommitType);
+    void OnFunctionArgumentsChanged(const FText& InText);
+
+    /** Called when the function parameters are committed in the text box. */
+    void OnFunctionArgumentsCommitted(const FText& InText, ETextCommit::Type InCommitType);
 
     /** @return Delay of the action. */
     float OnGetActionDelay() const;
@@ -234,6 +243,12 @@ protected:
 
     /** @return Tooltip widget to use for I/O functions. */
     TSharedPtr<SActorIOTooltip> GetFunctionTooltip(FName InFunctionId) const;
+
+    /** Validate function arguments and push error text to error reporting widget. */
+    void UpdateFunctionArgumentsErrorText(const FText& InArguments, bool bShouldCloseErrorPopup = false);
+
+    /** @return Check whether the given function arguments are valid or not. */
+    bool ValidateFunctionArguments(const FText& InText, FText& OutError);
 
 public:
 
