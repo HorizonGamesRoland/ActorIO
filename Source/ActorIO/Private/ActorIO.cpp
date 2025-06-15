@@ -212,3 +212,36 @@ int32 IActorIO::GetNumOutputActionsForObject(AActor* InObject)
 
     return 0;
 }
+
+bool IActorIO::ValidateFunctionArguments(UFunction* FunctionPtr, const FString& InArguments, FText& OutError)
+{
+    if (!ensure(FunctionPtr))
+    {
+        // Do nothing if function ptr is null.
+        return false;
+    }
+
+    TArray<FString> Arguments;
+    InArguments.ParseIntoArray(Arguments, ARGUMENT_SEPARATOR, true);
+
+    int32 NumParamsExpected = 0;
+    for (TFieldIterator<FProperty> It(FunctionPtr); It && It->HasAnyPropertyFlags(CPF_Parm); ++It)
+    {
+        // #TODO: Is it possible to actually try and import the value into the FProperty and catch errors?
+
+        NumParamsExpected++;
+    }
+
+    if (Arguments.Num() > NumParamsExpected)
+    {
+        OutError = NSLOCTEXT("ActorIO", "ArgsValidation_TooManyParams", "Too many parameters");
+        return false;
+    }
+    else if (Arguments.Num() < NumParamsExpected)
+    {
+        OutError = NSLOCTEXT("ActorIO", "ArgsValidation_NotEnoughParams", "Not enough parameters");
+        return false;
+    }
+
+    return true;
+}

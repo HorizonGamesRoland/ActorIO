@@ -772,33 +772,13 @@ bool SActorIOActionListViewRow::ValidateFunctionArguments(const FText& InText, F
 	}
 
 	UObject* TargetObject = ActionPtr->ResolveTargetObject(TargetFunction);
-	UFunction* Func = IsValid(TargetObject) ? TargetObject->FindFunction(FName(TargetFunction->FunctionToExec)) : nullptr;
-	if (!Func)
+	UFunction* FunctionPtr = IsValid(TargetObject) ? TargetObject->FindFunction(FName(TargetFunction->FunctionToExec, FNAME_Find)) : nullptr;
+	if (!FunctionPtr)
 	{
 		return true; // not error because we only want to report issue with function params
 	}
 
-	int32 NumParamsExpected = 0;
-	for (TFieldIterator<FProperty> It(Func); It && It->HasAnyPropertyFlags(CPF_Parm); ++It)
-	{
-		NumParamsExpected++;
-	}
-
-	TArray<FString> Arguments;
-	InText.ToString().ParseIntoArray(Arguments, ARGUMENT_SEPARATOR, true);
-
-	if (Arguments.Num() > NumParamsExpected)
-	{
-		OutError = LOCTEXT("ActionListView.Error.TooManyParams", "Too many parameters");
-		return false;
-	}
-	else if (Arguments.Num() < NumParamsExpected)
-	{
-		OutError = LOCTEXT("ActionListView.Error.NotEnoughParams", "Not enough parameters");
-		return false;
-	}
-
-	return true;
+	return IActorIO::ValidateFunctionArguments(FunctionPtr, InText.ToString(), OutError);
 }
 
 FReply SActorIOActionListViewRow::HandleDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
