@@ -3,6 +3,7 @@
 #include "SActorIOActionList.h"
 #include "SActorIOEditor.h"
 #include "SActorIOErrorText.h"
+#include "SActorIOTooltip.h"
 #include "ActorIOComponent.h"
 #include "ActorIOEditor.h"
 #include "ActorIOEditorStyle.h"
@@ -441,7 +442,7 @@ FText SActorIOActionListViewRow::OnGetCallerTooltipText() const
 	return FText::GetEmpty();
 }
 
-TSharedRef<SWidget> SActorIOActionListViewRow::OnGenerateEventComboBoxWidget(FName InName) const
+TSharedRef<SWidget> SActorIOActionListViewRow::OnGenerateEventComboBoxWidget(FName InName)
 {
 	return SNew(STextBlock)
 		.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont")) // PropertyEditorConstants::PropertyFontStyle
@@ -502,7 +503,7 @@ void SActorIOActionListViewRow::OnTargetActorChanged(const FAssetData& InAssetDa
 	GetOwnerActionListView()->Refresh();
 }
 
-TSharedRef<SWidget> SActorIOActionListViewRow::OnGenerateFunctionComboBoxWidget(FName InName) const
+TSharedRef<SWidget> SActorIOActionListViewRow::OnGenerateFunctionComboBoxWidget(FName InName)
 {
 	return SNew(STextBlock)
 		.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont")) // PropertyEditorConstants::PropertyFontStyle
@@ -683,19 +684,22 @@ FSlateColor SActorIOActionListViewRow::GetEventDisplayColor(FName InEventId) con
 	return TargetEvent ? FSlateColor::UseForeground() : FStyleColors::Error;
 }
 
-TSharedPtr<SActorIOTooltip> SActorIOActionListViewRow::GetEventTooltip(FName InEventId) const
+TSharedPtr<SToolTip> SActorIOActionListViewRow::GetEventTooltip(FName InEventId)
 {
-	FText TooltipText = FText::GetEmpty();
+	if (InEventId == NAME_None || InEventId == NAME_ClearComboBox)
+	{
+		return nullptr;
+	}
 
 	const FActorIOEvent* TargetEvent = ValidEvents.GetEvent(InEventId);
-	if (TargetEvent)
+	if (!TargetEvent)
 	{
-		TooltipText = TargetEvent->TooltipText;
+		return nullptr;
 	}
 
 	TSharedRef<SActorIOTooltip> TooltipWidget = SNew(SActorIOTooltip)
 		.RegistryId(InEventId)
-		.Description(TooltipText);
+		.Description(TargetEvent->TooltipText);
 
 	return TooltipWidget.ToSharedPtr();
 }
@@ -723,19 +727,22 @@ FSlateColor SActorIOActionListViewRow::GetFunctionDisplayColor(FName InFunctionI
 	return TargetFunction ? FSlateColor::UseForeground() : FStyleColors::Error;
 }
 
-TSharedPtr<SActorIOTooltip> SActorIOActionListViewRow::GetFunctionTooltip(FName InFunctionId) const
+TSharedPtr<SToolTip> SActorIOActionListViewRow::GetFunctionTooltip(FName InFunctionId)
 {
-	FText TooltipText = FText::GetEmpty();
+	if (InFunctionId == NAME_None || InFunctionId == NAME_ClearComboBox)
+	{
+		return nullptr;
+	}
 
 	const FActorIOFunction* TargetFunction = ValidFunctions.GetFunction(InFunctionId);
-	if (TargetFunction)
+	if (!TargetFunction)
 	{
-		TooltipText = TargetFunction->TooltipText;
+		return nullptr;
 	}
 
 	TSharedRef<SActorIOTooltip> TooltipWidget = SNew(SActorIOTooltip)
 		.RegistryId(InFunctionId)
-		.Description(TooltipText);
+		.Description(TargetFunction->TooltipText);
 
 	return TooltipWidget.ToSharedPtr();
 }

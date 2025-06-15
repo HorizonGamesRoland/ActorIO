@@ -4,7 +4,6 @@
 
 #include "ActorIO.h"
 #include "ActorIOAction.h"
-#include "SActorIOTooltip.h"
 #include "Widgets/Views/SListView.h"
 #include "Widgets/Views/STableRow.h"
 
@@ -168,7 +167,7 @@ protected:
     FText OnGetCallerTooltipText() const;
 
     /** Called when generating an entry for the event combo box. */
-    TSharedRef<SWidget> OnGenerateEventComboBoxWidget(FName InName) const;
+    TSharedRef<SWidget> OnGenerateEventComboBoxWidget(FName InName);
 
     /** Called before the event combo box is opened. */
     void OnEventComboBoxOpening();
@@ -183,7 +182,7 @@ protected:
     void OnTargetActorChanged(const FAssetData& InAssetData);
 
     /** Called when generating an entry for the function combo box. */
-    TSharedRef<SWidget> OnGenerateFunctionComboBoxWidget(FName InName) const;
+    TSharedRef<SWidget> OnGenerateFunctionComboBoxWidget(FName InName);
 
     /** Called before the function combo box is opened. */
     void OnFunctionComboBoxOpening();
@@ -233,7 +232,7 @@ protected:
     FSlateColor GetEventDisplayColor(FName InEventId) const;
 
     /** @return Tooltip widget to use for I/O events. */
-    TSharedPtr<SActorIOTooltip> GetEventTooltip(FName InEventId) const;
+    TSharedPtr<SToolTip> GetEventTooltip(FName InEventId);
 
     /** Finds the display name of the given I/O function. */
     FText GetFunctionDisplayName(FName InFunctionId) const;
@@ -242,7 +241,7 @@ protected:
     FSlateColor GetFunctionDisplayColor(FName InFunctionId) const;
 
     /** @return Tooltip widget to use for I/O functions. */
-    TSharedPtr<SActorIOTooltip> GetFunctionTooltip(FName InFunctionId) const;
+    TSharedPtr<SToolTip> GetFunctionTooltip(FName InFunctionId);
 
     /** Validate function arguments and push error text to error reporting widget. */
     void UpdateFunctionArgumentsErrorText(const FText& InArguments, bool bShouldCloseErrorPopup = false);

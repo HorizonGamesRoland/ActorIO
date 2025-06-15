@@ -15,11 +15,7 @@ BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SActorIOTooltip::Construct(const FArguments& InArgs)
 {
 	const FName& InRegistryId = InArgs._RegistryId.Get();
-	const FText& InTooltipText = InArgs._Description.Get();
-
-	// Set tooltip visibility.
-	// Used to determine whether the tooltip should ever be displayed.
-	bTooltipVisible = InRegistryId.IsNone();
+	const FText& InDescription = InArgs._Description.Get();
 
 	SToolTip::Construct
 	(
@@ -33,17 +29,18 @@ void SActorIOTooltip::Construct(const FArguments& InArgs)
 			.AutoHeight()
 			[
 				SNew(STextBlock)
-				.Text(InTooltipText)
+				.Text(InDescription)
 				.Font(FCoreStyle::Get().GetFontStyle("ToolTip.Font"))
 				.ColorAndOpacity(FLinearColor::Black)
 				.WrapTextAt_Static(&SToolTip::GetToolTipWrapWidth)
-				.Visibility(InTooltipText.IsEmpty() ? EVisibility::Collapsed : EVisibility::Visible)
+				.Visibility(InDescription.IsEmptyOrWhitespace() ? EVisibility::Collapsed : EVisibility::Visible)
 			]
 			+ SVerticalBox::Slot()
 			.AutoHeight()
 			[
 				SNew(SSpacer)
 				.Size(FVector2D(0.0f, 5.0f))
+				.Visibility(InDescription.IsEmptyOrWhitespace() ? EVisibility::Collapsed : EVisibility::Visible)
 			]
 			+ SVerticalBox::Slot()
 			.AutoHeight()
@@ -51,14 +48,9 @@ void SActorIOTooltip::Construct(const FArguments& InArgs)
 				SNew(STextBlock)
 				.Text(FText::FromName(InRegistryId))
 				.TextStyle(FAppStyle::Get(), "Documentation.SDocumentationTooltipSubdued")
+				.WrapTextAt_Static(&SToolTip::GetToolTipWrapWidth)
 			]
 		]
 	);
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
-
-bool SActorIOTooltip::IsEmpty() const
-{
-	// This controls whether the tooltip should ever be displayed.
-	return bTooltipVisible;
-}
