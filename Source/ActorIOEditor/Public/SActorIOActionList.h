@@ -4,7 +4,6 @@
 
 #include "ActorIO.h"
 #include "ActorIOAction.h"
-#include "SActorIOTooltip.h"
 #include "Widgets/Views/SListView.h"
 #include "Widgets/Views/STableRow.h"
 
@@ -150,6 +149,12 @@ protected:
     /** Text block of the function combo box. */
     TSharedPtr<class STextBlock> FunctionText;
 
+    /** Editable text box where function arguments are inputted. */
+    TSharedPtr<class SEditableTextBox> ArgumentsBox;
+
+    /** Error reporting widget of the function arguments edit box. */
+    TSharedPtr<class SActorIOErrorText> ArgumentsErrorText;
+
 protected:
 
     /** @return Icon to be displayed at the very beginning of the row. */
@@ -162,7 +167,7 @@ protected:
     FText OnGetCallerTooltipText() const;
 
     /** Called when generating an entry for the event combo box. */
-    TSharedRef<SWidget> OnGenerateEventComboBoxWidget(FName InName) const;
+    TSharedRef<SWidget> OnGenerateEventComboBoxWidget(FName InName);
 
     /** Called before the event combo box is opened. */
     void OnEventComboBoxOpening();
@@ -177,7 +182,7 @@ protected:
     void OnTargetActorChanged(const FAssetData& InAssetData);
 
     /** Called when generating an entry for the function combo box. */
-    TSharedRef<SWidget> OnGenerateFunctionComboBoxWidget(FName InName) const;
+    TSharedRef<SWidget> OnGenerateFunctionComboBoxWidget(FName InName);
 
     /** Called before the function combo box is opened. */
     void OnFunctionComboBoxOpening();
@@ -186,7 +191,10 @@ protected:
     void OnFunctionComboBoxSelectionChanged(FName InName, ESelectInfo::Type InSelectType);
 
     /** Called when the function parameters are changed in the text box. */
-    void OnFunctionArgumentsChanged(const FText& InText, ETextCommit::Type InCommitType);
+    void OnFunctionArgumentsChanged(const FText& InText);
+
+    /** Called when the function parameters are committed in the text box. */
+    void OnFunctionArgumentsCommitted(const FText& InText, ETextCommit::Type InCommitType);
 
     /** @return Delay of the action. */
     float OnGetActionDelay() const;
@@ -224,7 +232,7 @@ protected:
     FSlateColor GetEventDisplayColor(FName InEventId) const;
 
     /** @return Tooltip widget to use for I/O events. */
-    TSharedPtr<SActorIOTooltip> GetEventTooltip(FName InEventId) const;
+    TSharedPtr<SToolTip> GetEventTooltip(FName InEventId);
 
     /** Finds the display name of the given I/O function. */
     FText GetFunctionDisplayName(FName InFunctionId) const;
@@ -233,7 +241,13 @@ protected:
     FSlateColor GetFunctionDisplayColor(FName InFunctionId) const;
 
     /** @return Tooltip widget to use for I/O functions. */
-    TSharedPtr<SActorIOTooltip> GetFunctionTooltip(FName InFunctionId) const;
+    TSharedPtr<SToolTip> GetFunctionTooltip(FName InFunctionId);
+
+    /** Validate function arguments and push error text to error reporting widget. */
+    void UpdateFunctionArgumentsErrorText(const FText& InArguments, bool bShouldCloseErrorPopup = false);
+
+    /** @return Check whether the given function arguments are valid or not. */
+    bool ValidateFunctionArguments(const FText& InText, FText& OutError);
 
 public:
 

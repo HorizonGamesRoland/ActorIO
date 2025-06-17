@@ -20,6 +20,7 @@
 #include "Sound/AmbientSound.h"
 #include "Sound/AudioVolume.h"
 #include "Kismet/GameplayStatics.h"
+#include "Misc/EngineVersionComparison.h"
 
 #define LOCTEXT_NAMESPACE "ActorIO"
 
@@ -49,6 +50,162 @@ UActorIOSubsystemBase* UActorIOSubsystemBase::Get(UObject* WorldContextObject)
     return nullptr;
 }
 
+bool UActorIOSubsystemBase::ExecuteCommand(UObject* Target, const TCHAR* Str, FOutputDevice& Ar, UObject* Executor)
+{
+    /**
+     * THIS IS A MODIFIED VERSION OF UObject::CallFunctionByNameWithString
+     *
+     * Always review the original function when a new engine version is released and update this code if needed.
+     * If everything is working update the UE version comparison below. Current value represents the latest reviewed engine version.
+     *
+     * List of changes:
+     *
+     *   - Skip CPP param default value initialization because it only works in editor and not packaged games.
+     *   - FindFunction and ProcessEvent are called on Target.
+     *   - Use Ar.Logf instead of UE_LOG(LogScriptCore) because LogScriptCore is static and its verbosity cannot be changed.
+     */
+
+#if UE_VERSION_NEWER_THAN(5, 6, 999) // <- patch version doesn't matter so use 999 to pass the check
+#error "Review latest implementation of UObject::CallFunctionByNameWithString then update UE version comparison."
+#endif
+
+     // Find an exec function.
+    FString MsgStr;
+    if (!FParse::Token(Str, MsgStr, true))
+    {
+        Ar.Logf(TEXT("CallFunctionByNameWithArguments: Not Parsed '%s'"), Str);
+        return false;
+    }
+    const FName Message = FName(*MsgStr, FNAME_Find);
+    if (Message == NAME_None)
+    {
+        Ar.Logf(TEXT("CallFunctionByNameWithArguments: Name not found '%s'"), Str);
+        return false;
+    }
+    UFunction* Function = Target->FindFunction(Message);
+    if (nullptr == Function)
+    {
+        Ar.Logf(TEXT("CallFunctionByNameWithArguments: Function not found '%s'"), Str);
+        return false;
+    }
+
+    FProperty* LastParameter = nullptr;
+
+    // find the last parameter
+    for (TFieldIterator<FProperty> It(Function); It && (It->PropertyFlags & (CPF_Parm | CPF_ReturnParm)) == CPF_Parm; ++It)
+    {
+        LastParameter = *It;
+    }
+
+    // Parse all function parameters.
+    uint8* Parms = (uint8*)FMemory_Alloca_Aligned(Function->ParmsSize, Function->GetMinAlignment());
+    FMemory::Memzero(Parms, Function->ParmsSize);
+
+    for (TFieldIterator<FProperty> It(Function); It && It->HasAnyPropertyFlags(CPF_Parm); ++It)
+    {
+        FProperty* LocalProp = *It;
+        checkSlow(LocalProp);
+        if (!LocalProp->HasAnyPropertyFlags(CPF_ZeroConstructor))
+        {
+            LocalProp->InitializeValue_InContainer(Parms);
+        }
+    }
+
+    const uint32 ExportFlags = PPF_None;
+    bool bFailed = 0;
+    int32 NumParamsEvaluated = 0;
+    for (TFieldIterator<FProperty> It(Function); It && (It->PropertyFlags & (CPF_Parm | CPF_ReturnParm)) == CPF_Parm; ++It, NumParamsEvaluated++)
+    {
+        FProperty* PropertyParam = *It;
+        checkSlow(PropertyParam); // Fix static analysis warning
+        if (NumParamsEvaluated == 0 && Executor)
+        {
+            FObjectPropertyBase* Op = CastField<FObjectPropertyBase>(*It);
+            if (Op && Executor->IsA(Op->PropertyClass))
+            {
+                // First parameter is implicit reference to object executing the command.
+                Op->SetObjectPropertyValue(Op->ContainerPtrToValuePtr<uint8>(Parms), Executor);
+                continue;
+            }
+        }
+
+        // Keep old string around in case we need to pass the whole remaining string
+        const TCHAR* RemainingStr = Str;
+
+        // Parse a new argument out of Str
+        FString ArgStr;
+        FParse::Token(Str, ArgStr, true);
+
+        // if ArgStr is empty but we have more params to read parse the function to see if these have defaults, if so set them
+        bool bFoundDefault = false;
+        bool bFailedImport = true;
+
+        /*
+         * SKIP INITIALIZE CPP FUNCTION PARAM DEFAULT VALUE
+         *
+         * This only works in the editor because values are being read from Function->GetMetaData (which is editor only).
+         * We need to skip this because it would lead to different outcomes in editor vs packaged game.
+         * I'm not sure how blueprint nodes do this.. I suspect they read this value at edit time and store it for execution.
+         * In theory we could cache these values at cook time for use at runtime (?)
+         *
+#if WITH_EDITOR
+        if (!FCString::Strcmp(*ArgStr, TEXT("")))
+        {
+            const FName DefaultPropertyKey(*(FString(TEXT("CPP_Default_")) + PropertyParam->GetName()));
+            const FString& PropertyDefaultValue = Function->GetMetaData(DefaultPropertyKey);
+            if (!PropertyDefaultValue.IsEmpty())
+            {
+                bFoundDefault = true;
+
+                const TCHAR* Result = It->ImportText_InContainer(*PropertyDefaultValue, Parms, nullptr, ExportFlags);
+                bFailedImport = (Result == nullptr);
+            }
+        }
+#endif
+        */
+
+        if (!bFoundDefault)
+        {
+            // if this is the last string property and we have remaining arguments to process, we have to assume that this
+            // is a sub-command that will be passed to another exec (like "cheat giveall weapons", for example). Therefore
+            // we need to use the whole remaining string as an argument, regardless of quotes, spaces etc.
+            if (PropertyParam == LastParameter && PropertyParam->IsA<FStrProperty>() && FCString::Strcmp(Str, TEXT("")) != 0)
+            {
+                ArgStr = FString(RemainingStr).TrimStart();
+            }
+
+            const TCHAR* Result = It->ImportText_InContainer(*ArgStr, Parms, nullptr, ExportFlags);
+            bFailedImport = (Result == nullptr);
+        }
+
+        if (bFailedImport)
+        {
+            FFormatNamedArguments Arguments;
+            Arguments.Add(TEXT("Message"), FText::FromName(Message));
+            Arguments.Add(TEXT("PropertyName"), FText::FromName(It->GetFName()));
+            Arguments.Add(TEXT("FunctionName"), FText::FromName(Function->GetFName()));
+            Ar.Logf(TEXT("%s"), *FText::Format(NSLOCTEXT("Core", "BadProperty", "'{Message}': Bad or missing property '{PropertyName}' when trying to call {FunctionName}"), Arguments).ToString());
+            bFailed = true;
+
+            break;
+        }
+    }
+
+    if (!bFailed)
+    {
+        Target->ProcessEvent(Function, Parms);
+    }
+
+    //!!destructframe see also UObject::ProcessEvent
+    for (TFieldIterator<FProperty> It(Function); It && It->HasAnyPropertyFlags(CPF_Parm); ++It)
+    {
+        It->DestroyValue_InContainer(Parms);
+    }
+
+    // Success.
+    return true;
+}
+
 void UActorIOSubsystemBase::GetNativeEventsForObject(AActor* InObject, FActorIOEventList& EventRegistry)
 {
     //==================================
@@ -70,6 +227,38 @@ void UActorIOSubsystemBase::GetNativeEventsForObject(AActor* InObject, FActorIOE
             .SetTooltipText(LOCTEXT("TriggerBase.OnTriggerExitTooltip", "Event when an actor leaves the trigger area."))
             .SetSparseDelegate(InObject, TEXT("OnActorEndOverlap"))
             .SetEventProcessor(this, TEXT("ProcessEvent_OnActorOverlap")));
+    }
+
+    //==================================
+    // Sequence Actors
+    //==================================
+
+    // In the case of ALevelSequenceActor, we are comparing the class name directly to avoid dependency to LevelSequence module.
+    // Note that this does not support class inheritance, so it only works for exact classes.
+    // Since LevelSequenceActor is just a component wrapper, I do not think anyone will ever subclass it anyways.
+    if (InObject->GetClass()->GetFName() == TEXT("LevelSequenceActor"))
+    {
+        // The callback events are in the ULevelSequencePlayer subobject of the ALevelSequenceActor.
+        // We can simply get it as a UObject and use reflection data to bind to it (via SetBlueprintDelegate).
+        UObject* LevelSequencePlayer = InObject->GetDefaultSubobjectByName(TEXT("AnimationPlayer"));
+
+        EventRegistry.RegisterEvent(FActorIOEvent()
+            .SetId(TEXT("ALevelSequenceActor::OnPlay"))
+            .SetDisplayName(LOCTEXT("LevelSequenceActor.OnPlay", "OnPlay"))
+            .SetTooltipText(LOCTEXT("LevelSequenceActor.OnPlayTooltip", "Event when the level sequence is started."))
+            .SetBlueprintDelegate(LevelSequencePlayer, TEXT("OnPlay")));
+
+        EventRegistry.RegisterEvent(FActorIOEvent()
+            .SetId(TEXT("ALevelSequenceActor::OnStop"))
+            .SetDisplayName(LOCTEXT("LevelSequenceActor.OnStop", "OnStop"))
+            .SetTooltipText(LOCTEXT("LevelSequenceActor.OnStopTooltip", "Event when the level sequence is stopped."))
+            .SetBlueprintDelegate(LevelSequencePlayer, TEXT("OnStop")));
+
+        EventRegistry.RegisterEvent(FActorIOEvent()
+            .SetId(TEXT("ALevelSequenceActor::OnFinished"))
+            .SetDisplayName(LOCTEXT("LevelSequenceActor.OnFinished", "OnFinished"))
+            .SetTooltipText(LOCTEXT("LevelSequenceActor.OnFinishedTooltip", "Event when the level sequence finishes naturally (without explicitly calling stop)."))
+            .SetBlueprintDelegate(LevelSequencePlayer, TEXT("OnFinished")));
     }
 
     //==================================
@@ -158,8 +347,7 @@ void UActorIOSubsystemBase::GetNativeFunctionsForObject(AActor* InObject, FActor
             .SetSubobject(TEXT("ParticleSystemComponent0")));
     }
 
-    // In the case of ANiagaraActor, we are comparing the class name directly.
-    // This is to avoid dependency to the Niagara module.
+    // In the case of ANiagaraActor, we are comparing the class name directly to avoid dependency to Niagara module.
     // Note that this does not support class inheritance, so it only works for exact classes.
     // Since NiagaraActor is just a component wrapper, I do not think anyone will ever subclass it anyways.
     if (InObject->GetClass()->GetFName() == TEXT("NiagaraActor"))
@@ -267,6 +455,30 @@ void UActorIOSubsystemBase::GetNativeFunctionsForObject(AActor* InObject, FActor
             .SetDisplayName(LOCTEXT("StaticMeshActor.SetHiddenInGame", "SetHiddenInGame"))
             .SetTooltipText(LOCTEXT("StaticMeshActor.SetHiddenInGameTooltip", "Set whether the actor is hidden or not."))
             .SetFunction(TEXT("SetActorHiddenInGame")));
+    }
+
+    //==================================
+    // Sequence Actors
+    //==================================
+
+    // In the case of ALevelSequenceActor, we are comparing the class name directly to avoid dependency to LevelSequence module.
+    // Note that this does not support class inheritance, so it only works for exact classes.
+    // Since LevelSequenceActor is just a component wrapper, I do not think anyone will ever subclass it anyways.
+    if (InObject->GetClass()->GetFName() == TEXT("LevelSequenceActor"))
+    {
+        FunctionRegistry.RegisterFunction(FActorIOFunction()
+            .SetId(TEXT("ALevelSequenceActor::Play"))
+            .SetDisplayName(LOCTEXT("LevelSequenceActor.Play", "Play"))
+            .SetTooltipText(LOCTEXT("LevelSequenceActor.PlayTooltip", "Start playing the sequence."))
+            .SetFunction(TEXT("Play"))
+            .SetSubobject(TEXT("AnimationPlayer")));
+
+        FunctionRegistry.RegisterFunction(FActorIOFunction()
+            .SetId(TEXT("ALevelSequenceActor::Stop"))
+            .SetDisplayName(LOCTEXT("LevelSequenceActor.Stop", "Stop"))
+            .SetTooltipText(LOCTEXT("LevelSequenceActor.StopTooltip", "Go to end of the sequence and stop. Adheres to 'When Finished' section rules."))
+            .SetFunction(TEXT("GoToEndAndStop"))
+            .SetSubobject(TEXT("AnimationPlayer")));
     }
 
     //==================================

@@ -159,12 +159,14 @@ void SActorIOEditor::Refresh()
 
     const FString ActorName = SelectedActor ? SelectedActor->GetActorNameOrLabel() : TEXT("None");
     const FString ActorPath = SelectedActor ? SelectedActor->GetPathName() : TEXT("None");
+    const FText ActorTooltip = FText::FormatOrdered(LOCTEXT("SelectedActorTooltip", "Reference to Actor ID '{0}'"), FText::FromString(ActorPath));
     SelectedActorText->SetText(FText::FromString(ActorName));
-    SelectedActorText->SetToolTipText(FText::FormatOrdered(LOCTEXT("SelectedActorTooltip", "Reference to Actor ID '{0}'"), FText::FromString(ActorPath)));
+    SelectedActorText->SetToolTipText(ActorTooltip);
 
     const UClass* ActorClass = SelectedActor ? SelectedActor->GetClass() : AActor::StaticClass();
     const FSlateBrush* ActorIcon = FSlateIconFinder::FindIconBrushForClass(ActorClass, "ClassIcon.Actor");
     SelectedActorIcon->SetImage(ActorIcon);
+    SelectedActorIcon->SetToolTipText(ActorTooltip);
 
     const int32 NumOutputActions = ActorIOComponent ? ActorIOComponent->GetNumActions() : 0;
     OutputsButtonText->SetText(FText::FormatOrdered(LOCTEXT("OutputsButton", "Outputs ({0})"), FText::AsNumber(NumOutputActions)));

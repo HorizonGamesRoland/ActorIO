@@ -17,7 +17,7 @@ public:
 	SLATE_BEGIN_ARGS(SActorIOTooltip)
 	{}
 
-	/** Id that this I/O event or function was registered with. */
+	/** Id of the I/O event or function. */
 	SLATE_ATTRIBUTE(FName, RegistryId)
 	/** Description of the I/O event or function. Essentially this is the tooltip text. */
 	SLATE_ATTRIBUTE(FText, Description)
@@ -26,15 +26,4 @@ public:
 
 	/** Widget constructor. */
 	void Construct(const FArguments& InArgs);
-
-protected:
-
-	/** Whether the tooltip should ever be displayed. */
-	bool bTooltipVisible;
-
-public:
-
-	//~ Begin SToolTip Interface
-	virtual bool IsEmpty() const override;
-	//~ End SToolTip Interface
 };

@@ -2,6 +2,8 @@
 
 #include "SActorIOActionList.h"
 #include "SActorIOEditor.h"
+#include "SActorIOErrorText.h"
+#include "SActorIOTooltip.h"
 #include "ActorIOComponent.h"
 #include "ActorIOEditor.h"
 #include "ActorIOEditorStyle.h"
@@ -324,12 +326,17 @@ TSharedRef<SWidget> SActorIOActionListViewRow::GenerateWidgetForColumn(const FNa
 		OutWidget->SetPadding(FMargin(1.0f, 0.0f, 1.0f, 0.0f));
 		OutWidget->SetContent
 		(
-			SNew(SEditableTextBox)
+			SAssignNew(ArgumentsBox, SEditableTextBox)
 			.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont"))
 			.Text(FText::FromString(ActionPtr->FunctionArguments))
-			.OnTextCommitted(this, &SActorIOActionListViewRow::OnFunctionArgumentsChanged)
+			.OnTextChanged(this, &SActorIOActionListViewRow::OnFunctionArgumentsChanged)
+			.OnTextCommitted(this, &SActorIOActionListViewRow::OnFunctionArgumentsCommitted)
+			.ErrorReporting(SAssignNew(ArgumentsErrorText, SActorIOErrorText))
 			.IsEnabled(!bIsInputAction)
 		);
+
+		// Update error text and close popup to avoid stealing input.
+		UpdateFunctionArgumentsErrorText(ArgumentsBox->GetText(), true);
 	}
 	else if (ColumnName == ColumnId::Delay)
 	{
@@ -435,7 +442,7 @@ FText SActorIOActionListViewRow::OnGetCallerTooltipText() const
 	return FText::GetEmpty();
 }
 
-TSharedRef<SWidget> SActorIOActionListViewRow::OnGenerateEventComboBoxWidget(FName InName) const
+TSharedRef<SWidget> SActorIOActionListViewRow::OnGenerateEventComboBoxWidget(FName InName)
 {
 	return SNew(STextBlock)
 		.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont")) // PropertyEditorConstants::PropertyFontStyle
@@ -496,7 +503,7 @@ void SActorIOActionListViewRow::OnTargetActorChanged(const FAssetData& InAssetDa
 	GetOwnerActionListView()->Refresh();
 }
 
-TSharedRef<SWidget> SActorIOActionListViewRow::OnGenerateFunctionComboBoxWidget(FName InName) const
+TSharedRef<SWidget> SActorIOActionListViewRow::OnGenerateFunctionComboBoxWidget(FName InName)
 {
 	return SNew(STextBlock)
 		.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont")) // PropertyEditorConstants::PropertyFontStyle
@@ -533,12 +540,20 @@ void SActorIOActionListViewRow::OnFunctionComboBoxSelectionChanged(FName InName,
 	}
 }
 
-void SActorIOActionListViewRow::OnFunctionArgumentsChanged(const FText& InText, ETextCommit::Type InCommitType)
+void SActorIOActionListViewRow::OnFunctionArgumentsChanged(const FText& InText)
+{
+	UpdateFunctionArgumentsErrorText(InText);
+}
+
+void SActorIOActionListViewRow::OnFunctionArgumentsCommitted(const FText& InText, ETextCommit::Type InCommitType)
 {
 	const FScopedTransaction Transaction(LOCTEXT("ModifyActorIOAction", "Modify ActorIO Action"));
 	ActionPtr->Modify();
 
 	ActionPtr->FunctionArguments = InText.ToString();
+
+	// Update error text and close popup to avoid stealing input.
+	UpdateFunctionArgumentsErrorText(InText, true);
 }
 
 float SActorIOActionListViewRow::OnGetActionDelay() const
@@ -669,19 +684,22 @@ FSlateColor SActorIOActionListViewRow::GetEventDisplayColor(FName InEventId) con
 	return TargetEvent ? FSlateColor::UseForeground() : FStyleColors::Error;
 }
 
-TSharedPtr<SActorIOTooltip> SActorIOActionListViewRow::GetEventTooltip(FName InEventId) const
+TSharedPtr<SToolTip> SActorIOActionListViewRow::GetEventTooltip(FName InEventId)
 {
-	FText TooltipText = FText::GetEmpty();
+	if (InEventId == NAME_None || InEventId == NAME_ClearComboBox)
+	{
+		return nullptr;
+	}
 
 	const FActorIOEvent* TargetEvent = ValidEvents.GetEvent(InEventId);
-	if (TargetEvent)
+	if (!TargetEvent)
 	{
-		TooltipText = TargetEvent->TooltipText;
+		return nullptr;
 	}
 
 	TSharedRef<SActorIOTooltip> TooltipWidget = SNew(SActorIOTooltip)
 		.RegistryId(InEventId)
-		.Description(TooltipText);
+		.Description(TargetEvent->TooltipText);
 
 	return TooltipWidget.ToSharedPtr();
 }
@@ -709,21 +727,58 @@ FSlateColor SActorIOActionListViewRow::GetFunctionDisplayColor(FName InFunctionI
 	return TargetFunction ? FSlateColor::UseForeground() : FStyleColors::Error;
 }
 
-TSharedPtr<SActorIOTooltip> SActorIOActionListViewRow::GetFunctionTooltip(FName InFunctionId) const
+TSharedPtr<SToolTip> SActorIOActionListViewRow::GetFunctionTooltip(FName InFunctionId)
 {
-	FText TooltipText = FText::GetEmpty();
+	if (InFunctionId == NAME_None || InFunctionId == NAME_ClearComboBox)
+	{
+		return nullptr;
+	}
 
 	const FActorIOFunction* TargetFunction = ValidFunctions.GetFunction(InFunctionId);
-	if (TargetFunction)
+	if (!TargetFunction)
 	{
-		TooltipText = TargetFunction->TooltipText;
+		return nullptr;
 	}
 
 	TSharedRef<SActorIOTooltip> TooltipWidget = SNew(SActorIOTooltip)
 		.RegistryId(InFunctionId)
-		.Description(TooltipText);
+		.Description(TargetFunction->TooltipText);
 
 	return TooltipWidget.ToSharedPtr();
+}
+
+void SActorIOActionListViewRow::UpdateFunctionArgumentsErrorText(const FText& InArguments, bool bShouldCloseErrorPopup)
+{
+	FText ErrorText = FText::GetEmpty();
+	ValidateFunctionArguments(InArguments, ErrorText);
+
+	// Update error reporting widget.
+	// If error text is empty, the error is cleared.
+	ArgumentsBox->SetError(ErrorText);
+
+	// Close the popup immediately if needed to stop it from stealing input.
+	if (bShouldCloseErrorPopup)
+	{
+		ArgumentsErrorText->SetIsOpen(false);
+	}
+}
+
+bool SActorIOActionListViewRow::ValidateFunctionArguments(const FText& InText, FText& OutError)
+{
+	const FActorIOFunction* TargetFunction = ValidFunctions.GetFunction(ActionPtr->FunctionId);
+	if (!TargetFunction)
+	{
+		return true; // not error because we only want to report issue with function params
+	}
+
+	UObject* TargetObject = ActionPtr->ResolveTargetObject(TargetFunction);
+	UFunction* FunctionPtr = IsValid(TargetObject) ? TargetObject->FindFunction(FName(TargetFunction->FunctionToExec, FNAME_Find)) : nullptr;
+	if (!FunctionPtr)
+	{
+		return true; // not error because we only want to report issue with function params
+	}
+
+	return IActorIO::ValidateFunctionArguments(FunctionPtr, InText.ToString(), OutError);
 }
 
 FReply SActorIOActionListViewRow::HandleDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)

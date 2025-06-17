@@ -45,6 +45,15 @@ protected:
     virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
     //~ End ALogicActorBase Interface
 
+public:
+
+    /**
+     * Call a function on the level blueprint actor of the level.
+     * Can pass in function params in following format: "FuncName Param1 Param2 Param3 ..."
+     */
+    UFUNCTION(BlueprintCallable, Category = "Global Event")
+    void CallLevelBlueprintFunction(FString Command);
+
 protected:
 
     /** Called when the world is initialized. */

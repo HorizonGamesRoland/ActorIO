@@ -178,6 +178,20 @@ void UActorIOComponent::CheckForErrors()
 							->AddToken(FUObjectToken::Create(Owner))
 							->AddToken(FTextToken::Create(LOCTEXT("MapCheck_Message_IOActionInvalidFunction", "contains an action with invalid target function selected.")));
 					}
+
+					UObject* TargetObject = Action->ResolveTargetObject(TargetFunction);
+					UFunction* FunctionPtr = IsValid(TargetObject) ? TargetObject->FindFunction(FName(TargetFunction->FunctionToExec, FNAME_Find)) : nullptr;
+					if (FunctionPtr)
+					{
+						FText ErrorText = FText::GetEmpty();
+						if (!IActorIO::ValidateFunctionArguments(FunctionPtr, Action->FunctionArguments, ErrorText))
+						{
+							FMessageLog("MapCheck").Warning()
+								->AddToken(FTextToken::Create(LOCTEXT("MapCheck_Message_IOPrefix", "[I/O]")))
+								->AddToken(FUObjectToken::Create(Owner))
+								->AddToken(FTextToken::Create(LOCTEXT("MapCheck_Message_IOActionInvalidArguments", "contains an action with invalid function parameters.")));
+						}
+					}
 				}
 			}
 		}

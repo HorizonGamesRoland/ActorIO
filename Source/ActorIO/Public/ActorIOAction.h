@@ -9,8 +9,8 @@
 class UActorIOComponent;
 
 /**
- * An action that will be execute when the assigned I/O event is triggered.
- * When executed, it will call the designated function on the target actor with the given parameters.
+ * An action that is executed when the assigned I/O event is triggered.
+ * When executed, it calls the designated function on the target actor with the given parameters.
  * This is basically the message bus of the I/O system.
  */
 UCLASS(DefaultToInstanced, EditInlineNew, Within = ActorIOComponent, DisplayName = "Actor I/O Action")
@@ -83,6 +83,15 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Action")
 	AActor* GetOwnerActor() const;
 
+	/**
+	 * Get the object that the final command will be sent to by this action.
+	 * In most cases this will be the target actor, but the I/O function may want it to be executed on a subobject rather then the actor itself.
+	 * This function is public because we might want to access the target object from outside this class as well.
+	 * 
+	 * @param TargetFunction Optimization in case we already know which I/O function is called by this action.
+	 */
+	UObject* ResolveTargetObject(const FActorIOFunction* TargetFunction = nullptr) const;
+
 protected:
 
 	/**
@@ -105,9 +114,9 @@ protected:
 
 	/**
 	 * Sends the final command to the target actor.
-	 * The command contains the function name and parameter list that will be processed by Unreal Script.
+	 * The command contains the function name and parameters that will be processed by Unreal Script.
 	 */
-	void SendCommand(UObject* TargetObject, FString Command);
+	void SendCommand(UObject* Target, FString Command);
 
 public:
 
