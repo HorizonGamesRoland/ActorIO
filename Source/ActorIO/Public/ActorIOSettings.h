@@ -38,7 +38,7 @@ public:
 	TSubclassOf<class UActorIOSubsystemBase> ActorIOSubsystemClass;
 
 	UPROPERTY(Config, EditAnywhere, Category = "Settings")
-	TArray<TSubclassOf<UActorIORegisterBase>> ActorIORegisters;
+	TArray<TSoftClassPtr<UActorIORegisterBase>> ActorIORegisters;
 
 public:
 

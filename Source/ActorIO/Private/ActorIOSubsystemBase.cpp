@@ -554,7 +554,18 @@ void UActorIOSubsystemBase::ProcessEvent_OnActorDestroyed(AActor* DestroyedActor
 void UActorIOSubsystemBase::PostInitialize()
 {
     const UActorIOSettings* IOSettings = UActorIOSettings::Get();
-    ActorIORegisters = IOSettings->ActorIORegisters;
+    for (auto ActorIORegister : IOSettings->ActorIORegisters)
+    {
+        TSubclassOf<UActorIORegisterBase> ActorIORegisterClass = ActorIORegister.Get();
+        if (IsValid(ActorIORegisterClass))
+        {
+            ActorIORegisters.AddUnique(ActorIORegisterClass);
+        }
+        else
+        {
+            UE_LOG(LogActorIO, Warning, TEXT("Invalid Actor I/O Register class specified in settings!"));
+        }
+    }
 }
 
 bool UActorIOSubsystemBase::ShouldCreateSubsystem(UObject* Outer) const

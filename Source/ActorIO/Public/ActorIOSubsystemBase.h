@@ -24,7 +24,7 @@ public:
 	UActorIOSubsystemBase();
 
 protected:
-	UPROPERTY()
+	UPROPERTY(Transient)
 	TArray<TSubclassOf<UActorIORegisterBase>> ActorIORegisters;
 
 public:
