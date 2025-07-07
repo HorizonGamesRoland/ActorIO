@@ -3,6 +3,7 @@
 #pragma once
 
 #include "ActorIO.h"
+#include "ActorIORegisterBase.h"
 #include "Engine/DeveloperSettings.h"
 #include "Templates/SubclassOf.h"
 #include "ActorIOSettings.generated.h"
@@ -35,6 +36,9 @@ public:
 	 */
 	UPROPERTY(Config, NoClear, EditAnywhere, Category = "Settings", DisplayName = "Actor I/O Subsystem Class")
 	TSubclassOf<class UActorIOSubsystemBase> ActorIOSubsystemClass;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Settings")
+	TArray<TSubclassOf<UActorIORegisterBase>> ActorIORegisters;
 
 public:
 

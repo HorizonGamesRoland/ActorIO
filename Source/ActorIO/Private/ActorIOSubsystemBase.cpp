@@ -505,6 +505,42 @@ void UActorIOSubsystemBase::GetGlobalNamedArguments(FActionExecutionContext& Exe
     K2_GetGlobalNamedArguments();
 }
 
+void UActorIOSubsystemBase::GetObjectEventsFromIORegisters(AActor* InObject, FActorIOEventList& EventRegistry)
+{
+    for (TSubclassOf<UActorIORegisterBase> Register : ActorIORegisters)
+    {
+        if (!IsValid(Register))
+        {
+            continue;
+        }
+
+        UActorIORegisterBase* RegisterCDO = Register->GetDefaultObject<UActorIORegisterBase>();
+
+        if (InObject->IsA(RegisterCDO->GetActorsClassRequiredToRegister()))
+        {
+            RegisterCDO->RegisterIOEvents(InObject, EventRegistry);
+        }
+    }
+}
+
+void UActorIOSubsystemBase::GetObjectFunctionsFromIORegisters(AActor* InObject, FActorIOFunctionList& FunctionRegistry)
+{
+    for (TSubclassOf<UActorIORegisterBase> Register : ActorIORegisters)
+    {
+        if (!IsValid(Register))
+        {
+            continue;
+        }
+
+        UActorIORegisterBase* RegisterCDO = Register->GetDefaultObject<UActorIORegisterBase>();
+
+        if (InObject->IsA(RegisterCDO->GetActorsClassRequiredToRegister()))
+        {
+            RegisterCDO->RegisterIOFunctions(InObject, FunctionRegistry);
+        }
+    }
+}
+
 void UActorIOSubsystemBase::ProcessEvent_OnActorOverlap(AActor* OverlappedActor, AActor* OtherActor)
 {
     ActionExecContext.SetNamedArgument(TEXT("$Actor"), IsValid(OtherActor) ? OtherActor->GetPathName() : FString());
@@ -513,6 +549,12 @@ void UActorIOSubsystemBase::ProcessEvent_OnActorOverlap(AActor* OverlappedActor,
 void UActorIOSubsystemBase::ProcessEvent_OnActorDestroyed(AActor* DestroyedActor)
 {
     ActionExecContext.SetNamedArgument(TEXT("$Actor"), IsValid(DestroyedActor) ? DestroyedActor->GetPathName() : FString());
+}
+
+void UActorIOSubsystemBase::PostInitialize()
+{
+    const UActorIOSettings* IOSettings = UActorIOSettings::Get();
+    ActorIORegisters = IOSettings->ActorIORegisters;
 }
 
 bool UActorIOSubsystemBase::ShouldCreateSubsystem(UObject* Outer) const

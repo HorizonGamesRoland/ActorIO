@@ -117,6 +117,8 @@ FActorIOEventList IActorIO::GetEventsForObject(AActor* InObject)
         if (IOSubsystem)
         {
             IOSubsystem->GetNativeEventsForObject(InObject, OutEvents);
+
+            IOSubsystem->GetObjectEventsFromIORegisters(InObject, OutEvents);
         }
     }
 
@@ -147,6 +149,8 @@ FActorIOFunctionList IActorIO::GetFunctionsForObject(AActor* InObject)
         if (IOSubsystem)
         {
             IOSubsystem->GetNativeFunctionsForObject(InObject, OutFunctions);
+
+            IOSubsystem->GetObjectFunctionsFromIORegisters(InObject, OutFunctions);
         }
     }
 

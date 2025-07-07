@@ -6,6 +6,7 @@
 #include "Subsystems/WorldSubsystem.h"
 #include "ActorIOSubsystemBase.generated.h"
 
+class UActorIORegisterBase;
 class UActorIOAction;
 
 /**
@@ -21,6 +22,10 @@ public:
 
 	/** Default constructor. */
 	UActorIOSubsystemBase();
+
+protected:
+	UPROPERTY()
+	TArray<TSubclassOf<UActorIORegisterBase>> ActorIORegisters;
 
 public:
 
@@ -76,6 +81,12 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Actor IO", DisplayName = "Get Global Named Arguments", meta = (ForceAsFunction, Keywords = "IO"))
 	void K2_GetGlobalNamedArguments();
 
+	/** Exposes events to the I/O system by actor I/O registers. */
+	void GetObjectEventsFromIORegisters(AActor* InObject, FActorIOEventList& EventRegistry);
+
+	/** Exposes functions to the I/O system by actor I/O registers. */
+	void GetObjectFunctionsFromIORegisters(AActor* InObject, FActorIOFunctionList& FunctionRegistry);
+
 private:
 
 	/** Event processor for the 'OnActorBeginOverlap' and 'OnActorEndOverlap' events. */
@@ -89,6 +100,7 @@ private:
 public:
 
 	//~ Begin UWorldSubsystem Interface
+	virtual void PostInitialize() override;
 	virtual bool ShouldCreateSubsystem(UObject* Outer) const override final;
 	//~ End UWorldSubsystem Interface
 };
