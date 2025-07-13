@@ -48,18 +48,32 @@ public:
 	virtual bool ExecuteCommand(UObject* Target, const TCHAR* Str, FOutputDevice& Ar, UObject* Executor);
 
 	/**
-	 * Exposes events from base Unreal Engine classes to the I/O system.
-	 * Used to avoid the need of subclassing these base classes in order to expose them.
+	 * Opportunity to externally expose events of an actor to the I/O system.
+	 * Used to expose functionality from base Unreal Engine classes without the need to subclass them.
 	 * Called in editor and at runtime, when registering I/O events.
 	 */
-	virtual void GetNativeEventsForObject(AActor* InObject, FActorIOEventList& EventRegistry);
+	virtual void RegisterNativeEventsForObject(AActor* InObject, FActorIOEventList& EventRegistry);
 
 	/**
-	 * Exposes functions from base Unreal Engine classes to the I/O system.
-	 * Used to avoid the need of subclassing these base classes in order to expose them.
-	 * Called in editor and at runtime, when registering I/O functions.
+	 * Opportunity for blueprints to externally expose events of an actor to the I/O system.
+	 * Called in editor and at runtime, when registering I/O events.
 	 */
-	virtual void GetNativeFunctionsForObject(AActor* InObject, FActorIOFunctionList& FunctionRegistry);
+	UFUNCTION(BlueprintImplementableEvent, CallInEditor, Category = "Actor IO", DisplayName = "Register Native Events For Object", meta = (ForceAsFunction, Keywords = "IO"))
+	void K2_RegisterNativeEventsForObject(AActor* InObject, UPARAM(Ref) FActorIOEventList& EventRegistry);
+
+	/**
+	 * Opportunity to externally expose functions of an actor to the I/O system.
+	 * Used to expose functionality from base Unreal Engine classes without the need to subclass them.
+	 * Called in editor and at runtime, when registering I/O events.
+	 */
+	virtual void RegisterNativeFunctionsForObject(AActor* InObject, FActorIOFunctionList& FunctionRegistry);
+
+	/**
+	 * Opportunity for blueprints to externally expose functions of an actor to the I/O system.
+	 * Called in editor and at runtime, when registering I/O events.
+	 */
+	UFUNCTION(BlueprintImplementableEvent, CallInEditor, Category = "Actor IO", DisplayName = "Register Native Functions For Object", meta = (ForceAsFunction, Keywords = "IO"))
+	void K2_RegisterNativeFunctionsForObject(AActor* InObject, UPARAM(Ref) FActorIOFunctionList& FunctionRegistry);
 
 	/**
 	 * Opportunity to add globally available named arguments to the current execution context.
@@ -69,7 +83,7 @@ public:
 	virtual void GetGlobalNamedArguments(FActionExecutionContext& ExecutionContext);
 
 	/**
-	 * Opportunity for blueprint layer to add globally available named arguments to the current execution context.
+	 * Opportunity for blueprints to add globally available named arguments to the current execution context.
 	 * Think stuff like reference to player character, or player controller.
 	 * Called at runtime, before executing an I/O action.
 	 */

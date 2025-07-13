@@ -206,7 +206,7 @@ bool UActorIOSubsystemBase::ExecuteCommand(UObject* Target, const TCHAR* Str, FO
     return true;
 }
 
-void UActorIOSubsystemBase::GetNativeEventsForObject(AActor* InObject, FActorIOEventList& EventRegistry)
+void UActorIOSubsystemBase::RegisterNativeEventsForObject(AActor* InObject, FActorIOEventList& EventRegistry)
 {
     //==================================
     // Trigger Actors
@@ -276,7 +276,7 @@ void UActorIOSubsystemBase::GetNativeEventsForObject(AActor* InObject, FActorIOE
     }
 }
 
-void UActorIOSubsystemBase::GetNativeFunctionsForObject(AActor* InObject, FActorIOFunctionList& FunctionRegistry)
+void UActorIOSubsystemBase::RegisterNativeFunctionsForObject(AActor* InObject, FActorIOFunctionList& FunctionRegistry)
 {
     //==================================
     // Trigger Actors
