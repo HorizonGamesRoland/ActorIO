@@ -56,6 +56,10 @@ public:
     /** @return Whether the list is currently displaying output actions. */
     bool IsViewingOutputActions() const { return !bViewInputActions; }
 
+    void ShowParamsViewer(const UFunction* InFunction, const TSharedRef<SWidget>& InParentWidget);
+
+    void CloseParamsViewer();
+
 protected:
 
     /** List of I/O actions displayed in the action list. */
@@ -63,6 +67,9 @@ protected:
 
     /** Whether the list shows input actions. If false, output actions are shown. */
     bool bViewInputActions;
+
+    /** Context menu of the function params viewer that is visible while editing action params. */
+    TSharedPtr<IMenu> ParamsViewerMenu;
 
 protected:
 
@@ -250,6 +257,10 @@ protected:
     bool ValidateFunctionArguments(const FText& InText, FText& OutError);
 
 public:
+
+    //~ Begin SWidget Interface
+    virtual void OnFocusChanging(const FWeakWidgetPath& PreviousFocusPath, const FWidgetPath& NewWidgetPath, const FFocusEvent& InFocusEvent) override;
+    //~ End SWidget Interface
 
     //~ Begin Drag & Drop
     FReply HandleDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);

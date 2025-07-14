@@ -2,6 +2,7 @@
 
 #include "SActorIOActionList.h"
 #include "SActorIOEditor.h"
+#include "SActorIOActionParamsViewer.h"
 #include "SActorIOErrorText.h"
 #include "SActorIOTooltip.h"
 #include "ActorIOComponent.h"
@@ -130,6 +131,42 @@ void SActorIOActionListView::Refresh()
 	}
 
 	RebuildList();
+}
+
+void SActorIOActionListView::ShowParamsViewer(const UFunction* InFunction, const TSharedRef<SWidget>& InParentWidget)
+{
+	CloseParamsViewer();
+
+	TSharedRef<SActorIOParamsViewer> PopupWidget = SNew(SActorIOParamsViewer)
+		.FunctionPtr(InFunction);
+
+	// Manually call slate prepass to calculate widget desired size.
+	PopupWidget->SlatePrepass(FSlateApplication::Get().GetApplicationScale());
+
+	const FSlateRect AnchorRect = InParentWidget->GetTickSpaceGeometry().GetLayoutBoundingRect();
+	const UE::Slate::FDeprecateVector2DResult PopupSize = PopupWidget->GetDesiredSize();
+
+	FVector2D PopupPosition = AnchorRect.GetTopLeft();
+	PopupPosition -= FVector2D::UnitY() * PopupSize.Y;
+	PopupPosition += FVector2D::UnitX() * (AnchorRect.GetSize2f().X * 0.5f - PopupSize.X * 0.5f);
+
+	ParamsViewerMenu = FSlateApplication::Get().PushMenu(
+		AsShared(),
+		FWidgetPath(),
+		PopupWidget,
+		PopupPosition,
+		FPopupTransitionEffect(FPopupTransitionEffect::ContextMenu),
+		false
+	);
+}
+
+void SActorIOActionListView::CloseParamsViewer()
+{
+	if (ParamsViewerMenu.IsValid())
+	{
+		FSlateApplication::Get().DismissMenu(ParamsViewerMenu);
+		ParamsViewerMenu.Reset();
+	}
 }
 
 TSharedRef<ITableRow> SActorIOActionListView::OnGenerateRowItem(UActorIOAction* Item, const TSharedRef<STableViewBase>& OwnerTable)
@@ -779,6 +816,31 @@ bool SActorIOActionListViewRow::ValidateFunctionArguments(const FText& InText, F
 	}
 
 	return IActorIO::ValidateFunctionArguments(FunctionPtr, InText.ToString(), OutError);
+}
+
+void SActorIOActionListViewRow::OnFocusChanging(const FWeakWidgetPath& PreviousFocusPath, const FWidgetPath& NewWidgetPath, const FFocusEvent& InFocusEvent)
+{
+	UE_LOG(LogTemp, Warning, TEXT("OnFocusChanging with casue: %s"), *UEnum::GetValueAsString(InFocusEvent.GetCause()));
+
+	if (NewWidgetPath.IsValid() && InFocusEvent.GetCause() != EFocusCause::Cleared)
+	{
+		// Check if the focused widget is our function params edit box.
+		// Using ContainsWidget() because NewWidgetPath.GetLastWidget() points to SEditableText instead of our SEditableTextBox.
+		if (NewWidgetPath.ContainsWidget(ArgumentsBox.Get()))
+		{
+			const FActorIOFunction* TargetFunction = ValidFunctions.GetFunction(ActionPtr->FunctionId);
+			const UObject* TargetObject = ActionPtr->ResolveTargetObject(TargetFunction);
+
+			UFunction* FunctionPtr = IsValid(TargetObject) ? TargetObject->FindFunction(FName(TargetFunction->FunctionToExec, FNAME_Find)) : nullptr;
+			if (FunctionPtr)
+			{
+				GetOwnerActionListView()->ShowParamsViewer(FunctionPtr, ArgumentsBox->AsShared());
+				return;
+			}
+		}
+	}
+
+	GetOwnerActionListView()->CloseParamsViewer();
 }
 
 FReply SActorIOActionListViewRow::HandleDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
