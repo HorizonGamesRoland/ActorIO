@@ -2,7 +2,7 @@
 
 #include "SActorIOActionList.h"
 #include "SActorIOEditor.h"
-#include "SActorIOActionParamsViewer.h"
+#include "SActorIOParamsViewer.h"
 #include "SActorIOErrorText.h"
 #include "SActorIOTooltip.h"
 #include "ActorIOComponent.h"
@@ -155,7 +155,7 @@ void SActorIOActionListView::ShowParamsViewer(const UFunction* InFunction, const
 		FWidgetPath(),
 		PopupWidget,
 		PopupPosition,
-		FPopupTransitionEffect(FPopupTransitionEffect::ContextMenu),
+		FPopupTransitionEffect(FPopupTransitionEffect::TypeInPopup),
 		false
 	);
 }
@@ -820,8 +820,6 @@ bool SActorIOActionListViewRow::ValidateFunctionArguments(const FText& InText, F
 
 void SActorIOActionListViewRow::OnFocusChanging(const FWeakWidgetPath& PreviousFocusPath, const FWidgetPath& NewWidgetPath, const FFocusEvent& InFocusEvent)
 {
-	UE_LOG(LogTemp, Warning, TEXT("OnFocusChanging with casue: %s"), *UEnum::GetValueAsString(InFocusEvent.GetCause()));
-
 	if (NewWidgetPath.IsValid() && InFocusEvent.GetCause() != EFocusCause::Cleared)
 	{
 		// Check if the focused widget is our function params edit box.
@@ -830,12 +828,36 @@ void SActorIOActionListViewRow::OnFocusChanging(const FWeakWidgetPath& PreviousF
 		{
 			const FActorIOFunction* TargetFunction = ValidFunctions.GetFunction(ActionPtr->FunctionId);
 			const UObject* TargetObject = ActionPtr->ResolveTargetObject(TargetFunction);
-
-			UFunction* FunctionPtr = IsValid(TargetObject) ? TargetObject->FindFunction(FName(TargetFunction->FunctionToExec, FNAME_Find)) : nullptr;
+			const UFunction* FunctionPtr = IsValid(TargetObject) ? TargetObject->FindFunction(FName(TargetFunction->FunctionToExec, FNAME_Find)) : nullptr;
 			if (FunctionPtr)
 			{
-				GetOwnerActionListView()->ShowParamsViewer(FunctionPtr, ArgumentsBox->AsShared());
-				return;
+				int32 NumInputParams = 0;
+				for (TFieldIterator<FProperty> It(FunctionPtr); It && It->HasAnyPropertyFlags(CPF_Parm); ++It)
+				{
+					FProperty* FunctionProp = *It;
+					checkSlow(FunctionProp);
+
+					// Do not count return property.
+					if (FunctionProp->HasAnyPropertyFlags(CPF_ReturnParm))
+					{
+						continue;
+					}
+
+					// Do not count output params, but only if they are not passed by reference
+					// since in that case the value is also an input param.
+					if (FunctionProp->HasAnyPropertyFlags(CPF_OutParm) && !FunctionProp->HasAnyPropertyFlags(CPF_ReferenceParm))
+					{
+						continue;
+					}
+
+					NumInputParams++;
+				}
+
+				if (NumInputParams > 0)
+				{
+					GetOwnerActionListView()->ShowParamsViewer(FunctionPtr, ArgumentsBox->AsShared());
+					return;
+				}
 			}
 		}
 	}

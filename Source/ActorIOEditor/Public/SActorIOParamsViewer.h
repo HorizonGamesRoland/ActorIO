@@ -15,6 +15,7 @@ class ACTORIOEDITOR_API SActorIOParamsViewer : public SCompoundWidget
 public:
 
 	SLATE_BEGIN_ARGS(SActorIOParamsViewer)
+		: _FunctionPtr(nullptr)
 	{}
 
 	/**  */

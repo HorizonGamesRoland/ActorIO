@@ -1,6 +1,6 @@
 // Copyright 2024-2025 Horizon Games and all contributors at https://github.com/HorizonGamesRoland/ActorIO/graphs/contributors
 
-#include "SActorIOActionParamsViewer.h"
+#include "SActorIOParamsViewer.h"
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/Layout/SBorder.h"
@@ -39,6 +39,19 @@ void SActorIOParamsViewer::FillParamsBox(const UFunction* InFunctionPtr)
 	{
 		FProperty* FunctionProp = *It;
 		checkSlow(FunctionProp);
+
+		// Do not create widget for return property.
+		if (FunctionProp->HasAnyPropertyFlags(CPF_ReturnParm))
+		{
+			continue;
+		}
+
+		// Do not create widget for output params, but only if they are not passed by ref
+		// since in that case the value is also an input param.
+		if (FunctionProp->HasAnyPropertyFlags(CPF_OutParm) && !FunctionProp->HasAnyPropertyFlags(CPF_ReferenceParm))
+		{
+			continue;
+		}
 
 		TSharedRef<SWidget> ParamWidget = MakeParamWidgetForProperty(FunctionProp);
 		ParamsBox->AddSlot().AttachWidget(ParamWidget);
