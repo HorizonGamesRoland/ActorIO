@@ -803,16 +803,10 @@ void SActorIOActionListViewRow::UpdateFunctionArgumentsErrorText(const FText& In
 bool SActorIOActionListViewRow::ValidateFunctionArguments(const FText& InText, FText& OutError)
 {
 	const FActorIOFunction* TargetFunction = ValidFunctions.GetFunction(ActionPtr->FunctionId);
-	if (!TargetFunction)
-	{
-		return true; // not error because we only want to report issue with function params
-	}
-
-	UObject* TargetObject = ActionPtr->ResolveTargetObject(TargetFunction);
-	UFunction* FunctionPtr = IsValid(TargetObject) ? TargetObject->FindFunction(FName(TargetFunction->FunctionToExec, FNAME_Find)) : nullptr;
+	UFunction* FunctionPtr = ActionPtr->ResolveUFunction(TargetFunction);
 	if (!FunctionPtr)
 	{
-		return true; // not error because we only want to report issue with function params
+		return true; // not error because we only want to report issues with function params
 	}
 
 	return IActorIO::ValidateFunctionArguments(FunctionPtr, InText.ToString(), OutError);
@@ -827,8 +821,7 @@ void SActorIOActionListViewRow::OnFocusChanging(const FWeakWidgetPath& PreviousF
 		if (NewWidgetPath.ContainsWidget(ArgumentsBox.Get()))
 		{
 			const FActorIOFunction* TargetFunction = ValidFunctions.GetFunction(ActionPtr->FunctionId);
-			const UObject* TargetObject = ActionPtr->ResolveTargetObject(TargetFunction);
-			const UFunction* FunctionPtr = IsValid(TargetObject) ? TargetObject->FindFunction(FName(TargetFunction->FunctionToExec, FNAME_Find)) : nullptr;
+			UFunction* FunctionPtr = ActionPtr->ResolveUFunction(TargetFunction);
 			if (FunctionPtr)
 			{
 				int32 NumInputParams = 0;
