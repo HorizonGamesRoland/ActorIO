@@ -15,6 +15,8 @@ class ACTORIOEDITOR_API SActorIOTooltip : public SToolTip
 public:
 
 	SLATE_BEGIN_ARGS(SActorIOTooltip)
+		: _RegistryId(NAME_None)
+		, _Description(FText::GetEmpty())
 	{}
 
 	/** Id of the I/O event or function. */
