@@ -229,6 +229,22 @@ bool IActorIO::ValidateFunctionArguments(UFunction* FunctionPtr, const FString& 
     int32 NumParamsExpected = 0;
     for (TFieldIterator<FProperty> It(FunctionPtr); It && It->HasAnyPropertyFlags(CPF_Parm); ++It)
     {
+        FProperty* FunctionProp = *It;
+        checkSlow(FunctionProp);
+
+        // Do not count return property.
+        if (FunctionProp->HasAnyPropertyFlags(CPF_ReturnParm))
+        {
+            continue;
+        }
+
+        // Do not count output params, but only if they are not passed by ref
+        // since in that case the value is also an input param.
+        if (FunctionProp->HasAnyPropertyFlags(CPF_OutParm) && !FunctionProp->HasAnyPropertyFlags(CPF_ReferenceParm))
+        {
+            continue;
+        }
+
         // #TODO: Is it possible to actually try and import the value into the FProperty and catch errors?
 
         NumParamsExpected++;
