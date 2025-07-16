@@ -56,10 +56,17 @@ public:
     /** @return Whether the list is currently displaying output actions. */
     bool IsViewingOutputActions() const { return !bViewInputActions; }
 
+    /**
+     * Spawns the params viewer widget that list the parameters of the given UFunction.
+     * The widget will be placed above the given parent widget.
+     * Used by the arguments edit box of action list entries.
+     */
     void ShowParamsViewer(UFunction* InFunction, const TSharedRef<SWidget>& InParentWidget);
 
+    /** Closes the params viewer widget if there is one. */
     void CloseParamsViewer();
 
+    /** Changes the highlighted param index in the params viewer widget if there is one. */
     void UpdateParamsViewer(int32 InHighlightedParamIdx);
 
 protected:

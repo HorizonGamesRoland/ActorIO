@@ -21,6 +21,8 @@ public:
 
 	/** The UFunction to display the parameters of. */
 	SLATE_ARGUMENT(UFunction*, FunctionPtr)
+	/** Minimum width of the widget. */
+	SLATE_ARGUMENT(float, MinDesiredWidth)
 
 	SLATE_END_ARGS()
 
@@ -33,13 +35,10 @@ public:
 	 */
 	void SetHighlightedParam(int32 InParamIdx);
 
-	/** @return The widget that is currently highlighted. Can be null. */
-	TSharedPtr<class SActorIOParamsViewerEntry> GetHighlightedParam() const;
-
 protected:
 
-	/** Wrap box containing the parameter entries. */
-	TSharedPtr<class SWrapBox> ParamsBox;
+	/** List box containing the parameter entries. */
+	TSharedPtr<class SVerticalBox> ParamsBox;
 
 	/** Index of the currently highlighted param. */
 	int32 HighlightedParamIdx;
@@ -48,6 +47,12 @@ protected:
 
 	/** Generates the parameter entries from the given UFunction. */
 	void FillParamsBox(UFunction* InFunctionPtr);
+
+	/** @return Whether a param entry exists at the given index.  */
+	bool IsValidParamIdx(int32 InParamIdx) const;
+
+	/** @return The widget of the param entry at the given index. */
+	TSharedRef<class SActorIOParamsViewerEntry> GetParamEntryAt(int32 InParamIdx) const;
 };
 
 /**

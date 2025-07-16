@@ -4,7 +4,6 @@
 #include "ActorIOEditorStyle.h"
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/Layout/SBorder.h"
-#include "Widgets/Layout/SWrapBox.h"
 #include "Widgets/SBoxPanel.h"
 #include "Styling/StyleColors.h"
 #include "SlateOptMacros.h"
@@ -21,16 +20,18 @@ void SActorIOParamsViewer::PrivateRegisterAttributes(FSlateAttributeInitializer&
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SActorIOParamsViewer::Construct(const FArguments& InArgs)
 {
+	HighlightedParamIdx = INDEX_NONE;
+
 	ChildSlot
 	[
-		SNew(SBorder)
-		//.BorderImage(FActorIOEditorStyle::Get().GetBrush("ParamsViewer.Border"))
-		.HAlign(HAlign_Left)
-		.VAlign(VAlign_Center)
-		.Padding(6.0f)
+		SNew(SBox)
+		.MinDesiredWidth(InArgs._MinDesiredWidth)
 		[
-			SAssignNew(ParamsBox, SWrapBox)
-			.PreferredSize(400.0f)
+			SNew(SBorder)
+			.Padding(2.0f, 6.0f)
+			[
+				SAssignNew(ParamsBox, SVerticalBox)
+			]
 		]
 	];
 
@@ -68,37 +69,42 @@ void SActorIOParamsViewer::FillParamsBox(UFunction* InFunctionPtr)
 
 void SActorIOParamsViewer::SetHighlightedParam(int32 InParamIdx)
 {
-	FChildren* Children = ParamsBox->GetChildren();
-
-	// Remove highlight from current widget.
-	TSharedPtr<SActorIOParamsViewerEntry> HighlightedEntry = GetHighlightedParam();
-	if (HighlightedEntry.IsValid())
+	if (HighlightedParamIdx == InParamIdx)
 	{
-		HighlightedEntry->SetHighlightEnabled(false);
-
-		HighlightedParamIdx = INDEX_NONE;
+		// Do nothing if we are trying to highlight the same widget.
+		return;
 	}
 
-	// Enable highlight on other widget.
-	if (InParamIdx > INDEX_NONE && InParamIdx <= Children->Num())
+	// Remove highlight from current widget.
+	if (IsValidParamIdx(HighlightedParamIdx))
 	{
-		TSharedRef<SActorIOParamsViewerEntry> ParamsViewerEntry = StaticCastSharedRef<SActorIOParamsViewerEntry>(Children->GetChildAt(InParamIdx));
-		ParamsViewerEntry->SetHighlightEnabled(true);
+		TSharedRef<SActorIOParamsViewerEntry> HighlightedEntry = GetParamEntryAt(HighlightedParamIdx);
+		HighlightedEntry->SetHighlightEnabled(false);
+	}
+
+	// Reset the current index here, because there is no guarantee that the new index is valid.
+	HighlightedParamIdx = INDEX_NONE;
+
+	// Enable highlight on the other widget.
+	if (IsValidParamIdx(InParamIdx))
+	{
+		TSharedRef<SActorIOParamsViewerEntry> TargetEntry = GetParamEntryAt(InParamIdx);
+		TargetEntry->SetHighlightEnabled(true);
 
 		HighlightedParamIdx = InParamIdx;
 	}
 }
 
-TSharedPtr<SActorIOParamsViewerEntry> SActorIOParamsViewer::GetHighlightedParam() const
+bool SActorIOParamsViewer::IsValidParamIdx(int32 InParamIdx) const
 {
 	FChildren* Children = ParamsBox->GetChildren();
-	if (HighlightedParamIdx > INDEX_NONE && Children->Num() <= HighlightedParamIdx)
-	{
-		TSharedRef<SActorIOParamsViewerEntry> HighlightedEntry = StaticCastSharedRef<SActorIOParamsViewerEntry>(Children->GetChildAt(HighlightedParamIdx));
-		return HighlightedEntry.ToSharedPtr();
-	}
+	return InParamIdx > INDEX_NONE && InParamIdx < Children->Num();
+}
 
-	return nullptr;
+TSharedRef<class SActorIOParamsViewerEntry> SActorIOParamsViewer::GetParamEntryAt(int32 InParamIdx) const
+{
+	FChildren* Children = ParamsBox->GetChildren();
+	return StaticCastSharedRef<SActorIOParamsViewerEntry>(Children->GetChildAt(InParamIdx));
 }
 
 
@@ -125,8 +131,8 @@ void SActorIOParamsViewerEntry::Construct(const FArguments& InArgs)
 	ChildSlot
 	[
 		SAssignNew(WidgetBorder, SBorder)
-		.BorderImage(FActorIOEditorStyle::Get().GetBrush("ParamsViewer.Highlight"))
-		.Padding(3.0f)
+		.BorderImage(FActorIOEditorStyle::Get().GetBrush("ParamsViewer.Highlighter"))
+		.Padding(6.0f, 3.0f)
 		[
 			SNew(SHorizontalBox)
 			+ SHorizontalBox::Slot()
@@ -136,18 +142,12 @@ void SActorIOParamsViewerEntry::Construct(const FArguments& InArgs)
 				.Text(FText::FromString(PropName))
 			]
 			+ SHorizontalBox::Slot()
-			.AutoWidth()
 			.Padding(1.0f, 0.0f)
 			[
 				SNew(STextBlock)
 				.Text(FText::FromString(PropType))
-				.ColorAndOpacity(FStyleColors::PrimaryHover)
-			]
-			+ SHorizontalBox::Slot()
-			.AutoWidth()
-			[
-				SNew(STextBlock)
-				.Text(FText::FromString(TEXT(";")))
+				.Font(FAppStyle::GetFontStyle(TEXT("BoldFont")))
+				.ColorAndOpacity(FActorIOEditorStyle::Get().GetSlateColor("ParamsViewer.ParamTypeColor"))
 			]
 		]
 	];
@@ -158,6 +158,6 @@ END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 void SActorIOParamsViewerEntry::SetHighlightEnabled(bool bHighlight)
 {
-	const FColor HighlightColor = FColor::White.WithAlpha(bHighlight ? 255 : 0);
-	WidgetBorder->SetBorderBackgroundColor(FSlateColor(HighlightColor));
+	const FSlateColor& NewColor = bHighlight ? FStyleColors::White : FStyleColors::Transparent;
+	WidgetBorder->SetBorderBackgroundColor(NewColor);
 }

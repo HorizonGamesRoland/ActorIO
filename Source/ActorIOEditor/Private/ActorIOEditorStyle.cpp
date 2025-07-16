@@ -72,8 +72,8 @@ void FActorIOEditorStyle::Initialize()
 
 	SetupActionListColumnSizes();
 
-	//StyleSet->Set("ParamsViewer.Border", new FSlateRoundedBoxBrush(FStyleColors::Dropdown, 3.0f, FStyleColors::Input, 1.0f));
-	StyleSet->Set("ParamsViewer.Highlight", new FSlateRoundedBoxBrush(FStyleColors::SelectInactive, 1.0f));
+	StyleSet->Set("ParamsViewer.Highlighter", new FSlateRoundedBoxBrush(FStyleColors::SelectInactive, 1.0f));
+	StyleSet->Set("ParamsViewer.ParamTypeColor", FStyleColors::PrimaryHover);
 
 	const FVector2D Icon16x16(16.0f, 16.0f);
 	const FVector2D Icon64x64(64.0f, 64.0f);

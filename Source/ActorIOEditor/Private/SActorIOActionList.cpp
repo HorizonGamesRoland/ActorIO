@@ -138,25 +138,25 @@ void SActorIOActionListView::ShowParamsViewer(UFunction* InFunction, const TShar
 {
 	CloseParamsViewer();
 
+	const FSlateRect AnchorRect = InParentWidget->GetTickSpaceGeometry().GetLayoutBoundingRect();
+	const float AnchorWidth = AnchorRect.GetSize().X;
+
 	ParamsViewerWidget = SNew(SActorIOParamsViewer)
-		.FunctionPtr(InFunction);
+		.FunctionPtr(InFunction)
+		.MinDesiredWidth(AnchorWidth);
 
 	// Manually call slate prepass to calculate widget desired size.
 	ParamsViewerWidget->SlatePrepass(FSlateApplication::Get().GetApplicationScale());
 
-	const FSlateRect AnchorRect = InParentWidget->GetTickSpaceGeometry().GetLayoutBoundingRect();
-	const UE::Slate::FDeprecateVector2DResult PopupSize = ParamsViewerWidget->GetDesiredSize();
-
 	FVector2D PopupPosition = AnchorRect.GetTopLeft();
-	PopupPosition -= FVector2D::UnitY() * PopupSize.Y;
-	PopupPosition += FVector2D::UnitX() * (AnchorRect.GetSize2f().X * 0.5f - PopupSize.X * 0.5f);
+	PopupPosition -= FVector2D::UnitY() * ParamsViewerWidget->GetDesiredSize().Y;
 
 	ParamsViewerMenu = FSlateApplication::Get().PushMenu(
 		AsShared(),
 		FWidgetPath(),
 		ParamsViewerWidget.ToSharedRef(),
 		PopupPosition,
-		FPopupTransitionEffect(FPopupTransitionEffect::TypeInPopup),
+		FPopupTransitionEffect(FPopupTransitionEffect::ContextMenu),
 		false
 	);
 }
@@ -165,6 +165,7 @@ void SActorIOActionListView::CloseParamsViewer()
 {
 	if (ParamsViewerMenu.IsValid())
 	{
+		// Clear reference to widget before dismissing the menu.
 		ParamsViewerWidget.Reset();
 
 		FSlateApplication::Get().DismissMenu(ParamsViewerMenu);
@@ -608,19 +609,31 @@ void SActorIOActionListViewRow::OnFunctionArgumentsCommitted(const FText& InText
 
 void SActorIOActionListViewRow::OnFunctionArgumentsCursorMoved(const FTextLocation& InTextLocation)
 {
-	int32 CurrentParamNum = INDEX_NONE;
+	int32 CurrentParamIdx = INDEX_NONE;
 
-	const FString Args = *ArgumentsBox->GetPlainText().ToString();
+	const FString Args = ArgumentsBox->GetPlainText().ToString();
 	if (!Args.IsEmpty())
 	{
-		CurrentParamNum = 0;
-		for (int32 CharIdx = 0; CharIdx != Args.Len(); ++CharIdx)
+		// Loop through the parameters string until the current cursor location and count argument separators.
+		// The number of argument separators indicate the currently edited param's index.
+
+		CurrentParamIdx = 0;
+		for (int32 CharIdx = 0; CharIdx != InTextLocation.GetOffset(); ++CharIdx)
 		{
-			// #TODO: Get current param num
+			// The index represents the char BEHIND the cursor.
+			// Example: false;| <-- char at cursor is ';'
+			// 
+			// We are going to look for the argument separator one character behind the cursor so that
+			// the next param is only highlighted after we typed something for the new param.
+
+			if (CharIdx > 0 && Args[CharIdx - 1] == *ARGUMENT_SEPARATOR)
+			{
+				CurrentParamIdx++;
+			}
 		}
 	}
 
-	GetOwnerActionListView()->UpdateParamsViewer(CurrentParamNum);
+	GetOwnerActionListView()->UpdateParamsViewer(CurrentParamIdx);
 }
 
 float SActorIOActionListViewRow::OnGetActionDelay() const
