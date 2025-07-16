@@ -386,8 +386,8 @@ TSharedRef<SWidget> SActorIOActionListViewRow::GenerateWidgetForColumn(const FNa
 			.IsEnabled(!bIsInputAction)
 		);
 
-		// Update error text and close popup to avoid stealing input.
-		UpdateFunctionArgumentsErrorText(ArgumentsBox->GetText(), true);
+		// Validate args and show error if needed.
+		UpdateFunctionArgumentsErrorText(ArgumentsBox->GetText());
 	}
 	else if (ColumnName == ColumnId::Delay)
 	{
@@ -593,6 +593,7 @@ void SActorIOActionListViewRow::OnFunctionComboBoxSelectionChanged(FName InName,
 
 void SActorIOActionListViewRow::OnFunctionArgumentsChanged(const FText& InText)
 {
+	// Validate args and show error if needed.
 	UpdateFunctionArgumentsErrorText(InText);
 }
 
@@ -603,8 +604,8 @@ void SActorIOActionListViewRow::OnFunctionArgumentsCommitted(const FText& InText
 
 	ActionPtr->FunctionArguments = InText.ToString();
 
-	// Update error text and close popup to avoid stealing input.
-	UpdateFunctionArgumentsErrorText(InText, true);
+	// Validate args and show error if needed.
+	UpdateFunctionArgumentsErrorText(InText);
 }
 
 void SActorIOActionListViewRow::OnFunctionArgumentsCursorMoved(const FTextLocation& InTextLocation)
@@ -827,7 +828,7 @@ TSharedPtr<SToolTip> SActorIOActionListViewRow::GetFunctionTooltip(FName InFunct
 	return TooltipWidget.ToSharedPtr();
 }
 
-void SActorIOActionListViewRow::UpdateFunctionArgumentsErrorText(const FText& InArguments, bool bShouldCloseErrorPopup)
+void SActorIOActionListViewRow::UpdateFunctionArgumentsErrorText(const FText& InArguments)
 {
 	FText ErrorText = FText::GetEmpty();
 	ValidateFunctionArguments(InArguments, ErrorText);
@@ -835,12 +836,6 @@ void SActorIOActionListViewRow::UpdateFunctionArgumentsErrorText(const FText& In
 	// Update error reporting widget.
 	// If error text is empty, the error is cleared.
 	ArgumentsBox->SetError(ErrorText);
-
-	// Close the popup immediately if needed to stop it from stealing input.
-	if (bShouldCloseErrorPopup)
-	{
-		ArgumentsErrorText->SetIsOpen(false);
-	}
 }
 
 bool SActorIOActionListViewRow::ValidateFunctionArguments(const FText& InText, FText& OutError)

@@ -266,7 +266,7 @@ protected:
     TSharedPtr<SToolTip> GetFunctionTooltip(FName InFunctionId);
 
     /** Validate function arguments and push error text to error reporting widget. */
-    void UpdateFunctionArgumentsErrorText(const FText& InArguments, bool bShouldCloseErrorPopup = false);
+    void UpdateFunctionArgumentsErrorText(const FText& InArguments);
 
     /** @return Check whether the given function arguments are valid or not. */
     bool ValidateFunctionArguments(const FText& InText, FText& OutError);
