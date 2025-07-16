@@ -38,7 +38,7 @@ void SActorIOEditor::Construct(const FArguments& InArgs)
             SNew(SSplitter)
             .PhysicalSplitterHandleSize(0.0f)
             + SSplitter::Slot()
-            .MinSize(70)
+            .MinSize(110.0f)
             .Value(0.3f)
             [
                 SNew(SVerticalBox)
