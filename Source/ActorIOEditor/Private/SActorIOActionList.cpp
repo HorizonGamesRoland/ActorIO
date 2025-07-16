@@ -14,6 +14,7 @@
 #include "Widgets/Input/SCheckBox.h"
 #include "Widgets/Input/SSpinBox.h"
 #include "Widgets/Input/SEditableTextBox.h"
+#include "Widgets/Input/SMultilineEditableTextBox.h"
 #include "Widgets/Input/SComboBox.h"
 #include "Widgets/Layout/SWidgetSwitcher.h"
 #include "Widgets/Layout/SSpacer.h"
@@ -133,18 +134,18 @@ void SActorIOActionListView::Refresh()
 	RebuildList();
 }
 
-void SActorIOActionListView::ShowParamsViewer(const UFunction* InFunction, const TSharedRef<SWidget>& InParentWidget)
+void SActorIOActionListView::ShowParamsViewer(UFunction* InFunction, const TSharedRef<SWidget>& InParentWidget)
 {
 	CloseParamsViewer();
 
-	TSharedRef<SActorIOParamsViewer> PopupWidget = SNew(SActorIOParamsViewer)
+	ParamsViewerWidget = SNew(SActorIOParamsViewer)
 		.FunctionPtr(InFunction);
 
 	// Manually call slate prepass to calculate widget desired size.
-	PopupWidget->SlatePrepass(FSlateApplication::Get().GetApplicationScale());
+	ParamsViewerWidget->SlatePrepass(FSlateApplication::Get().GetApplicationScale());
 
 	const FSlateRect AnchorRect = InParentWidget->GetTickSpaceGeometry().GetLayoutBoundingRect();
-	const UE::Slate::FDeprecateVector2DResult PopupSize = PopupWidget->GetDesiredSize();
+	const UE::Slate::FDeprecateVector2DResult PopupSize = ParamsViewerWidget->GetDesiredSize();
 
 	FVector2D PopupPosition = AnchorRect.GetTopLeft();
 	PopupPosition -= FVector2D::UnitY() * PopupSize.Y;
@@ -153,7 +154,7 @@ void SActorIOActionListView::ShowParamsViewer(const UFunction* InFunction, const
 	ParamsViewerMenu = FSlateApplication::Get().PushMenu(
 		AsShared(),
 		FWidgetPath(),
-		PopupWidget,
+		ParamsViewerWidget.ToSharedRef(),
 		PopupPosition,
 		FPopupTransitionEffect(FPopupTransitionEffect::TypeInPopup),
 		false
@@ -164,8 +165,18 @@ void SActorIOActionListView::CloseParamsViewer()
 {
 	if (ParamsViewerMenu.IsValid())
 	{
+		ParamsViewerWidget.Reset();
+
 		FSlateApplication::Get().DismissMenu(ParamsViewerMenu);
 		ParamsViewerMenu.Reset();
+	}
+}
+
+void SActorIOActionListView::UpdateParamsViewer(int32 InHighlightedParamIdx)
+{
+	if (ParamsViewerWidget.IsValid())
+	{
+		ParamsViewerWidget->SetHighlightedParam(InHighlightedParamIdx);
 	}
 }
 
@@ -363,11 +374,13 @@ TSharedRef<SWidget> SActorIOActionListViewRow::GenerateWidgetForColumn(const FNa
 		OutWidget->SetPadding(FMargin(1.0f, 0.0f, 1.0f, 0.0f));
 		OutWidget->SetContent
 		(
-			SAssignNew(ArgumentsBox, SEditableTextBox)
+			SAssignNew(ArgumentsBox, SMultiLineEditableTextBox)
 			.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont"))
 			.Text(FText::FromString(ActionPtr->FunctionArguments))
+			.AllowMultiLine(false)
 			.OnTextChanged(this, &SActorIOActionListViewRow::OnFunctionArgumentsChanged)
 			.OnTextCommitted(this, &SActorIOActionListViewRow::OnFunctionArgumentsCommitted)
+			.OnCursorMoved(this, &SActorIOActionListViewRow::OnFunctionArgumentsCursorMoved)
 			.ErrorReporting(SAssignNew(ArgumentsErrorText, SActorIOErrorText))
 			.IsEnabled(!bIsInputAction)
 		);
@@ -591,6 +604,23 @@ void SActorIOActionListViewRow::OnFunctionArgumentsCommitted(const FText& InText
 
 	// Update error text and close popup to avoid stealing input.
 	UpdateFunctionArgumentsErrorText(InText, true);
+}
+
+void SActorIOActionListViewRow::OnFunctionArgumentsCursorMoved(const FTextLocation& InTextLocation)
+{
+	int32 CurrentParamNum = INDEX_NONE;
+
+	const FString Args = *ArgumentsBox->GetPlainText().ToString();
+	if (!Args.IsEmpty())
+	{
+		CurrentParamNum = 0;
+		for (int32 CharIdx = 0; CharIdx != Args.Len(); ++CharIdx)
+		{
+			// #TODO: Get current param num
+		}
+	}
+
+	GetOwnerActionListView()->UpdateParamsViewer(CurrentParamNum);
 }
 
 float SActorIOActionListViewRow::OnGetActionDelay() const

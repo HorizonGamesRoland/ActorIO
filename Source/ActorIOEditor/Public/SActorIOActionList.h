@@ -56,9 +56,11 @@ public:
     /** @return Whether the list is currently displaying output actions. */
     bool IsViewingOutputActions() const { return !bViewInputActions; }
 
-    void ShowParamsViewer(const UFunction* InFunction, const TSharedRef<SWidget>& InParentWidget);
+    void ShowParamsViewer(UFunction* InFunction, const TSharedRef<SWidget>& InParentWidget);
 
     void CloseParamsViewer();
+
+    void UpdateParamsViewer(int32 InHighlightedParamIdx);
 
 protected:
 
@@ -70,6 +72,9 @@ protected:
 
     /** Context menu of the function params viewer that is visible while editing action params. */
     TSharedPtr<IMenu> ParamsViewerMenu;
+
+    /** Reference to the params viewer widget inside the context menu. */
+    TSharedPtr<class SActorIOParamsViewer> ParamsViewerWidget;
 
 protected:
 
@@ -157,7 +162,7 @@ protected:
     TSharedPtr<class STextBlock> FunctionText;
 
     /** Editable text box where function arguments are inputted. */
-    TSharedPtr<class SEditableTextBox> ArgumentsBox;
+    TSharedPtr<class SMultiLineEditableTextBox> ArgumentsBox;
 
     /** Error reporting widget of the function arguments edit box. */
     TSharedPtr<class SActorIOErrorText> ArgumentsErrorText;
@@ -202,6 +207,9 @@ protected:
 
     /** Called when the function parameters are committed in the text box. */
     void OnFunctionArgumentsCommitted(const FText& InText, ETextCommit::Type InCommitType);
+
+    /** Called when the caret is moved inside the function parrameters text box. */
+    void OnFunctionArgumentsCursorMoved(const FTextLocation& InTextLocation);
 
     /** @return Delay of the action. */
     float OnGetActionDelay() const;
