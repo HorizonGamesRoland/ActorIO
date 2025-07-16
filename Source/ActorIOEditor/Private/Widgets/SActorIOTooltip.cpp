@@ -1,6 +1,6 @@
 // Copyright 2024-2025 Horizon Games and all contributors at https://github.com/HorizonGamesRoland/ActorIO/graphs/contributors
 
-#include "SActorIOTooltip.h"
+#include "Widgets/SActorIOTooltip.h"
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/Layout/SSpacer.h"

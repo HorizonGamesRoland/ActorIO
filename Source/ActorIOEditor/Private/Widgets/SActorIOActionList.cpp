@@ -1,10 +1,10 @@
 // Copyright 2024-2025 Horizon Games and all contributors at https://github.com/HorizonGamesRoland/ActorIO/graphs/contributors
 
-#include "SActorIOActionList.h"
-#include "SActorIOEditor.h"
-#include "SActorIOParamsViewer.h"
-#include "SActorIOErrorText.h"
-#include "SActorIOTooltip.h"
+#include "Widgets/SActorIOActionList.h"
+#include "Widgets/SActorIOEditor.h"
+#include "Widgets/SActorIOParamsViewer.h"
+#include "Widgets/SActorIOErrorText.h"
+#include "Widgets/SActorIOTooltip.h"
 #include "ActorIOComponent.h"
 #include "ActorIOEditor.h"
 #include "ActorIOEditorStyle.h"

@@ -1,6 +1,6 @@
 // Copyright 2024-2025 Horizon Games and all contributors at https://github.com/HorizonGamesRoland/ActorIO/graphs/contributors
 
-#include "SActorIOParamsViewer.h"
+#include "Widgets/SActorIOParamsViewer.h"
 #include "ActorIOEditorStyle.h"
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/Layout/SBorder.h"
