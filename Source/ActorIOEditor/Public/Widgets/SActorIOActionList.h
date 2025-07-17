@@ -77,10 +77,10 @@ protected:
     /** Whether the list shows input actions. If false, output actions are shown. */
     bool bViewInputActions;
 
-    /** Context menu of the function params viewer that is visible while editing action params. */
+    /** Popup menu of the params viewer that is visible while editing action params. */
     TSharedPtr<IMenu> ParamsViewerMenu;
 
-    /** Reference to the params viewer widget inside the context menu. */
+    /** Reference to the params viewer widget inside the popup menu. */
     TSharedPtr<class SActorIOParamsViewer> ParamsViewerWidget;
 
 protected:

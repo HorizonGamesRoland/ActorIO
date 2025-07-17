@@ -375,10 +375,12 @@ TSharedRef<SWidget> SActorIOActionListViewRow::GenerateWidgetForColumn(const FNa
 		OutWidget->SetPadding(FMargin(1.0f, 0.0f, 1.0f, 0.0f));
 		OutWidget->SetContent
 		(
-			SAssignNew(ArgumentsBox, SMultiLineEditableTextBox)
+			SAssignNew(ArgumentsBox, SMultiLineEditableTextBox) // need to use multiline text to have access to OnCursorMoved
 			.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont"))
 			.Text(FText::FromString(ActionPtr->FunctionArguments))
-			.AllowMultiLine(false)
+			.AllowMultiLine(false) // force single line
+			.Padding(FActorIOEditorStyle::Get().GetMargin("ActionListView.ActionArgumentsBoxDefaultPadding")) // padding is updated with error text
+			.Margin(FMargin(0.0f, 3.0f)) // center the text
 			.OnTextChanged(this, &SActorIOActionListViewRow::OnFunctionArgumentsChanged)
 			.OnTextCommitted(this, &SActorIOActionListViewRow::OnFunctionArgumentsCommitted)
 			.OnCursorMoved(this, &SActorIOActionListViewRow::OnFunctionArgumentsCursorMoved)
@@ -831,11 +833,16 @@ TSharedPtr<SToolTip> SActorIOActionListViewRow::GetFunctionTooltip(FName InFunct
 void SActorIOActionListViewRow::UpdateFunctionArgumentsErrorText(const FText& InArguments)
 {
 	FText ErrorText = FText::GetEmpty();
-	ValidateFunctionArguments(InArguments, ErrorText);
+	const bool bArgsValid = ValidateFunctionArguments(InArguments, ErrorText);
 
 	// Update error reporting widget.
 	// If error text is empty, the error is cleared.
 	ArgumentsBox->SetError(ErrorText);
+
+	// Update arguments box padding to fix big gap on right side when error reporting widget is visible.
+	ArgumentsBox->SetPadding(bArgsValid
+		? FActorIOEditorStyle::Get().GetMargin("ActionListView.ActionArgumentsBoxDefaultPadding")
+		: FActorIOEditorStyle::Get().GetMargin("ActionListView.ActionArgumentsBoxErrorPadding"));
 }
 
 bool SActorIOActionListViewRow::ValidateFunctionArguments(const FText& InText, FText& OutError)
