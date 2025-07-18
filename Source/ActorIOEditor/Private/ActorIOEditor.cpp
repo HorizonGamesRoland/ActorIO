@@ -87,15 +87,19 @@ void FActorIOEditor::StartupModule()
 
 		IPlacementModeModule& PlacementModeModule = IPlacementModeModule::Get();
 		PlacementModeModule.RegisterPlacementCategory(Info);
-		PlacementModeModule.RegisterPlaceableItem(Info.UniqueHandle, MakeShared<FPlaceableItem>(*UActorFactory::StaticClass(), FAssetData(ALogicBranch::StaticClass())));
-		PlacementModeModule.RegisterPlaceableItem(Info.UniqueHandle, MakeShared<FPlaceableItem>(*UActorFactory::StaticClass(), FAssetData(ALogicCase::StaticClass())));
-		PlacementModeModule.RegisterPlaceableItem(Info.UniqueHandle, MakeShared<FPlaceableItem>(*UActorFactory::StaticClass(), FAssetData(ALogicCompare::StaticClass())));
-		PlacementModeModule.RegisterPlaceableItem(Info.UniqueHandle, MakeShared<FPlaceableItem>(*UActorFactory::StaticClass(), FAssetData(ALogicCounter::StaticClass())));
-		PlacementModeModule.RegisterPlaceableItem(Info.UniqueHandle, MakeShared<FPlaceableItem>(*UActorFactory::StaticClass(), FAssetData(ALogicGlobalEvent::StaticClass())));
-		PlacementModeModule.RegisterPlaceableItem(Info.UniqueHandle, MakeShared<FPlaceableItem>(*UActorFactory::StaticClass(), FAssetData(ALogicRelay::StaticClass())));
-		PlacementModeModule.RegisterPlaceableItem(Info.UniqueHandle, MakeShared<FPlaceableItem>(*UActorFactory::StaticClass(), FAssetData(ALogicSpawner::StaticClass())));
-		PlacementModeModule.RegisterPlaceableItem(Info.UniqueHandle, MakeShared<FPlaceableItem>(*UActorFactory::StaticClass(), FAssetData(ALogicTimeline::StaticClass())));
-		PlacementModeModule.RegisterPlaceableItem(Info.UniqueHandle, MakeShared<FPlaceableItem>(*UActorFactory::StaticClass(), FAssetData(ALogicTimer::StaticClass())));
+
+		TArray<UClass*> LogicActorClasses;
+		GetDerivedClasses(ALogicActorBase::StaticClass(), LogicActorClasses);
+
+		// Dynamically register all native logic actor classes to the placement category.
+		for (UClass* LogicActorClass : LogicActorClasses)
+		{
+			if (!LogicActorClass->HasAnyClassFlags(CLASS_Abstract | CLASS_Deprecated | CLASS_Hidden | CLASS_NotPlaceable))
+			{
+				PlacementModeModule.RegisterPlaceableItem(Info.UniqueHandle,
+					MakeShared<FPlaceableItem>(*UActorFactory::StaticClass(), LogicActorClass));
+			}
+		}
 	}
 }
 
