@@ -148,15 +148,25 @@ void SActorIOActionListView::ShowParamsViewer(UFunction* InFunction, const TShar
 	// Manually call slate prepass to calculate widget desired size.
 	ParamsViewerWidget->SlatePrepass(FSlateApplication::Get().GetApplicationScale());
 
-	FVector2D PopupPosition = AnchorRect.GetTopLeft();
-	PopupPosition -= FVector2D::UnitY() * ParamsViewerWidget->GetDesiredSize().Y;
+	const FVector2f PopupWidgetSize = ParamsViewerWidget->GetDesiredSize();
+	FVector2f PopupPosition = FVector2f::ZeroVector;
+	if (AnchorRect.GetTopLeft().Y > PopupWidgetSize.Y)
+	{
+		// If there is enough screen space, open the widget above the anchor.
+		PopupPosition = AnchorRect.GetTopLeft() - FVector2f::UnitY() * PopupWidgetSize.Y;
+	}
+	else
+	{
+		// Otherwise open the widget below the anchor.
+		PopupPosition = AnchorRect.GetBottomLeft();
+	}
 
 	ParamsViewerMenu = FSlateApplication::Get().PushMenu(
 		AsShared(),
 		FWidgetPath(),
 		ParamsViewerWidget.ToSharedRef(),
 		PopupPosition,
-		FPopupTransitionEffect(FPopupTransitionEffect::ContextMenu),
+		FPopupTransitionEffect(FPopupTransitionEffect::None), // transition effects are deprecated
 		false
 	);
 }
