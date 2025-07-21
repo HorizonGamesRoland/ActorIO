@@ -4,6 +4,7 @@
 #include "ActorIOEditorStyle.h"
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/Layout/SBorder.h"
+#include "Widgets/Layout/SBox.h"
 #include "Widgets/SBoxPanel.h"
 #include "Styling/StyleColors.h"
 #include "SlateOptMacros.h"

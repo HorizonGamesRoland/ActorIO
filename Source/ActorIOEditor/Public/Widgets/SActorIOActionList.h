@@ -78,7 +78,7 @@ protected:
     bool bViewInputActions;
 
     /** Popup menu of the params viewer that is visible while editing action params. */
-    TSharedPtr<IMenu> ParamsViewerMenu;
+    TSharedPtr<class IMenu> ParamsViewerMenu;
 
     /** Reference to the params viewer widget inside the popup menu. */
     TSharedPtr<class SActorIOParamsViewer> ParamsViewerWidget;
@@ -254,7 +254,7 @@ protected:
     FSlateColor GetEventDisplayColor(FName InEventId) const;
 
     /** @return Tooltip widget to use for I/O events. */
-    TSharedPtr<SToolTip> GetEventTooltip(FName InEventId);
+    TSharedPtr<class SToolTip> GetEventTooltip(FName InEventId);
 
     /** Finds the display name of the given I/O function. */
     FText GetFunctionDisplayName(FName InFunctionId) const;
@@ -263,7 +263,7 @@ protected:
     FSlateColor GetFunctionDisplayColor(FName InFunctionId) const;
 
     /** @return Tooltip widget to use for I/O functions. */
-    TSharedPtr<SToolTip> GetFunctionTooltip(FName InFunctionId);
+    TSharedPtr<class SToolTip> GetFunctionTooltip(FName InFunctionId);
 
     /** Validate function arguments and push error text to error reporting widget. */
     void UpdateFunctionArgumentsErrorText(const FText& InArguments);
