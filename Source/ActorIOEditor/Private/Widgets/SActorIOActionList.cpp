@@ -705,7 +705,7 @@ FReply SActorIOActionListViewRow::OnClick_RemoveOrViewAction()
 		ActionOwner->RemoveAction(ActionPtr);
 
 		FActorIOEditor& ActorIOEditor = FActorIOEditor::Get();
-		ActorIOEditor.UpdateEditorWindow();
+		ActorIOEditor.UpdateEditorWidget();
 	}
 	else
 	{
@@ -722,7 +722,7 @@ FReply SActorIOActionListViewRow::OnClick_RemoveOrViewAction()
 			GEditor->SelectActor(OwnerActor, true, true);
 
 			FActorIOEditor& ActorIOEditor = FActorIOEditor::Get();
-			SActorIOEditor* EditorWidget = ActorIOEditor.GetEditorWindow();
+			SActorIOEditor* EditorWidget = ActorIOEditor.GetEditorWidget();
 			EditorWidget->SetViewInputActions(false);
 		}
 	}

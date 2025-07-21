@@ -123,7 +123,7 @@ void FActorIOEditor::ShutdownModule()
 	if (IPlacementModeModule::IsAvailable())
 	{
 		IPlacementModeModule& PlacementModeModule = IPlacementModeModule::Get();
-		PlacementModeModule.UnregisterPlacementCategory("ActorIOPlaceCategory");
+		PlacementModeModule.UnregisterPlacementCategory(TEXT("ActorIOPlaceCategory"));
 	}
 
 	// Unregister the editor style of the plugin.
@@ -138,29 +138,29 @@ TSharedRef<SDockTab> FActorIOEditor::CreateActorIOEditorTab(const FSpawnTabArgs&
 	TSharedRef<SDockTab> SpawnedTab = SNew(SDockTab)
 	.TabRole(ETabRole::NomadTab)
 	[
-		SAssignNew(EditorWindow, SActorIOEditor)
+		SAssignNew(EditorWidget, SActorIOEditor)
 	];
 
 	const SDockTab::FOnTabClosedCallback TabClosedDelegate = SDockTab::FOnTabClosedCallback::CreateRaw(this, &FActorIOEditor::OnActorIOEditorClosed);
 	SpawnedTab->SetOnTabClosed(TabClosedDelegate);
 
 	// Refresh the editor window immediately.
-	UpdateEditorWindow();
+	UpdateEditorWidget();
 
 	return SpawnedTab;
 }
 
-void FActorIOEditor::UpdateEditorWindow()
+void FActorIOEditor::UpdateEditorWidget()
 {
-	if (EditorWindow.IsValid())
+	if (EditorWidget.IsValid())
 	{
-		EditorWindow->Refresh();
+		EditorWidget->Refresh();
 	}
 }
 
 void FActorIOEditor::OnActorIOEditorClosed(TSharedRef<SDockTab> DockTab)
 {
-	EditorWindow.Reset();
+	EditorWidget.Reset();
 }
 
 void FActorIOEditor::OnObjectSelectionChanged(UObject* NewSelection)
@@ -168,7 +168,7 @@ void FActorIOEditor::OnObjectSelectionChanged(UObject* NewSelection)
 	USelection* SelectedActors = GEditor->GetSelectedActors();
 	SelectedActor = SelectedActors->GetBottom<AActor>();
 
-	UpdateEditorWindow();
+	UpdateEditorWidget();
 }
 
 void FActorIOEditor::OnDeleteActorsBegin()
@@ -210,7 +210,7 @@ void FActorIOEditor::OnBlueprintCompiled()
 	// A blueprint was recompiled, so the user may have exposed new I/O events or functions.
 	// To make the changes appear immediately, we need to update the editor window.
 	// This also handles the case where no I/O stuff was being exposed due to an error in the blueprint which may have got fixed with this recompile.
-	UpdateEditorWindow();
+	UpdateEditorWidget();
 }
 
 void FActorIOEditor::OnPlacementModeCategoryRefreshed(FName CategoryName)
@@ -268,9 +268,9 @@ void FActorIOEditor::OnPlacementModeCategoryRefreshed(FName CategoryName)
 	}
 }
 
-SActorIOEditor* FActorIOEditor::GetEditorWindow() const
+SActorIOEditor* FActorIOEditor::GetEditorWidget() const
 {
-	return EditorWindow.Get();
+	return EditorWidget.Get();
 }
 
 AActor* FActorIOEditor::GetSelectedActor() const
@@ -314,9 +314,9 @@ void FActorIOEditor::PostUndo(bool bSuccess)
 	// This means the user was viewing input actions, and clicked on one an action's view button.
 	// This resulted in the actor being selected and the I/O editor switching to outputs tab.
 	// Since the 'bViewInputActions' param is not UPROPERTY we need to manually revert it.
-	if (bSuccess && EditorWindow.IsValid())
+	if (bSuccess && EditorWidget.IsValid())
 	{
-		EditorWindow->SetViewInputActions(true);
+		EditorWidget->SetViewInputActions(true);
 	}
 }
 
@@ -324,9 +324,9 @@ void FActorIOEditor::PostRedo(bool bSuccess)
 {
 	// We are redoing a 'ViewIOAction' transaction.
 	// Do the opposite of PostUndo.
-	if (bSuccess && EditorWindow.IsValid())
+	if (bSuccess && EditorWidget.IsValid())
 	{
-		EditorWindow->SetViewInputActions(false);
+		EditorWidget->SetViewInputActions(false);
 	}
 }
 

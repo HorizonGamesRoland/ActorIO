@@ -6,6 +6,7 @@
 #include "Modules/ModuleManager.h"
 #include "ActorIOPIEAuthorizer.h"
 #include "EditorUndoClient.h"
+#include "Misc/Optional.h"
 #include "UObject/WeakObjectPtr.h"
 
 class UActorIOComponent;
@@ -23,7 +24,7 @@ class FActorIOEditor : public IModuleInterface, public FEditorUndoClient
 private:
 
 	/** The editor widget inside the Actor I/O tab. */
-	TSharedPtr<SActorIOEditor> EditorWindow;
+	TSharedPtr<SActorIOEditor> EditorWidget;
 
 	/** The currently selected actor in the level editor. */
 	TWeakObjectPtr<AActor> SelectedActor;
@@ -58,10 +59,10 @@ public:
 	static FActorIOEditor& Get();
 
 	/** Request an update with the editor widget. */
-	void UpdateEditorWindow();
+	void UpdateEditorWidget();
 
 	/** @return The editor widget inside the Actor I/O tab. */
-	SActorIOEditor* GetEditorWindow() const;
+	SActorIOEditor* GetEditorWidget() const;
 
 	/** @return The actor that is currently selected in the editor. */
 	AActor* GetSelectedActor() const;
