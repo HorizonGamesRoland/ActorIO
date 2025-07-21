@@ -87,19 +87,7 @@ void FActorIOEditor::StartupModule()
 
 		IPlacementModeModule& PlacementModeModule = IPlacementModeModule::Get();
 		PlacementModeModule.RegisterPlacementCategory(Info);
-
-		TArray<UClass*> LogicActorClasses;
-		GetDerivedClasses(ALogicActorBase::StaticClass(), LogicActorClasses);
-
-		// Dynamically register all native logic actor classes to the placement category.
-		for (UClass* LogicActorClass : LogicActorClasses)
-		{
-			if (!LogicActorClass->HasAnyClassFlags(CLASS_Abstract | CLASS_Deprecated | CLASS_Hidden | CLASS_NotPlaceable))
-			{
-				PlacementModeModule.RegisterPlaceableItem(Info.UniqueHandle,
-					MakeShared<FPlaceableItem>(*UActorFactory::StaticClass(), LogicActorClass));
-			}
-		}
+		PlacementModeModule.OnPlacementModeCategoryRefreshed().AddRaw(this, &FActorIOEditor::OnPlacementModeCategoryRefreshed);
 	}
 }
 
@@ -223,6 +211,61 @@ void FActorIOEditor::OnBlueprintCompiled()
 	// To make the changes appear immediately, we need to update the editor window.
 	// This also handles the case where no I/O stuff was being exposed due to an error in the blueprint which may have got fixed with this recompile.
 	UpdateEditorWindow();
+}
+
+void FActorIOEditor::OnPlacementModeCategoryRefreshed(FName CategoryName)
+{
+	if (CategoryName == FBuiltInPlacementCategories::AllClasses())
+	{
+		IPlacementModeModule& PlacementModeModule = IPlacementModeModule::Get();
+
+		// Unregister all previous placeable items.
+		if (!PlaceActors.IsEmpty())
+		{
+			for (TOptional<FPlacementModeID>& PlaceActor : PlaceActors)
+			{
+				if (PlaceActor.IsSet())
+				{
+					PlacementModeModule.UnregisterPlaceableItem(PlaceActor.GetValue());
+				}
+			}
+
+			PlaceActors.Empty();
+		}
+
+		TArray<TSharedPtr<FPlaceableItem>> PlaceableItems;
+		PlacementModeModule.GetItemsForCategory(FBuiltInPlacementCategories::AllClasses(), PlaceableItems);
+
+		// Register new placeable items for logic actors.
+		// This includes blueprints as well.
+		for (TSharedPtr<FPlaceableItem>& PlaceableItem : PlaceableItems)
+		{
+			UClass* PlaceableItemClass = nullptr;
+
+			UObject* PlaceableAsset = PlaceableItem->AssetData.GetAsset();
+			if (PlaceableAsset)
+			{
+				// If the asset is a native class, then we just need to cast.
+				if (PlaceableAsset->GetClass()->IsChildOf<UClass>())
+				{
+					PlaceableItemClass = Cast<UClass>(PlaceableAsset);
+				}
+				// Otherwise if its a blueprint asset, infer from BP parent class.
+				else if (PlaceableAsset->GetClass()->IsChildOf<UBlueprint>())
+				{
+					UBlueprint* PlaceableItemBlueprint = Cast<UBlueprint>(PlaceableAsset);
+					PlaceableItemClass = PlaceableItemBlueprint->ParentClass.Get();
+				}
+			}
+
+			// Register a new entry from the existing data in "All Classes".
+			if (PlaceableItemClass && PlaceableItemClass->IsChildOf<ALogicActorBase>())
+			{
+				TSharedRef<FPlaceableItem> NewPlaceable = MakeShared<FPlaceableItem>(PlaceableItem->AssetFactory, PlaceableItem->AssetData);
+				PlaceActors.Add(PlacementModeModule.RegisterPlaceableItem(TEXT("ActorIOPlaceCategory"), NewPlaceable));
+			}
+		}
+	}
 }
 
 SActorIOEditor* FActorIOEditor::GetEditorWindow() const

@@ -13,6 +13,7 @@ class SActorIOEditor;
 class SDockTab;
 class FSpawnTabArgs;
 class AActor;
+class FPlacementModeID;
 
 /**
  * Editor module implementation of the Actor I/O plugin.
@@ -41,6 +42,9 @@ private:
 
 	/** PIE authorizer to abort PIE sessions if the plugin is configured incorrectly. */
 	FActorIOPIEAuthorizer PIEAuthorizer;
+
+	/** List of actors that we have added to the placement module. */
+	TArray<TOptional<FPlacementModeID>> PlaceActors;
 
 public:
 
@@ -84,6 +88,9 @@ private:
 
 	/** Called when a blueprint is compiled in the editor. */
 	void OnBlueprintCompiled();
+
+	/** Called when a placement category is refreshed in the editor. */
+	void OnPlacementModeCategoryRefreshed(FName CategoryName);
 
 public:
 
