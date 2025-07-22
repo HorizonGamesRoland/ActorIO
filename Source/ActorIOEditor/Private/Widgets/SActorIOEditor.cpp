@@ -1,7 +1,7 @@
 // Copyright 2024-2025 Horizon Games and all contributors at https://github.com/HorizonGamesRoland/ActorIO/graphs/contributors
 
-#include "SActorIOEditor.h"
-#include "SActorIOActionList.h"
+#include "Widgets/SActorIOEditor.h"
+#include "Widgets/SActorIOActionList.h"
 #include "ActorIOEditor.h"
 #include "ActorIOEditorStyle.h"
 #include "ActorIOComponent.h"
@@ -38,7 +38,7 @@ void SActorIOEditor::Construct(const FArguments& InArgs)
             SNew(SSplitter)
             .PhysicalSplitterHandleSize(0.0f)
             + SSplitter::Slot()
-            .MinSize(70)
+            .MinSize(110.0f)
             .Value(0.3f)
             [
                 SNew(SVerticalBox)

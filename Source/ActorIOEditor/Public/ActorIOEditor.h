@@ -6,6 +6,7 @@
 #include "Modules/ModuleManager.h"
 #include "ActorIOPIEAuthorizer.h"
 #include "EditorUndoClient.h"
+#include "Misc/Optional.h"
 #include "UObject/WeakObjectPtr.h"
 
 class UActorIOComponent;
@@ -13,6 +14,7 @@ class SActorIOEditor;
 class SDockTab;
 class FSpawnTabArgs;
 class AActor;
+class FPlacementModeID;
 
 /**
  * Editor module implementation of the Actor I/O plugin.
@@ -22,7 +24,7 @@ class FActorIOEditor : public IModuleInterface, public FEditorUndoClient
 private:
 
 	/** The editor widget inside the Actor I/O tab. */
-	TSharedPtr<SActorIOEditor> EditorWindow;
+	TSharedPtr<SActorIOEditor> EditorWidget;
 
 	/** The currently selected actor in the level editor. */
 	TWeakObjectPtr<AActor> SelectedActor;
@@ -42,6 +44,9 @@ private:
 	/** PIE authorizer to abort PIE sessions if the plugin is configured incorrectly. */
 	FActorIOPIEAuthorizer PIEAuthorizer;
 
+	/** List of actors that we have added to the placement module. */
+	TArray<TOptional<FPlacementModeID>> PlaceActors;
+
 public:
 
 	/** Register the Actor I/O editor module with the engine. */
@@ -54,10 +59,10 @@ public:
 	static FActorIOEditor& Get();
 
 	/** Request an update with the editor widget. */
-	void UpdateEditorWindow();
+	void UpdateEditorWidget();
 
 	/** @return The editor widget inside the Actor I/O tab. */
-	SActorIOEditor* GetEditorWindow() const;
+	SActorIOEditor* GetEditorWidget() const;
 
 	/** @return The actor that is currently selected in the editor. */
 	AActor* GetSelectedActor() const;
@@ -84,6 +89,9 @@ private:
 
 	/** Called when a blueprint is compiled in the editor. */
 	void OnBlueprintCompiled();
+
+	/** Called when a placement category is refreshed in the editor. */
+	void OnPlacementModeCategoryRefreshed(FName CategoryName);
 
 public:
 

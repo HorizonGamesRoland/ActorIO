@@ -62,6 +62,7 @@ bool UActorIOSubsystemBase::ExecuteCommand(UObject* Target, const TCHAR* Str, FO
      *
      *   - Skip CPP param default value initialization because it only works in editor and not packaged games.
      *   - FindFunction and ProcessEvent are called on Target.
+     *   - Add IsValid check for Target before finding UFunction.
      *   - Use Ar.Logf instead of UE_LOG(LogScriptCore) because LogScriptCore is static and its verbosity cannot be changed.
      */
 
@@ -73,19 +74,24 @@ bool UActorIOSubsystemBase::ExecuteCommand(UObject* Target, const TCHAR* Str, FO
     FString MsgStr;
     if (!FParse::Token(Str, MsgStr, true))
     {
-        Ar.Logf(TEXT("CallFunctionByNameWithArguments: Not Parsed '%s'"), Str);
+        Ar.Logf(TEXT("ExecuteCommand: Not Parsed '%s'"), Str);
         return false;
     }
     const FName Message = FName(*MsgStr, FNAME_Find);
     if (Message == NAME_None)
     {
-        Ar.Logf(TEXT("CallFunctionByNameWithArguments: Name not found '%s'"), Str);
+        Ar.Logf(TEXT("ExecuteCommand: Name not found '%s'"), Str);
+        return false;
+    }
+    if (!IsValid(Target))
+    {
+        Ar.Logf(TEXT("ExecuteCommand: Target not found"));
         return false;
     }
     UFunction* Function = Target->FindFunction(Message);
     if (nullptr == Function)
     {
-        Ar.Logf(TEXT("CallFunctionByNameWithArguments: Function not found '%s'"), Str);
+        Ar.Logf(TEXT("ExecuteCommand: Function not found '%s'"), Str);
         return false;
     }
 
@@ -206,7 +212,7 @@ bool UActorIOSubsystemBase::ExecuteCommand(UObject* Target, const TCHAR* Str, FO
     return true;
 }
 
-void UActorIOSubsystemBase::GetNativeEventsForObject(AActor* InObject, FActorIOEventList& EventRegistry)
+void UActorIOSubsystemBase::RegisterNativeEventsForObject(AActor* InObject, FActorIOEventList& EventRegistry)
 {
     //==================================
     // Trigger Actors
@@ -276,7 +282,7 @@ void UActorIOSubsystemBase::GetNativeEventsForObject(AActor* InObject, FActorIOE
     }
 }
 
-void UActorIOSubsystemBase::GetNativeFunctionsForObject(AActor* InObject, FActorIOFunctionList& FunctionRegistry)
+void UActorIOSubsystemBase::RegisterNativeFunctionsForObject(AActor* InObject, FActorIOFunctionList& FunctionRegistry)
 {
     //==================================
     // Trigger Actors

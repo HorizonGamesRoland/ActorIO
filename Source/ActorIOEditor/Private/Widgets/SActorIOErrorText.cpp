@@ -1,7 +1,6 @@
 // Copyright 2024-2025 Horizon Games and all contributors at https://github.com/HorizonGamesRoland/ActorIO/graphs/contributors
 
-#include "SActorIOErrorText.h"
-#include "Widgets/Notifications/SErrorText.h"
+#include "Widgets/SActorIOErrorText.h"
 
 //=======================================================
 //~ Begin SActorIOErrorText
@@ -12,33 +11,27 @@ void SActorIOErrorText::PrivateRegisterAttributes(FSlateAttributeInitializer& At
 {
 }
 
+BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SActorIOErrorText::Construct(const FArguments& InArgs)
 {
-	// Forward widget construction to SPopupErrorText.
-	Construct(SPopupErrorText::FArguments());
+	SErrorText::Construct(SErrorText::FArguments());
 }
-
-void SActorIOErrorText::Construct(const SPopupErrorText::FArguments& InArgs)
-{
-	// This is the construct function of SPopupErrorText.
-	// For some reason Epic made this virtual which causes compile issues if we do not override it.
-	// We are simply going to construct the SPopupErrorText using the base implementation.
-
-	SPopupErrorText::Construct(InArgs);
-
-	TWeakPtr<SActorIOErrorText> WeakThisPtr = SharedThis(this).ToWeakPtr();
-	SetToolTip(SAssignNew(PopupErrorTooltip, SActorIOErrorTooltip).OwningErrorText(WeakThisPtr));
-}
+END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 void SActorIOErrorText::SetError(const FText& InErrorText)
 {
-	Super::SetError(InErrorText); // boils down to string version below
-}
+	const bool bHasError = !InErrorText.IsEmpty();
+	Super::SetError(bHasError ? NSLOCTEXT("UnrealEd", "Error", "!") : FText::GetEmpty());
 
-void SActorIOErrorText::SetError(const FString& InErrorText)
-{
-	Super::SetError(InErrorText);
-	PopupErrorTooltip->SetErrorText(InErrorText);
+	// This function is auto called during construction so we basically
+	// initialize the error tooltip widget here.
+	if (!ErrorTooltip.IsValid())
+	{
+		SetToolTip(SAssignNew(ErrorTooltip, SActorIOErrorTooltip));
+	}
+
+	// Push error to tooltip.
+	ErrorTooltip->SetErrorText(InErrorText);
 }
 
 TSharedRef<SWidget> SActorIOErrorText::AsWidget()
@@ -59,11 +52,7 @@ void SActorIOErrorTooltip::PrivateRegisterAttributes(FSlateAttributeInitializer&
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SActorIOErrorTooltip::Construct(const FArguments& InArgs)
 {
-	OwningErrorText = InArgs._OwningErrorText;
-
-	SToolTip::Construct
-	(
-		SToolTip::FArguments()
+	SToolTip::Construct(SToolTip::FArguments()
 		.BorderImage(FAppStyle::GetBrush("NoBorder"))
 		.TextMargin(0.0f)
 		.Content()
@@ -74,18 +63,12 @@ void SActorIOErrorTooltip::Construct(const FArguments& InArgs)
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
-void SActorIOErrorTooltip::SetErrorText(const FString& InErrorText)
+void SActorIOErrorTooltip::SetErrorText(const FText& InErrorText)
 {
 	ErrorText->SetError(InErrorText);
 }
 
 bool SActorIOErrorTooltip::IsEmpty() const
 {
-	if (OwningErrorText.IsValid())
-	{
-		TSharedPtr<SActorIOErrorText> TooltipOwner = OwningErrorText.Pin();
-		return !TooltipOwner->HasError() || TooltipOwner->IsOpen();
-	}
-
-	return true;
+	return !ErrorText.IsValid() || !ErrorText->HasError();
 }

@@ -69,8 +69,13 @@ void FActorIOEditorStyle::Initialize()
 	StyleSet->Set("ActionListView.HeaderRowHeight", 28.0f);
 	StyleSet->Set("ActionListView.ActionHeight", 26.0f);
 	StyleSet->Set("ActionListView.ActionSpacing", 2.0f);
+	StyleSet->Set("ActionListView.ActionArgumentsBoxDefaultPadding", FMargin(5.0f, 3.0f, 5.0f, 3.0f));
+	StyleSet->Set("ActionListView.ActionArgumentsBoxErrorPadding", FMargin(5.0f, 3.0f, 0.0f, 3.0f)); // no padding on right to fix big gap when error text is present
 
 	SetupActionListColumnSizes();
+
+	StyleSet->Set("ParamsViewer.Highlighter", new FSlateRoundedBoxBrush(FStyleColors::SelectInactive, 1.0f));
+	StyleSet->Set("ParamsViewer.ParamTypeColor", FStyleColors::PrimaryHover);
 
 	const FVector2D Icon16x16(16.0f, 16.0f);
 	const FVector2D Icon64x64(64.0f, 64.0f);

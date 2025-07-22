@@ -461,3 +461,32 @@ UObject* UActorIOAction::ResolveTargetObject(const FActorIOFunction* TargetFunct
 
 	return OutTarget;
 }
+
+UFunction* UActorIOAction::ResolveUFunction(const FActorIOFunction* TargetFunction, UObject* TargetObject) const
+{
+	UFunction* OutFunctionPtr = nullptr;
+
+	// Figure out which I/O function is called by this action if not provided already.
+	if (!TargetFunction)
+	{
+		FActorIOFunctionList ValidFunctions = IActorIO::GetFunctionsForObject(TargetActor);
+		TargetFunction = ValidFunctions.GetFunction(FunctionId);
+	}
+
+	// Figure out which object the action is targeting if not provided already.
+	if (!TargetObject)
+	{
+		TargetObject = ResolveTargetObject(TargetFunction);
+	}
+
+	if (IsValid(TargetObject))
+	{
+		const FName FuncName = FName(*TargetFunction->FunctionToExec, FNAME_Find);
+		if (FuncName != NAME_None)
+		{
+			OutFunctionPtr = TargetObject->GetClass()->FindFunctionByName(FuncName);
+		}
+	}
+
+	return OutFunctionPtr;
+}

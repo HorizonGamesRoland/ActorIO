@@ -56,6 +56,19 @@ public:
     /** @return Whether the list is currently displaying output actions. */
     bool IsViewingOutputActions() const { return !bViewInputActions; }
 
+    /**
+     * Spawns the params viewer widget that list the parameters of the given UFunction.
+     * The widget will be placed above the given parent widget.
+     * Used by the arguments edit box of action list entries.
+     */
+    void ShowParamsViewer(UFunction* InFunction, const TSharedRef<SWidget>& InParentWidget);
+
+    /** Closes the params viewer widget if there is one. */
+    void CloseParamsViewer();
+
+    /** Changes the highlighted param index in the params viewer widget if there is one. */
+    void UpdateParamsViewer(int32 InHighlightedParamIdx);
+
 protected:
 
     /** List of I/O actions displayed in the action list. */
@@ -63,6 +76,12 @@ protected:
 
     /** Whether the list shows input actions. If false, output actions are shown. */
     bool bViewInputActions;
+
+    /** Popup menu of the params viewer that is visible while editing action params. */
+    TSharedPtr<class IMenu> ParamsViewerMenu;
+
+    /** Reference to the params viewer widget inside the popup menu. */
+    TSharedPtr<class SActorIOParamsViewer> ParamsViewerWidget;
 
 protected:
 
@@ -150,7 +169,7 @@ protected:
     TSharedPtr<class STextBlock> FunctionText;
 
     /** Editable text box where function arguments are inputted. */
-    TSharedPtr<class SEditableTextBox> ArgumentsBox;
+    TSharedPtr<class SMultiLineEditableTextBox> ArgumentsBox;
 
     /** Error reporting widget of the function arguments edit box. */
     TSharedPtr<class SActorIOErrorText> ArgumentsErrorText;
@@ -196,6 +215,9 @@ protected:
     /** Called when the function parameters are committed in the text box. */
     void OnFunctionArgumentsCommitted(const FText& InText, ETextCommit::Type InCommitType);
 
+    /** Called when the caret is moved inside the function parrameters text box. */
+    void OnFunctionArgumentsCursorMoved(const FTextLocation& InTextLocation);
+
     /** @return Delay of the action. */
     float OnGetActionDelay() const;
 
@@ -232,7 +254,7 @@ protected:
     FSlateColor GetEventDisplayColor(FName InEventId) const;
 
     /** @return Tooltip widget to use for I/O events. */
-    TSharedPtr<SToolTip> GetEventTooltip(FName InEventId);
+    TSharedPtr<class SToolTip> GetEventTooltip(FName InEventId);
 
     /** Finds the display name of the given I/O function. */
     FText GetFunctionDisplayName(FName InFunctionId) const;
@@ -241,15 +263,19 @@ protected:
     FSlateColor GetFunctionDisplayColor(FName InFunctionId) const;
 
     /** @return Tooltip widget to use for I/O functions. */
-    TSharedPtr<SToolTip> GetFunctionTooltip(FName InFunctionId);
+    TSharedPtr<class SToolTip> GetFunctionTooltip(FName InFunctionId);
 
     /** Validate function arguments and push error text to error reporting widget. */
-    void UpdateFunctionArgumentsErrorText(const FText& InArguments, bool bShouldCloseErrorPopup = false);
+    void UpdateFunctionArgumentsErrorText(const FText& InArguments);
 
     /** @return Check whether the given function arguments are valid or not. */
     bool ValidateFunctionArguments(const FText& InText, FText& OutError);
 
 public:
+
+    //~ Begin SWidget Interface
+    virtual void OnFocusChanging(const FWeakWidgetPath& PreviousFocusPath, const FWidgetPath& NewWidgetPath, const FFocusEvent& InFocusEvent) override;
+    //~ End SWidget Interface
 
     //~ Begin Drag & Drop
     FReply HandleDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);

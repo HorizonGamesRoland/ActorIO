@@ -92,6 +92,15 @@ public:
 	 */
 	UObject* ResolveTargetObject(const FActorIOFunction* TargetFunction = nullptr) const;
 
+	/**
+	 * Get the UFunction that this action will be calling based on its parameters.
+	 * This function is public because we might want to access the UFunction from outside this class as well.
+	 *
+	 * @param TargetFunction Optimization in case we already know which I/O function is called by this action.
+	 * @param TargetObject Optimization in case we already know which object is targeted by this action.
+	 */
+	UFunction* ResolveUFunction(const FActorIOFunction* TargetFunction = nullptr, UObject* TargetObject = nullptr) const;
+
 protected:
 
 	/**

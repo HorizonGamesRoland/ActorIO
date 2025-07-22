@@ -1,9 +1,10 @@
 // Copyright 2024-2025 Horizon Games and all contributors at https://github.com/HorizonGamesRoland/ActorIO/graphs/contributors
 
-#include "SActorIOActionList.h"
-#include "SActorIOEditor.h"
-#include "SActorIOErrorText.h"
-#include "SActorIOTooltip.h"
+#include "Widgets/SActorIOActionList.h"
+#include "Widgets/SActorIOEditor.h"
+#include "Widgets/SActorIOParamsViewer.h"
+#include "Widgets/SActorIOErrorText.h"
+#include "Widgets/SActorIOTooltip.h"
 #include "ActorIOComponent.h"
 #include "ActorIOEditor.h"
 #include "ActorIOEditorStyle.h"
@@ -13,6 +14,7 @@
 #include "Widgets/Input/SCheckBox.h"
 #include "Widgets/Input/SSpinBox.h"
 #include "Widgets/Input/SEditableTextBox.h"
+#include "Widgets/Input/SMultilineEditableTextBox.h"
 #include "Widgets/Input/SComboBox.h"
 #include "Widgets/Layout/SWidgetSwitcher.h"
 #include "Widgets/Layout/SSpacer.h"
@@ -130,6 +132,63 @@ void SActorIOActionListView::Refresh()
 	}
 
 	RebuildList();
+}
+
+void SActorIOActionListView::ShowParamsViewer(UFunction* InFunction, const TSharedRef<SWidget>& InParentWidget)
+{
+	CloseParamsViewer();
+
+	const FSlateRect AnchorRect = InParentWidget->GetTickSpaceGeometry().GetLayoutBoundingRect();
+	const float AnchorWidth = AnchorRect.GetSize().X;
+
+	ParamsViewerWidget = SNew(SActorIOParamsViewer)
+		.FunctionPtr(InFunction)
+		.MinDesiredWidth(AnchorWidth);
+
+	// Manually call slate prepass to calculate widget desired size.
+	ParamsViewerWidget->SlatePrepass(FSlateApplication::Get().GetApplicationScale());
+
+	const FVector2f PopupWidgetSize = ParamsViewerWidget->GetDesiredSize();
+	FVector2f PopupPosition = FVector2f::ZeroVector;
+	if (AnchorRect.GetTopLeft().Y > PopupWidgetSize.Y)
+	{
+		// If there is enough screen space, open the widget above the anchor.
+		PopupPosition = AnchorRect.GetTopLeft() - FVector2f::UnitY() * PopupWidgetSize.Y;
+	}
+	else
+	{
+		// Otherwise open the widget below the anchor.
+		PopupPosition = AnchorRect.GetBottomLeft();
+	}
+
+	ParamsViewerMenu = FSlateApplication::Get().PushMenu(
+		AsShared(),
+		FWidgetPath(),
+		ParamsViewerWidget.ToSharedRef(),
+		PopupPosition,
+		FPopupTransitionEffect(FPopupTransitionEffect::None), // transition effects are deprecated
+		false
+	);
+}
+
+void SActorIOActionListView::CloseParamsViewer()
+{
+	if (ParamsViewerMenu.IsValid())
+	{
+		// Clear reference to widget before dismissing the menu.
+		ParamsViewerWidget.Reset();
+
+		FSlateApplication::Get().DismissMenu(ParamsViewerMenu);
+		ParamsViewerMenu.Reset();
+	}
+}
+
+void SActorIOActionListView::UpdateParamsViewer(int32 InHighlightedParamIdx)
+{
+	if (ParamsViewerWidget.IsValid())
+	{
+		ParamsViewerWidget->SetHighlightedParam(InHighlightedParamIdx);
+	}
 }
 
 TSharedRef<ITableRow> SActorIOActionListView::OnGenerateRowItem(UActorIOAction* Item, const TSharedRef<STableViewBase>& OwnerTable)
@@ -326,17 +385,21 @@ TSharedRef<SWidget> SActorIOActionListViewRow::GenerateWidgetForColumn(const FNa
 		OutWidget->SetPadding(FMargin(1.0f, 0.0f, 1.0f, 0.0f));
 		OutWidget->SetContent
 		(
-			SAssignNew(ArgumentsBox, SEditableTextBox)
+			SAssignNew(ArgumentsBox, SMultiLineEditableTextBox) // need to use multiline text to have access to OnCursorMoved
 			.Font(FAppStyle::GetFontStyle("PropertyWindow.NormalFont"))
 			.Text(FText::FromString(ActionPtr->FunctionArguments))
+			.AllowMultiLine(false) // force single line
+			.Padding(FActorIOEditorStyle::Get().GetMargin("ActionListView.ActionArgumentsBoxDefaultPadding")) // padding is updated with error text
+			.Margin(FMargin(0.0f, 3.0f)) // center the text
 			.OnTextChanged(this, &SActorIOActionListViewRow::OnFunctionArgumentsChanged)
 			.OnTextCommitted(this, &SActorIOActionListViewRow::OnFunctionArgumentsCommitted)
+			.OnCursorMoved(this, &SActorIOActionListViewRow::OnFunctionArgumentsCursorMoved)
 			.ErrorReporting(SAssignNew(ArgumentsErrorText, SActorIOErrorText))
 			.IsEnabled(!bIsInputAction)
 		);
 
-		// Update error text and close popup to avoid stealing input.
-		UpdateFunctionArgumentsErrorText(ArgumentsBox->GetText(), true);
+		// Validate args and show error if needed.
+		UpdateFunctionArgumentsErrorText(ArgumentsBox->GetText());
 	}
 	else if (ColumnName == ColumnId::Delay)
 	{
@@ -542,6 +605,7 @@ void SActorIOActionListViewRow::OnFunctionComboBoxSelectionChanged(FName InName,
 
 void SActorIOActionListViewRow::OnFunctionArgumentsChanged(const FText& InText)
 {
+	// Validate args and show error if needed.
 	UpdateFunctionArgumentsErrorText(InText);
 }
 
@@ -552,8 +616,37 @@ void SActorIOActionListViewRow::OnFunctionArgumentsCommitted(const FText& InText
 
 	ActionPtr->FunctionArguments = InText.ToString();
 
-	// Update error text and close popup to avoid stealing input.
-	UpdateFunctionArgumentsErrorText(InText, true);
+	// Validate args and show error if needed.
+	UpdateFunctionArgumentsErrorText(InText);
+}
+
+void SActorIOActionListViewRow::OnFunctionArgumentsCursorMoved(const FTextLocation& InTextLocation)
+{
+	int32 CurrentParamIdx = INDEX_NONE;
+
+	const FString Args = ArgumentsBox->GetPlainText().ToString();
+	if (!Args.IsEmpty())
+	{
+		// Loop through the parameters string until the current cursor location and count argument separators.
+		// The number of argument separators indicate the currently edited param's index.
+
+		CurrentParamIdx = 0;
+		for (int32 CharIdx = 0; CharIdx != InTextLocation.GetOffset(); ++CharIdx)
+		{
+			// The index represents the char BEHIND the cursor.
+			// Example: false;| <-- char at cursor is ';'
+			// 
+			// We are going to look for the argument separator one character behind the cursor so that
+			// the next param is only highlighted after we typed something for the new param.
+
+			if (CharIdx > 0 && Args[CharIdx - 1] == *ARGUMENT_SEPARATOR)
+			{
+				CurrentParamIdx++;
+			}
+		}
+	}
+
+	GetOwnerActionListView()->UpdateParamsViewer(CurrentParamIdx);
 }
 
 float SActorIOActionListViewRow::OnGetActionDelay() const
@@ -612,7 +705,7 @@ FReply SActorIOActionListViewRow::OnClick_RemoveOrViewAction()
 		ActionOwner->RemoveAction(ActionPtr);
 
 		FActorIOEditor& ActorIOEditor = FActorIOEditor::Get();
-		ActorIOEditor.UpdateEditorWindow();
+		ActorIOEditor.UpdateEditorWidget();
 	}
 	else
 	{
@@ -629,7 +722,7 @@ FReply SActorIOActionListViewRow::OnClick_RemoveOrViewAction()
 			GEditor->SelectActor(OwnerActor, true, true);
 
 			FActorIOEditor& ActorIOEditor = FActorIOEditor::Get();
-			SActorIOEditor* EditorWidget = ActorIOEditor.GetEditorWindow();
+			SActorIOEditor* EditorWidget = ActorIOEditor.GetEditorWidget();
 			EditorWidget->SetViewInputActions(false);
 		}
 	}
@@ -747,38 +840,77 @@ TSharedPtr<SToolTip> SActorIOActionListViewRow::GetFunctionTooltip(FName InFunct
 	return TooltipWidget.ToSharedPtr();
 }
 
-void SActorIOActionListViewRow::UpdateFunctionArgumentsErrorText(const FText& InArguments, bool bShouldCloseErrorPopup)
+void SActorIOActionListViewRow::UpdateFunctionArgumentsErrorText(const FText& InArguments)
 {
 	FText ErrorText = FText::GetEmpty();
-	ValidateFunctionArguments(InArguments, ErrorText);
+	const bool bArgsValid = ValidateFunctionArguments(InArguments, ErrorText);
 
 	// Update error reporting widget.
 	// If error text is empty, the error is cleared.
 	ArgumentsBox->SetError(ErrorText);
 
-	// Close the popup immediately if needed to stop it from stealing input.
-	if (bShouldCloseErrorPopup)
-	{
-		ArgumentsErrorText->SetIsOpen(false);
-	}
+	// Update arguments box padding to fix big gap on right side when error reporting widget is visible.
+	ArgumentsBox->SetPadding(bArgsValid
+		? FActorIOEditorStyle::Get().GetMargin("ActionListView.ActionArgumentsBoxDefaultPadding")
+		: FActorIOEditorStyle::Get().GetMargin("ActionListView.ActionArgumentsBoxErrorPadding"));
 }
 
 bool SActorIOActionListViewRow::ValidateFunctionArguments(const FText& InText, FText& OutError)
 {
 	const FActorIOFunction* TargetFunction = ValidFunctions.GetFunction(ActionPtr->FunctionId);
-	if (!TargetFunction)
-	{
-		return true; // not error because we only want to report issue with function params
-	}
-
-	UObject* TargetObject = ActionPtr->ResolveTargetObject(TargetFunction);
-	UFunction* FunctionPtr = IsValid(TargetObject) ? TargetObject->FindFunction(FName(TargetFunction->FunctionToExec, FNAME_Find)) : nullptr;
+	UFunction* FunctionPtr = ActionPtr->ResolveUFunction(TargetFunction);
 	if (!FunctionPtr)
 	{
-		return true; // not error because we only want to report issue with function params
+		return true; // not error because we only want to report issues with function params
 	}
 
 	return IActorIO::ValidateFunctionArguments(FunctionPtr, InText.ToString(), OutError);
+}
+
+void SActorIOActionListViewRow::OnFocusChanging(const FWeakWidgetPath& PreviousFocusPath, const FWidgetPath& NewWidgetPath, const FFocusEvent& InFocusEvent)
+{
+	if (NewWidgetPath.IsValid() && InFocusEvent.GetCause() != EFocusCause::Cleared)
+	{
+		// Check if the focused widget is our function params edit box.
+		// Using ContainsWidget() because NewWidgetPath.GetLastWidget() points to SEditableText instead of our SEditableTextBox.
+		if (NewWidgetPath.ContainsWidget(ArgumentsBox.Get()))
+		{
+			const FActorIOFunction* TargetFunction = ValidFunctions.GetFunction(ActionPtr->FunctionId);
+			UFunction* FunctionPtr = ActionPtr->ResolveUFunction(TargetFunction);
+			if (FunctionPtr)
+			{
+				int32 NumInputParams = 0;
+				for (TFieldIterator<FProperty> It(FunctionPtr); It && It->HasAnyPropertyFlags(CPF_Parm); ++It)
+				{
+					FProperty* FunctionProp = *It;
+					checkSlow(FunctionProp);
+
+					// Do not count return property.
+					if (FunctionProp->HasAnyPropertyFlags(CPF_ReturnParm))
+					{
+						continue;
+					}
+
+					// Do not count output params, but only if they are not passed by reference
+					// since in that case the value is also an input param.
+					if (FunctionProp->HasAnyPropertyFlags(CPF_OutParm) && !FunctionProp->HasAnyPropertyFlags(CPF_ReferenceParm))
+					{
+						continue;
+					}
+
+					NumInputParams++;
+				}
+
+				if (NumInputParams > 0)
+				{
+					GetOwnerActionListView()->ShowParamsViewer(FunctionPtr, ArgumentsBox->AsShared());
+					return;
+				}
+			}
+		}
+	}
+
+	GetOwnerActionListView()->CloseParamsViewer();
 }
 
 FReply SActorIOActionListViewRow::HandleDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)

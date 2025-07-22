@@ -141,8 +141,8 @@ void UActorIOComponent::CheckForErrors()
 
 		for (int32 ActionIdx = 0; ActionIdx != NumActions; ++ActionIdx)
 		{
-			const UActorIOAction* Action = Actions[ActionIdx].Get();
-			if (!IsValid(Action))
+			const UActorIOAction* ActionPtr = Actions[ActionIdx].Get();
+			if (!IsValid(ActionPtr))
 			{
 				FMessageLog("MapCheck").Error()
 					->AddToken(FTextToken::Create(LOCTEXT("MapCheck_Message_IOPrefix", "[I/O]")))
@@ -151,7 +151,7 @@ void UActorIOComponent::CheckForErrors()
 			}
 			else
 			{
-				const FActorIOEvent* TargetEvent = ValidEvents.GetEvent(Action->EventId);
+				const FActorIOEvent* TargetEvent = ValidEvents.GetEvent(ActionPtr->EventId);
 				if (!TargetEvent)
 				{
 					FMessageLog("MapCheck").Warning()
@@ -160,7 +160,7 @@ void UActorIOComponent::CheckForErrors()
 						->AddToken(FTextToken::Create(LOCTEXT("MapCheck_Message_IOActionInvalidEvent", "contains an action with invalid event selected.")));
 				}
 
-				if (!IsValid(Action->TargetActor))
+				if (!IsValid(ActionPtr->TargetActor))
 				{
 					FMessageLog("MapCheck").Warning()
 						->AddToken(FTextToken::Create(LOCTEXT("MapCheck_Message_IOPrefix", "[I/O]")))
@@ -169,8 +169,8 @@ void UActorIOComponent::CheckForErrors()
 				}
 				else
 				{
-					const FActorIOFunctionList ValidFunctions = IActorIO::GetFunctionsForObject(Action->TargetActor);
-					const FActorIOFunction* TargetFunction = ValidFunctions.GetFunction(Action->FunctionId);
+					const FActorIOFunctionList ValidFunctions = IActorIO::GetFunctionsForObject(ActionPtr->TargetActor);
+					const FActorIOFunction* TargetFunction = ValidFunctions.GetFunction(ActionPtr->FunctionId);
 					if (!TargetFunction)
 					{
 						FMessageLog("MapCheck").Warning()
@@ -179,12 +179,11 @@ void UActorIOComponent::CheckForErrors()
 							->AddToken(FTextToken::Create(LOCTEXT("MapCheck_Message_IOActionInvalidFunction", "contains an action with invalid target function selected.")));
 					}
 
-					UObject* TargetObject = Action->ResolveTargetObject(TargetFunction);
-					UFunction* FunctionPtr = IsValid(TargetObject) ? TargetObject->FindFunction(FName(TargetFunction->FunctionToExec, FNAME_Find)) : nullptr;
+					UFunction* FunctionPtr = ActionPtr->ResolveUFunction();
 					if (FunctionPtr)
 					{
 						FText ErrorText = FText::GetEmpty();
-						if (!IActorIO::ValidateFunctionArguments(FunctionPtr, Action->FunctionArguments, ErrorText))
+						if (!IActorIO::ValidateFunctionArguments(FunctionPtr, ActionPtr->FunctionArguments, ErrorText))
 						{
 							FMessageLog("MapCheck").Warning()
 								->AddToken(FTextToken::Create(LOCTEXT("MapCheck_Message_IOPrefix", "[I/O]")))

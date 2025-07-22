@@ -5,7 +5,6 @@
 #include "ActorIOAction.h"
 #include "ActorIOComponent.h"
 #include "ActorIOComponentVisualizer.h"
-#include "SActorIOEditor.h"
 #include "LogicActors/LogicBranch.h"
 #include "LogicActors/LogicCase.h"
 #include "LogicActors/LogicCompare.h"
@@ -15,11 +14,13 @@
 #include "LogicActors/LogicSpawner.h"
 #include "LogicActors/LogicTimeline.h"
 #include "LogicActors/LogicTimer.h"
-#include "Framework/Docking/TabManager.h"
+#include "Widgets/SActorIOEditor.h"
 #include "Widgets/Docking/SDockTab.h"
+#include "Framework/Docking/TabManager.h"
 #include "GameFramework/Actor.h"
+#include "Engine/Blueprint.h"
 #include "IPlacementModeModule.h"
-#include "Features/IModularFeature.h"
+#include "Features/IModularFeatures.h"
 #include "WorkspaceMenuStructure.h"
 #include "WorkspaceMenuStructureModule.h"
 #include "Selection.h"
@@ -87,15 +88,7 @@ void FActorIOEditor::StartupModule()
 
 		IPlacementModeModule& PlacementModeModule = IPlacementModeModule::Get();
 		PlacementModeModule.RegisterPlacementCategory(Info);
-		PlacementModeModule.RegisterPlaceableItem(Info.UniqueHandle, MakeShared<FPlaceableItem>(*UActorFactory::StaticClass(), FAssetData(ALogicBranch::StaticClass())));
-		PlacementModeModule.RegisterPlaceableItem(Info.UniqueHandle, MakeShared<FPlaceableItem>(*UActorFactory::StaticClass(), FAssetData(ALogicCase::StaticClass())));
-		PlacementModeModule.RegisterPlaceableItem(Info.UniqueHandle, MakeShared<FPlaceableItem>(*UActorFactory::StaticClass(), FAssetData(ALogicCompare::StaticClass())));
-		PlacementModeModule.RegisterPlaceableItem(Info.UniqueHandle, MakeShared<FPlaceableItem>(*UActorFactory::StaticClass(), FAssetData(ALogicCounter::StaticClass())));
-		PlacementModeModule.RegisterPlaceableItem(Info.UniqueHandle, MakeShared<FPlaceableItem>(*UActorFactory::StaticClass(), FAssetData(ALogicGlobalEvent::StaticClass())));
-		PlacementModeModule.RegisterPlaceableItem(Info.UniqueHandle, MakeShared<FPlaceableItem>(*UActorFactory::StaticClass(), FAssetData(ALogicRelay::StaticClass())));
-		PlacementModeModule.RegisterPlaceableItem(Info.UniqueHandle, MakeShared<FPlaceableItem>(*UActorFactory::StaticClass(), FAssetData(ALogicSpawner::StaticClass())));
-		PlacementModeModule.RegisterPlaceableItem(Info.UniqueHandle, MakeShared<FPlaceableItem>(*UActorFactory::StaticClass(), FAssetData(ALogicTimeline::StaticClass())));
-		PlacementModeModule.RegisterPlaceableItem(Info.UniqueHandle, MakeShared<FPlaceableItem>(*UActorFactory::StaticClass(), FAssetData(ALogicTimer::StaticClass())));
+		PlacementModeModule.OnPlacementModeCategoryRefreshed().AddRaw(this, &FActorIOEditor::OnPlacementModeCategoryRefreshed);
 	}
 }
 
@@ -131,7 +124,7 @@ void FActorIOEditor::ShutdownModule()
 	if (IPlacementModeModule::IsAvailable())
 	{
 		IPlacementModeModule& PlacementModeModule = IPlacementModeModule::Get();
-		PlacementModeModule.UnregisterPlacementCategory("ActorIOPlaceCategory");
+		PlacementModeModule.UnregisterPlacementCategory(TEXT("ActorIOPlaceCategory"));
 	}
 
 	// Unregister the editor style of the plugin.
@@ -146,29 +139,29 @@ TSharedRef<SDockTab> FActorIOEditor::CreateActorIOEditorTab(const FSpawnTabArgs&
 	TSharedRef<SDockTab> SpawnedTab = SNew(SDockTab)
 	.TabRole(ETabRole::NomadTab)
 	[
-		SAssignNew(EditorWindow, SActorIOEditor)
+		SAssignNew(EditorWidget, SActorIOEditor)
 	];
 
 	const SDockTab::FOnTabClosedCallback TabClosedDelegate = SDockTab::FOnTabClosedCallback::CreateRaw(this, &FActorIOEditor::OnActorIOEditorClosed);
 	SpawnedTab->SetOnTabClosed(TabClosedDelegate);
 
 	// Refresh the editor window immediately.
-	UpdateEditorWindow();
+	UpdateEditorWidget();
 
 	return SpawnedTab;
 }
 
-void FActorIOEditor::UpdateEditorWindow()
+void FActorIOEditor::UpdateEditorWidget()
 {
-	if (EditorWindow.IsValid())
+	if (EditorWidget.IsValid())
 	{
-		EditorWindow->Refresh();
+		EditorWidget->Refresh();
 	}
 }
 
 void FActorIOEditor::OnActorIOEditorClosed(TSharedRef<SDockTab> DockTab)
 {
-	EditorWindow.Reset();
+	EditorWidget.Reset();
 }
 
 void FActorIOEditor::OnObjectSelectionChanged(UObject* NewSelection)
@@ -176,7 +169,7 @@ void FActorIOEditor::OnObjectSelectionChanged(UObject* NewSelection)
 	USelection* SelectedActors = GEditor->GetSelectedActors();
 	SelectedActor = SelectedActors->GetBottom<AActor>();
 
-	UpdateEditorWindow();
+	UpdateEditorWidget();
 }
 
 void FActorIOEditor::OnDeleteActorsBegin()
@@ -218,12 +211,67 @@ void FActorIOEditor::OnBlueprintCompiled()
 	// A blueprint was recompiled, so the user may have exposed new I/O events or functions.
 	// To make the changes appear immediately, we need to update the editor window.
 	// This also handles the case where no I/O stuff was being exposed due to an error in the blueprint which may have got fixed with this recompile.
-	UpdateEditorWindow();
+	UpdateEditorWidget();
 }
 
-SActorIOEditor* FActorIOEditor::GetEditorWindow() const
+void FActorIOEditor::OnPlacementModeCategoryRefreshed(FName CategoryName)
 {
-	return EditorWindow.Get();
+	if (CategoryName == FBuiltInPlacementCategories::AllClasses())
+	{
+		IPlacementModeModule& PlacementModeModule = IPlacementModeModule::Get();
+
+		// Unregister all previous placeable items.
+		if (!PlaceActors.IsEmpty())
+		{
+			for (TOptional<FPlacementModeID>& PlaceActor : PlaceActors)
+			{
+				if (PlaceActor.IsSet())
+				{
+					PlacementModeModule.UnregisterPlaceableItem(PlaceActor.GetValue());
+				}
+			}
+
+			PlaceActors.Empty();
+		}
+
+		TArray<TSharedPtr<FPlaceableItem>> PlaceableItems;
+		PlacementModeModule.GetItemsForCategory(FBuiltInPlacementCategories::AllClasses(), PlaceableItems);
+
+		// Register new placeable items for logic actors.
+		// This includes blueprints as well.
+		for (TSharedPtr<FPlaceableItem>& PlaceableItem : PlaceableItems)
+		{
+			UClass* PlaceableItemClass = nullptr;
+
+			UObject* PlaceableAsset = PlaceableItem->AssetData.GetAsset();
+			if (PlaceableAsset)
+			{
+				// If the asset is a native class, then we just need to cast.
+				if (PlaceableAsset->GetClass()->IsChildOf<UClass>())
+				{
+					PlaceableItemClass = Cast<UClass>(PlaceableAsset);
+				}
+				// Otherwise if its a blueprint asset, infer from BP parent class.
+				else if (PlaceableAsset->GetClass()->IsChildOf<UBlueprint>())
+				{
+					UBlueprint* PlaceableItemBlueprint = Cast<UBlueprint>(PlaceableAsset);
+					PlaceableItemClass = PlaceableItemBlueprint->ParentClass.Get();
+				}
+			}
+
+			// Register a new entry from the existing data in "All Classes".
+			if (PlaceableItemClass && PlaceableItemClass->IsChildOf<ALogicActorBase>())
+			{
+				TSharedRef<FPlaceableItem> NewPlaceable = MakeShared<FPlaceableItem>(PlaceableItem->AssetFactory, PlaceableItem->AssetData);
+				PlaceActors.Add(PlacementModeModule.RegisterPlaceableItem(TEXT("ActorIOPlaceCategory"), NewPlaceable));
+			}
+		}
+	}
+}
+
+SActorIOEditor* FActorIOEditor::GetEditorWidget() const
+{
+	return EditorWidget.Get();
 }
 
 AActor* FActorIOEditor::GetSelectedActor() const
@@ -267,9 +315,9 @@ void FActorIOEditor::PostUndo(bool bSuccess)
 	// This means the user was viewing input actions, and clicked on one an action's view button.
 	// This resulted in the actor being selected and the I/O editor switching to outputs tab.
 	// Since the 'bViewInputActions' param is not UPROPERTY we need to manually revert it.
-	if (bSuccess && EditorWindow.IsValid())
+	if (bSuccess && EditorWidget.IsValid())
 	{
-		EditorWindow->SetViewInputActions(true);
+		EditorWidget->SetViewInputActions(true);
 	}
 }
 
@@ -277,9 +325,9 @@ void FActorIOEditor::PostRedo(bool bSuccess)
 {
 	// We are redoing a 'ViewIOAction' transaction.
 	// Do the opposite of PostUndo.
-	if (bSuccess && EditorWindow.IsValid())
+	if (bSuccess && EditorWidget.IsValid())
 	{
-		EditorWindow->SetViewInputActions(false);
+		EditorWidget->SetViewInputActions(false);
 	}
 }
 
