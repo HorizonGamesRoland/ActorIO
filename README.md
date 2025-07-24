@@ -28,9 +28,19 @@ The I/O system was designed in a way to be easily extensible. You can register c
 
 # Logic Actors
 
-Logic Actors are small "script-like" actors that only serve one specific purpose. They usually only do one small task, so they can easily be combined when scripting levels. The plugin comes with a collection of Logic Actors that you can use for level scripting. You can find all of them in the **Place Actors** tab of the engine. You can also create custom logic actors by subclassing the `LogicActorBase` class.
+Logic Actors are small "script-like" actors that help you create more complex level scripting logic. They usually only serve one specific purpose, so they can be used in any combination when working on levels. The plugin comes with a collection of logic actors such as Branch, Relay, Counter, Spawner, etc. All logic actors can be found in **Window → Place Actors**.
+
+You can also create custom logic actors by subclassing the `LogicActorBase` class. The idea is that you create your own logic actors that interact with different parts of your game, such as adding/removing items from the player's inventory, updating the current objective, or starting an ambush that spawns enemies.
+
+For more information visit: [Logic Actors](https://horizongames.gitbook.io/actorio/logic-actors)
 
 ![Logic Actors](https://horizongames.gitbook.io/~gitbook/image?url=https%3A%2F%2F1586816513-files.gitbook.io%2F%7E%2Ffiles%2Fv0%2Fb%2Fgitbook-x-prod.appspot.com%2Fo%2Fspaces%252FJUOUKxX4X7uzzyzY7fQb%252Fuploads%252Fk5eu7DgVGh4bDsHeuxyl%252FAbout.jpg%3Falt%3Dmedia%26token%3D0af4c6dc-5d2c-4ceb-8f34-fabb1f2c07e9&width=768&dpr=1&quality=100&sign=8635e146&sv=2)
+
+# Video
+
+Here is a quick video showcasing the plugin in action.
+
+https://github.com/user-attachments/assets/02eb91c7-d2d8-4624-a207-c5be17bcff94
 
 # Why Use This?
 
@@ -42,7 +52,13 @@ The biggest advantage of this approach is reduced memory usage, since you can av
 
 # Debugging
 
-All error messages and issues are logged to the [Output Log](https://dev.epicgames.com/documentation/en-us/unreal-engine/logging-in-unreal-engine) in **Window → Output Log**. Use the `-log` launch parameter to see logs when you are not playing in the editor (e.g. in Standalone Game play mode, or packaged builds). Useful console commands to use:
+The plugin is integrated with the [Map Check](https://dev.epicgames.com/documentation/en-us/unreal-engine/map-check-errors-in-unreal-engine) feature of Unreal in **Build → Map Check**. Use this to find build time errors, such as actions with invalid targets or function names.
+
+![MapCheck](https://horizongames.gitbook.io/actorio/~gitbook/image?url=https%3A%2F%2F1586816513-files.gitbook.io%2F~%2Ffiles%2Fv0%2Fb%2Fgitbook-x-prod.appspot.com%2Fo%2Fspaces%252FJUOUKxX4X7uzzyzY7fQb%252Fuploads%252FgqdPP4kopw1d5EPT7epX%252FMapCheck.jpg%3Falt%3Dmedia%26token%3D1846ab29-cef8-47c3-8565-f1303004916f&width=768&dpr=4&quality=100&sign=9cb15b1b&sv=2)
+
+All error messages and issues are logged to the [Output Log](https://dev.epicgames.com/documentation/en-us/unreal-engine/logging-in-unreal-engine) in **Window → Output Log**. Use the `-log` launch parameter to see logs when you are not playing in the editor (e.g. in Standalone Game play mode, or packaged builds).
+
+Useful console commands to use:
 
 - `ActorIO.DebugActions <bool>`: Enable I/O action execution messages. Enabled by default.
 - `ActorIO.WarnAboutInvalidTarget <bool>`: Warn about missing or invalid target actor when executing I/O action.
