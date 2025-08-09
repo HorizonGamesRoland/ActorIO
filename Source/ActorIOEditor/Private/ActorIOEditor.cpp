@@ -216,10 +216,15 @@ void FActorIOEditor::OnBlueprintCompiled()
 
 void FActorIOEditor::OnPlacementModeCategoryRefreshed(FName CategoryName)
 {
-	if (CategoryName == FBuiltInPlacementCategories::AllClasses())
-	{
-		IPlacementModeModule& PlacementModeModule = IPlacementModeModule::Get();
+	IPlacementModeModule& PlacementModeModule = IPlacementModeModule::Get();
 
+	if (CategoryName == TEXT("ActorIOPlaceCategory"))
+	{
+		// Refresh "AllClasses" category to ensure that we have the proper items, since we are pulling the data from that category.
+		PlacementModeModule.RegenerateItemsForCategory(FBuiltInPlacementCategories::AllClasses());
+	}
+	else if (CategoryName == FBuiltInPlacementCategories::AllClasses())
+	{
 		// Unregister all previous placeable items.
 		if (!PlaceActors.IsEmpty())
 		{
