@@ -28,9 +28,10 @@ public:
 	 * @param TooltipText Tooltip to use in the editor for this event.
 	 * @param EventDispatcherName Name of the event dispatcher that should be exposed.
 	 * @param EventProcessorName Name of a function that should be called when firing this event. Use this to handle named arguments (params) for this event.
+	 * @param SubobjectName Specific subobject that owns the event dispatcher if it's not the actor itself. Also implies that the given event processor (if any) is found on this subobject instead.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "Actor IO", DisplayName = "Register I/O Event", meta = (WorldContext = "WorldContextObject", AutoCreateRefTerm = "DisplayNameText,TooltipText", AdvancedDisplay = "EventProcessorName", Keywords = "IO,Add"))
-	static void K2_RegisterIOEvent(UObject* WorldContextObject, UPARAM(Ref) FActorIOEventList& Registry, FName EventId, const FText& DisplayNameText, const FText& TooltipText, FName EventDispatcherName, FName EventProcessorName);
+	UFUNCTION(BlueprintCallable, Category = "Actor IO", DisplayName = "Register I/O Event", meta = (WorldContext = "WorldContextObject", AutoCreateRefTerm = "DisplayNameText,TooltipText", AdvancedDisplay = "EventProcessorName,SubobjectName", Keywords = "IO,Add"))
+	static void K2_RegisterIOEvent(UObject* WorldContextObject, UPARAM(Ref) FActorIOEventList& Registry, FName EventId, const FText& DisplayNameText, const FText& TooltipText, FName EventDispatcherName, FName EventProcessorName, FName SubobjectName);
 
 	/**
 	 * Add a new I/O function to the actor's function list.
