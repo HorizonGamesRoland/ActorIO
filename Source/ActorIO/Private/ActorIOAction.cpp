@@ -43,9 +43,10 @@ void UActorIOAction::BindAction()
 		return;
 	}
 
-	if (!IsValid(TargetEvent->DelegateOwner))
+	UObject* DelegateOwner = TargetEvent->DelegateOwner.Get();
+	if (!IsValid(DelegateOwner))
 	{
-		UE_CLOG(DebugIOActions, LogActorIO, Error, TEXT("Actor '%s' could not bind action to '%s' - Delegate owner was invalid (destroyed?)."), *ActionOwner->GetActorNameOrLabel(), *EventId.ToString());
+		UE_CLOG(DebugIOActions, LogActorIO, Error, TEXT("Actor '%s' could not bind action to '%s' - Delegate owner was invalid."), *ActionOwner->GetActorNameOrLabel(), *EventId.ToString());
 		return;
 	}
 
@@ -74,10 +75,10 @@ void UActorIOAction::BindAction()
 		// If the bIsBound param is not set, the delegate will not execute.
 		case FActorIOEvent::Type::SparseDelegate:
 		{
-			FSparseDelegate* SparseDelegate = FSparseDelegateStorage::ResolveSparseDelegate(TargetEvent->DelegateOwner, TargetEvent->SparseDelegateName);
+			FSparseDelegate* SparseDelegate = FSparseDelegateStorage::ResolveSparseDelegate(DelegateOwner, TargetEvent->SparseDelegateName);
 			if (SparseDelegate)
 			{
-				SparseDelegate->__Internal_AddUnique(TargetEvent->DelegateOwner, TargetEvent->SparseDelegateName, ActionDelegate);
+				SparseDelegate->__Internal_AddUnique(DelegateOwner, TargetEvent->SparseDelegateName, ActionDelegate);
 				bIsBound = true;
 			}
 
@@ -85,16 +86,16 @@ void UActorIOAction::BindAction()
 			break;
 		}
 		
-		// Binding to blueprint delegate.
-		// These are the event dispatchers created in blueprints.
+		// Binding to a blueprint exposed dynamic delegate.
+		// These include event dispatchers created in blueprints.
 		// Each event dispatcher is basically just an FMulticastDelegateProperty that we can add to.
 		case FActorIOEvent::Type::BlueprintDelegate:
 		{
-			UClass* DelegateOwnerClass = TargetEvent->DelegateOwner->GetClass();
+			UClass* DelegateOwnerClass = DelegateOwner->GetClass();
 			FMulticastDelegateProperty* DelegateProp = CastField<FMulticastDelegateProperty>(DelegateOwnerClass->FindPropertyByName(TargetEvent->BlueprintDelegateName));
 			if (DelegateProp)
 			{
-				DelegateProp->AddDelegate(ActionDelegate, TargetEvent->DelegateOwner);
+				DelegateProp->AddDelegate(ActionDelegate, DelegateOwner);
 				bIsBound = true;
 			}
 
@@ -136,7 +137,8 @@ void UActorIOAction::UnbindAction()
 		checkf(false, TEXT("Could not unbind action because the I/O event that we were bound to was not found?!"));
 	}
 
-	if (!TargetEvent->DelegateOwner)
+	UObject* DelegateOwner = TargetEvent->DelegateOwner.Get(true);
+	if (!DelegateOwner)
 	{
 		UE_CLOG(DebugIOActions, LogActorIO, Error, TEXT("Actor '%s' could not unbind action from '%s' - Delegate owner was nullptr."), *ActionOwner->GetActorNameOrLabel(), *EventId.ToString());
 		return;
@@ -159,10 +161,10 @@ void UActorIOAction::UnbindAction()
 
 		case FActorIOEvent::Type::SparseDelegate:
 		{
-			FSparseDelegate* SparseDelegate = FSparseDelegateStorage::ResolveSparseDelegate(TargetEvent->DelegateOwner, TargetEvent->SparseDelegateName);
+			FSparseDelegate* SparseDelegate = FSparseDelegateStorage::ResolveSparseDelegate(DelegateOwner, TargetEvent->SparseDelegateName);
 			if (SparseDelegate)
 			{
-				SparseDelegate->__Internal_Remove(TargetEvent->DelegateOwner, TargetEvent->SparseDelegateName, ActionDelegate);
+				SparseDelegate->__Internal_Remove(DelegateOwner, TargetEvent->SparseDelegateName, ActionDelegate);
 				bIsBound = false;
 			}
 
@@ -172,11 +174,11 @@ void UActorIOAction::UnbindAction()
 
 		case FActorIOEvent::Type::BlueprintDelegate:
 		{
-			UClass* DelegateOwnerClass = TargetEvent->DelegateOwner->GetClass();
+			UClass* DelegateOwnerClass = DelegateOwner->GetClass();
 			FMulticastDelegateProperty* DelegateProp = CastField<FMulticastDelegateProperty>(DelegateOwnerClass->FindPropertyByName(TargetEvent->BlueprintDelegateName));
 			if (DelegateProp)
 			{
-				DelegateProp->RemoveDelegate(ActionDelegate, TargetEvent->DelegateOwner);
+				DelegateProp->RemoveDelegate(ActionDelegate, DelegateOwner);
 				bIsBound = false;
 			}
 

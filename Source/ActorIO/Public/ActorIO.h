@@ -51,8 +51,7 @@ struct ACTORIO_API FActorIOEvent
 	FText TooltipText;
 
 	/** The owner of the assigned delegate. */
-	UPROPERTY()
-	TObjectPtr<UObject> DelegateOwner;
+	TWeakObjectPtr<UObject> DelegateOwner;
 
 	/** The type of the assigned delegate. */
 	Type DelegateType;
@@ -63,7 +62,7 @@ struct ACTORIO_API FActorIOEvent
 	/** Reference to a sparse delegate. */
 	FName SparseDelegateName;
 
-	/** Reference to an event dispatcher created in blueprints. */
+	/** Reference to a blueprint exposed dynamic delegate. */
 	FName BlueprintDelegateName;
 
 	/**
