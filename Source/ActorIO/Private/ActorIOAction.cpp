@@ -246,19 +246,20 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 
 	UE_CLOG(DebugIOActions, LogActorIO, Log, TEXT("Executing action: %s -> %s (Caller: '%s')"), *EventId.ToString(), *FunctionId.ToString(), *ActionOwner->GetActorNameOrLabel());
 
-	if (!IsValid(TargetActor))
+	AActor* TargetActorPtr = TargetActor.Get();
+	if (!IsValid(TargetActorPtr))
 	{
 		// Do nothing if the target actor is invalid.
-		// The actor was most likely destroyed at runtime.
-		UE_CLOG(DebugIOActions && WarnIOInvalidTarget, LogActorIO, Warning, TEXT("Could not find target actor. Actor was destroyed?"));
+		// The actor was most likely destroyed or not loaded.
+		UE_CLOG(DebugIOActions && WarnIOInvalidTarget, LogActorIO, Warning, TEXT("Could not find target actor. Actor was destroyed or not loaded?"));
 		return;
 	}
 
-	FActorIOFunctionList ValidFunctions = IActorIO::GetFunctionsForObject(TargetActor);
+	FActorIOFunctionList ValidFunctions = IActorIO::GetFunctionsForObject(TargetActorPtr);
 	FActorIOFunction* TargetFunction = ValidFunctions.GetFunction(FunctionId);
 	if (!TargetFunction)
 	{
-		UE_CLOG(DebugIOActions, LogActorIO, Error, TEXT("Could not find function '%s' on target actor '%s'."), *FunctionId.ToString(), *TargetActor->GetActorNameOrLabel());
+		UE_CLOG(DebugIOActions, LogActorIO, Error, TEXT("Could not find function '%s' on target actor '%s'."), *FunctionId.ToString(), *TargetActorPtr->GetActorNameOrLabel());
 		return;
 	}
 
@@ -273,7 +274,7 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 	UObject* ObjectToSendCommandTo = ResolveTargetObject(TargetFunction);
 	if (!IsValid(ObjectToSendCommandTo))
 	{
-		UE_CLOG(DebugIOActions, LogActorIO, Error, TEXT("Could not find default subobject '%s' on target actor '%s'."), *TargetFunction->TargetSubobject.ToString(), *TargetActor->GetActorNameOrLabel());
+		UE_CLOG(DebugIOActions, LogActorIO, Error, TEXT("Could not find default subobject '%s' on target actor '%s'."), *TargetFunction->TargetSubobject.ToString(), *TargetActorPtr->GetActorNameOrLabel());
 		return;
 	}
 
@@ -442,22 +443,22 @@ UObject* UActorIOAction::ResolveTargetObject(const FActorIOFunction* TargetFunct
 {
 	UObject* OutTarget = nullptr;
 
-	// Figure out which I/O function is called by this action if not provided already.
-	if (!TargetFunction)
+	AActor* TargetActorPtr = TargetActor.Get();
+	if (TargetActorPtr)
 	{
-		FActorIOFunctionList ValidFunctions = IActorIO::GetFunctionsForObject(TargetActor);
-		TargetFunction = ValidFunctions.GetFunction(FunctionId);
-	}
+		OutTarget = TargetActorPtr;
 
-	if (TargetFunction && IsValid(TargetActor))
-	{
-		// If a subobject is provided, find it on the target actor.
-		// Otherwise just return the target actor.
-
-		OutTarget = TargetActor.Get();
-		if (!TargetFunction->TargetSubobject.IsNone())
+		// Figure out which I/O function is called by this action if not provided already.
+		if (!TargetFunction)
 		{
-			OutTarget = TargetActor->GetDefaultSubobjectByName(TargetFunction->TargetSubobject);
+			FActorIOFunctionList ValidFunctions = IActorIO::GetFunctionsForObject(TargetActorPtr);
+			TargetFunction = ValidFunctions.GetFunction(FunctionId);
+		}
+
+		// Check if the I/O function wants to be executed on a subobject instead of the target actor.
+		if (TargetFunction && !TargetFunction->TargetSubobject.IsNone())
+		{
+			OutTarget = TargetActorPtr->GetDefaultSubobjectByName(TargetFunction->TargetSubobject);
 		}
 	}
 
@@ -468,25 +469,28 @@ UFunction* UActorIOAction::ResolveUFunction(const FActorIOFunction* TargetFuncti
 {
 	UFunction* OutFunctionPtr = nullptr;
 
-	// Figure out which I/O function is called by this action if not provided already.
-	if (!TargetFunction)
-	{
-		FActorIOFunctionList ValidFunctions = IActorIO::GetFunctionsForObject(TargetActor);
-		TargetFunction = ValidFunctions.GetFunction(FunctionId);
-	}
-
 	// Figure out which object the action is targeting if not provided already.
 	if (!TargetObject)
 	{
 		TargetObject = ResolveTargetObject(TargetFunction);
 	}
 
-	if (IsValid(TargetObject))
+	if (TargetObject)
 	{
-		const FName FuncName = FName(*TargetFunction->FunctionToExec, FNAME_Find);
-		if (FuncName != NAME_None)
+		// Figure out which I/O function is called by this action if not provided already.
+		if (!TargetFunction)
 		{
-			OutFunctionPtr = TargetObject->GetClass()->FindFunctionByName(FuncName);
+			FActorIOFunctionList ValidFunctions = IActorIO::GetFunctionsForObject(TargetActor.Get());
+			TargetFunction = ValidFunctions.GetFunction(FunctionId);
+		}
+
+		if (TargetFunction)
+		{
+			const FName FuncName = FName(*TargetFunction->FunctionToExec, FNAME_Find);
+			if (FuncName != NAME_None)
+			{
+				OutFunctionPtr = TargetObject->GetClass()->FindFunctionByName(FuncName);
+			}
 		}
 	}
 

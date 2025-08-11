@@ -540,7 +540,7 @@ void SActorIOActionListViewRow::OnEventComboBoxSelectionChanged(FName InName, ES
 
 FString SActorIOActionListViewRow::OnGetTargetActorPath() const
 {
-	return ActionPtr->TargetActor.GetPathName();
+	return ActionPtr->TargetActor.ToString();
 }
 
 void SActorIOActionListViewRow::OnTargetActorChanged(const FAssetData& InAssetData)
@@ -747,7 +747,7 @@ void SActorIOActionListViewRow::UpdateSelectableFunctions()
 	SelectableFunctionIds.Reset();
 	SelectableFunctionIds.Add(NAME_ClearComboBox);
 
-	ValidFunctions = IActorIO::GetFunctionsForObject(ActionPtr->TargetActor);
+	ValidFunctions = IActorIO::GetFunctionsForObject(ActionPtr->TargetActor.Get());
 	for (const FActorIOFunction& IOFunction : ValidFunctions.FunctionRegistry)
 	{
 		SelectableFunctionIds.Emplace(IOFunction.FunctionId);

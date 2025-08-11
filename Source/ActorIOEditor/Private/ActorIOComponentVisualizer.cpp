@@ -18,11 +18,15 @@ void FActorIOComponentVisualizer::DrawVisualization(const UActorComponent* Compo
 
 	for (const TObjectPtr<UActorIOAction>& OutputAction : IOComponent->GetActions())
 	{
-		if (OutputAction && IsValid(OutputAction->TargetActor))
+		if (OutputAction)
 		{
-			const FVector Start = IOComponentOwner->GetActorLocation();
-			const FVector End = OutputAction->TargetActor->GetActorLocation();
-			PDI->DrawLine(Start, End, FColor(150, 255, 80).ReinterpretAsLinear(), SDPG_Foreground, LineThickness, 0.01f);
+			const AActor* TargetActorPtr = OutputAction->TargetActor.Get();
+			if (IsValid(TargetActorPtr))
+			{
+				const FVector Start = IOComponentOwner->GetActorLocation();
+				const FVector End = TargetActorPtr->GetActorLocation();
+				PDI->DrawLine(Start, End, FColor(150, 255, 80).ReinterpretAsLinear(), SDPG_Foreground, LineThickness, 0.01f);
+			}
 		}
 	}
 

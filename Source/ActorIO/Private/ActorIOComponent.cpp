@@ -160,16 +160,16 @@ void UActorIOComponent::CheckForErrors()
 						->AddToken(FTextToken::Create(LOCTEXT("MapCheck_Message_IOActionInvalidEvent", "contains an action with invalid event selected.")));
 				}
 
-				if (!IsValid(ActionPtr->TargetActor))
+				if (ActionPtr->TargetActor.IsNull())
 				{
 					FMessageLog("MapCheck").Warning()
 						->AddToken(FTextToken::Create(LOCTEXT("MapCheck_Message_IOPrefix", "[I/O]")))
 						->AddToken(FUObjectToken::Create(Owner))
-						->AddToken(FTextToken::Create(LOCTEXT("MapCheck_Message_IOActionInvalidTarget", "contains an action with invalid target actor selected.")));
+						->AddToken(FTextToken::Create(LOCTEXT("MapCheck_Message_IOActionMissingTarget", "contains an action with no target actor selected.")));
 				}
-				else
+				else if (ActionPtr->TargetActor.IsValid())
 				{
-					const FActorIOFunctionList ValidFunctions = IActorIO::GetFunctionsForObject(ActionPtr->TargetActor);
+					const FActorIOFunctionList ValidFunctions = IActorIO::GetFunctionsForObject(ActionPtr->TargetActor.Get());
 					const FActorIOFunction* TargetFunction = ValidFunctions.GetFunction(ActionPtr->FunctionId);
 					if (!TargetFunction)
 					{

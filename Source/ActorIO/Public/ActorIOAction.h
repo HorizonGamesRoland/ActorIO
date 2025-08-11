@@ -31,7 +31,7 @@ public:
 
 	/** The execution target. The designated function will be called on this actor. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Action")
-	TObjectPtr<AActor> TargetActor;
+	TSoftObjectPtr<AActor> TargetActor;
 
 	/** Id of the I/O function to call on the target actor. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Action")

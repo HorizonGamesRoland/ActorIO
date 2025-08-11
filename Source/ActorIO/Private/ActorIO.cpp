@@ -167,7 +167,7 @@ const TArray<UActorIOAction*> IActorIO::GetInputActionsForObject(AActor* InObjec
         for (TObjectIterator<UActorIOAction> ActionItr; ActionItr; ++ActionItr)
         {
             UActorIOAction* Action = *ActionItr;
-            if (IsValid(Action) && IsValid(Action->GetOwnerActor()) && Action->TargetActor == InObject)
+            if (IsValid(Action) && IsValid(Action->GetOwnerActor()) && Action->TargetActor.Get() == InObject)
             {
                 OutActions.Add(Action);
             }
