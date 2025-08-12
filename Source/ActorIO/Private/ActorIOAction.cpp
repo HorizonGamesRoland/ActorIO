@@ -246,14 +246,15 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 
 	UE_CLOG(DebugIOActions, LogActorIO, Log, TEXT("Executing action: %s -> %s (Caller: '%s')"), *EventId.ToString(), *FunctionId.ToString(), *ActionOwner->GetActorNameOrLabel());
 
-	AActor* TargetActorPtr = TargetActor.Get();
-	if (!IsValid(TargetActorPtr))
+	if (!IsTargetActorAlive())
 	{
 		// Do nothing if the target actor is invalid.
-		// The actor was most likely destroyed or not loaded.
-		UE_CLOG(DebugIOActions && WarnIOInvalidTarget, LogActorIO, Warning, TEXT("Could not find target actor. Actor was destroyed or not loaded?"));
+		// The actor was most likely destroyed or unloaded.
+		UE_CLOG(DebugIOActions && WarnIOInvalidTarget, LogActorIO, Warning, TEXT("Could not find target actor. Actor was destroyed or unloaded?"));
 		return;
 	}
+
+	AActor* TargetActorPtr = TargetActor.Get();
 
 	FActorIOFunctionList ValidFunctions = IActorIO::GetFunctionsForObject(TargetActorPtr);
 	FActorIOFunction* TargetFunction = ValidFunctions.GetFunction(FunctionId);
@@ -391,7 +392,7 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 		Command.Append(Argument);
 	}
 
-	UE_CLOG(DebugIOActions && LogIOFinalCommand, LogActorIO, Log, TEXT("  Final command sent : %s"), *Command);
+	UE_CLOG(DebugIOActions && LogIOFinalCommand, LogActorIO, Log, TEXT("  Final command being sent : %s"), *Command);
 
 	ExecutionContext.ExitContext();
 	bWasExecuted = true;
@@ -411,7 +412,7 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 
 void UActorIOAction::SendCommand(UObject* Target, FString Command)
 {
-	if (IsValid(Target))
+	if (IActorIO::ConfirmObjectIsAlive(Target))
 	{
 		FStringOutputDevice Ar;
 
@@ -425,6 +426,10 @@ void UActorIOAction::SendCommand(UObject* Target, FString Command)
 			UE_CLOG(DebugIOActions, LogActorIO, Error, TEXT("%s"), *Ar);
 		}
 	}
+	else
+	{
+		UE_CLOG(DebugIOActions && WarnIOInvalidTarget, LogActorIO, Warning, TEXT("Could not find action target during SendCommand of '%s'. Target was destroyed or unloaded?"), *FunctionId.ToString());
+	}
 }
 
 UActorIOComponent* UActorIOAction::GetOwnerIOComponent() const
@@ -437,6 +442,16 @@ AActor* UActorIOAction::GetOwnerActor() const
 {
 	UActorIOComponent* OwnerComponent = GetOwnerIOComponent();
 	return OwnerComponent ? OwnerComponent->GetOwner() : nullptr;
+}
+
+bool UActorIOAction::IsTargetActorAlive() const
+{
+	if (TargetActor.IsNull())
+	{
+		return false;
+	}
+
+	return IActorIO::ConfirmObjectIsAlive(TargetActor.Get());
 }
 
 UObject* UActorIOAction::ResolveTargetObject(const FActorIOFunction* TargetFunction) const

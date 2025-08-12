@@ -31,7 +31,7 @@ UActorIOSubsystemBase::UActorIOSubsystemBase()
 
 UActorIOSubsystemBase* UActorIOSubsystemBase::Get(UObject* WorldContextObject)
 {
-    if (UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::Assert))
+    if (UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull))
     {
         UActorIOSubsystemBase* IOSubsystem = World->GetSubsystem<UActorIOSubsystemBase>();
         if (IOSubsystem)

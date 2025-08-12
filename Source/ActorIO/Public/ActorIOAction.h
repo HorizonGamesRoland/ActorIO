@@ -83,6 +83,10 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Action")
 	AActor* GetOwnerActor() const;
 
+	/** Check if the selected target actor is valid and loaded. */
+	UFUNCTION(BlueprintPure, Category = "Action")
+	bool IsTargetActorAlive() const;
+
 	/**
 	 * Get the object that the final command will be sent to by this action.
 	 * In most cases this will be the target actor, but the I/O function may want it to be executed on a subobject rather then the actor itself.

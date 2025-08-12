@@ -6,6 +6,8 @@
 #include "ActorIOInterface.h"
 #include "ActorIOSubsystemBase.h"
 #include "GameFramework/Actor.h"
+#include "Engine/Level.h"
+#include "Engine/World.h"
 #include "UObject/UObjectIterator.h"
 
 DEFINE_LOG_CATEGORY(LogActorIO);
@@ -114,11 +116,8 @@ FActorIOEventList IActorIO::GetEventsForObject(AActor* InObject)
         }
 
         UActorIOSubsystemBase* IOSubsystem = UActorIOSubsystemBase::Get(InObject);
-        if (IOSubsystem)
-        {
-            IOSubsystem->RegisterNativeEventsForObject(InObject, OutEvents);
-            IOSubsystem->K2_RegisterNativeEventsForObject(InObject, OutEvents);
-        }
+        IOSubsystem->RegisterNativeEventsForObject(InObject, OutEvents);
+        IOSubsystem->K2_RegisterNativeEventsForObject(InObject, OutEvents);
     }
 
     return OutEvents;
@@ -145,11 +144,8 @@ FActorIOFunctionList IActorIO::GetFunctionsForObject(AActor* InObject)
         }
 
         UActorIOSubsystemBase* IOSubsystem = UActorIOSubsystemBase::Get(InObject);
-        if (IOSubsystem)
-        {
-            IOSubsystem->RegisterNativeFunctionsForObject(InObject, OutFunctions);
-            IOSubsystem->K2_RegisterNativeFunctionsForObject(InObject, OutFunctions);
-        }
+        IOSubsystem->RegisterNativeFunctionsForObject(InObject, OutFunctions);
+        IOSubsystem->K2_RegisterNativeFunctionsForObject(InObject, OutFunctions);
     }
 
     return OutFunctions;
@@ -213,6 +209,32 @@ int32 IActorIO::GetNumOutputActionsForObject(AActor* InObject)
     }
 
     return 0;
+}
+
+bool IActorIO::ConfirmObjectIsAlive(UObject* InObject)
+{
+    if (!IsValid(InObject))
+    {
+        return false;
+    }
+
+    UWorld* World = InObject->GetWorld();
+    if (!World || World->bIsTearingDown)
+    {
+        return false;
+    }
+
+    // Due to level streaming, we also need to make sure that the owning level is "visible" (active).
+    // Objects that are being streamed out still appear to be valid, even though they are not properly part of a level/world anymore (until GC'ed).
+    // I suspect this happens because of LevelStreaming.ShouldReuseUnloadedButStillAroundLevels.
+    // @see https://forums.unrealengine.com/t/unloaded-actor-not-being-destroyed/2536205
+    ULevel* Level = InObject->GetTypedOuter<ULevel>(); // same as AActor::GetLevel
+    if (!Level || !Level->bIsVisible)
+    {
+        return false;
+    }
+
+    return true;
 }
 
 bool IActorIO::ValidateFunctionArguments(UFunction* FunctionPtr, const FString& InArguments, FText& OutError)

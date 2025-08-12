@@ -445,6 +445,9 @@ public:
 	/** @return Number of I/O actions owned by the given actor. */
 	static int32 GetNumOutputActionsForObject(AActor* InObject);
 
+	/** Check that given object is truly valid and loaded. */
+	static bool ConfirmObjectIsAlive(UObject* InObject);
+
 	/** Perform basic checks to see if the given arguments can be imported into the function as parameters. */
 	static bool ValidateFunctionArguments(UFunction* FunctionPtr, const FString& InArguments, FText& OutError);
 };
