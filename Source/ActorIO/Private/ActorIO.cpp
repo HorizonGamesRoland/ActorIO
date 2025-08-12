@@ -21,7 +21,7 @@ TAutoConsoleVariable<bool> CVarDebugIOActions(
     TEXT("<bool> Enable I/O action execution messages."), ECVF_Default);
 
 TAutoConsoleVariable<bool> CVarWarnAboutIOActionInvalidTarget(
-    TEXT("ActorIO.WarnAboutInvalidTarget"), false,
+    TEXT("ActorIO.WarnAboutInvalidTarget"), true,
     TEXT("<bool> Warn about missing or invalid target actor when executing I/O action."), ECVF_Default);
 
 TAutoConsoleVariable<bool> CVarLogIOActionNamedArgs(
