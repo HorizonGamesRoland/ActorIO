@@ -54,6 +54,7 @@ public:
 protected:
 
     /** The actual timeline that is responsible for evaluating the curve. */
+    UPROPERTY()
     FTimeline Timeline;
 
     /** The curve asset that the timeline is evaluating. */

@@ -48,6 +48,7 @@ public:
 protected:
 
     /** Current value to use for comparison. */
+    UPROPERTY()
     FString CurrentValue;
 
 protected:

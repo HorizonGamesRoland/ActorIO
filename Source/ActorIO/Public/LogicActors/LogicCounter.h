@@ -60,6 +60,7 @@ public:
 protected:
 
     /** Current value of the counter. */
+    UPROPERTY()
     int32 CurrentValue;
 
 protected:

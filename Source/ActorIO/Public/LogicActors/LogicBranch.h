@@ -45,6 +45,7 @@ public:
 protected:
 
     /** Current value of the branch. */
+    UPROPERTY()
     bool bCurrentValue;
 
 public:
