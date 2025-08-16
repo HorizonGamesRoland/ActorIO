@@ -53,7 +53,8 @@ void FActorIOEditor::StartupModule()
 	{
 		// Bind delegates.
 		DelegateHandle_SelectionChanged = USelection::SelectionChangedEvent.AddRaw(this, &FActorIOEditor::OnObjectSelectionChanged);
-		DelegateHandle_DeleteActorsBegin = FEditorDelegates::OnDeleteActorsBegin.AddRaw(this, &FActorIOEditor::OnDeleteActorsBegin);
+		DelegateHandle_DeleteActorsBegin = FEditorDelegates::OnDeleteActorsBegin.AddRaw(this, &FActorIOEditor::OnDeleteOrCutActorsBegin);
+		DelegateHandle_CutActorsBegin = FEditorDelegates::OnEditCutActorsBegin.AddRaw(this, &FActorIOEditor::OnDeleteOrCutActorsBegin);
 #if UE_VERSION_NEWER_THAN(5, 5, 0)
 		DelegateHandle_ActorReplaced = FEditorDelegates::OnEditorActorReplaced.AddRaw(this, &FActorIOEditor::OnActorReplaced);
 #endif
@@ -102,6 +103,7 @@ void FActorIOEditor::ShutdownModule()
 		// Clear delegates.
 		USelection::SelectionChangedEvent.Remove(DelegateHandle_SelectionChanged);
 		FEditorDelegates::OnDeleteActorsBegin.Remove(DelegateHandle_DeleteActorsBegin);
+		FEditorDelegates::OnEditCutActorsBegin.Remove(DelegateHandle_CutActorsBegin);
 #if UE_VERSION_NEWER_THAN(5, 5, 0)
 		FEditorDelegates::OnEditorActorReplaced.Remove(DelegateHandle_ActorReplaced);
 #endif
@@ -172,9 +174,9 @@ void FActorIOEditor::OnObjectSelectionChanged(UObject* NewSelection)
 	UpdateEditorWidget();
 }
 
-void FActorIOEditor::OnDeleteActorsBegin()
+void FActorIOEditor::OnDeleteOrCutActorsBegin()
 {
-	// Modify all actions who's caller is about to be deleted for proper undo/redo support.
+	// Modify all actions who's caller is about to be deleted.
 	// The transaction is already active at this point.
 	for (FSelectionIterator It(GEditor->GetSelectedActorIterator()); It; ++It)
 	{
@@ -182,6 +184,7 @@ void FActorIOEditor::OnDeleteActorsBegin()
 		for (UActorIOAction* InputAction : IActorIO::GetInputActionsForObject(Actor))
 		{
 			InputAction->Modify();
+			InputAction->TargetActor = nullptr;
 		}
 	}
 }
@@ -189,6 +192,7 @@ void FActorIOEditor::OnDeleteActorsBegin()
 void FActorIOEditor::OnActorReplaced(AActor* OldActor, AActor* NewActor)
 {
 	// Modify all actions that point to the old actor.
+	// The transaction is already active at this point.
 	const TArray<UActorIOAction*> InputActions = IActorIO::GetInputActionsForObject(OldActor);
 	for (UActorIOAction* InputAction : InputActions)
 	{

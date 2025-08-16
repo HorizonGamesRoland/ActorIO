@@ -127,7 +127,7 @@ struct ACTORIO_API FActorIOEvent
 		return *this;
 	}
 
-	/** Set the assigned delegate to an event dispatcher that was created in blueprints. */
+	/** Set the assigned delegate to a blueprint exposed dynamic delegate. */
 	FActorIOEvent& SetBlueprintDelegate(UObject* InDelegateOwner, FName InBlueprintDelegateName)
 	{
 		DelegateOwner = InDelegateOwner;

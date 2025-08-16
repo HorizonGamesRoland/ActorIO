@@ -32,8 +32,9 @@ private:
 	/** Handle for when a new object is selected in the editor. */
 	FDelegateHandle DelegateHandle_SelectionChanged;
 
-	/** Handle for when an actor is deleted in the level editor. */
+	/** Handles for when an actor is cut or deleted in the level editor. */
 	FDelegateHandle DelegateHandle_DeleteActorsBegin;
+	FDelegateHandle DelegateHandle_CutActorsBegin;
 
 	/** Handle for when an actor is replaced in the level editor. */
 	FDelegateHandle DelegateHandle_ActorReplaced;
@@ -81,8 +82,8 @@ private:
 	/** Called when a new object is selected in the editor. */
 	void OnObjectSelectionChanged(UObject* NewSelection);
 
-	/** Called when an actor is deleted in the level editor. */
-	void OnDeleteActorsBegin();
+	/** Called when an actor is cut or deleted in the level editor. */
+	void OnDeleteOrCutActorsBegin();
 
 	/** Called when an actor is replaced in the level editor. */
 	void OnActorReplaced(AActor* OldActor, AActor* NewActor);
