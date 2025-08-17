@@ -816,6 +816,14 @@ FSlateColor SActorIOActionListViewRow::GetFunctionDisplayColor(FName InFunctionI
 		return FSlateColor::UseForeground();
 	}
 
+	if (ActionPtr->TargetActor.IsPending())
+	{
+		// Also accept case where the target actor is invalid but path info exists (actor most likely unloaded).
+		// Since the actor is currently invalid we cannot verify that the function is valid either,
+		// but it might be so we are not going to treat it as error.
+		return FStyleColors::AccentPurple;
+	}
+
 	const FActorIOFunction* TargetFunction = ValidFunctions.GetFunction(InFunctionId);
 	return TargetFunction ? FSlateColor::UseForeground() : FStyleColors::Error;
 }
@@ -827,17 +835,25 @@ TSharedPtr<SToolTip> SActorIOActionListViewRow::GetFunctionTooltip(FName InFunct
 		return nullptr;
 	}
 
+	if (ActionPtr->TargetActor.IsPending())
+	{
+		// Handle case where the target actor is invalid but path info exists (actor most likely unloaded).
+		// Since the actor is currently invalid we cannot verify that the function is valid either,
+		// but it might be so we are not treating this as error.
+		return SNew(SActorIOTooltip)
+			.RegistryId(InFunctionId)
+			.Description(LOCTEXT("UnverifiedActorIOFunction", "Unverified function reference (target actor is unloaded)."));
+	}
+
 	const FActorIOFunction* TargetFunction = ValidFunctions.GetFunction(InFunctionId);
 	if (!TargetFunction)
 	{
 		return nullptr;
 	}
 
-	TSharedRef<SActorIOTooltip> TooltipWidget = SNew(SActorIOTooltip)
+	return SNew(SActorIOTooltip)
 		.RegistryId(InFunctionId)
 		.Description(TargetFunction->TooltipText);
-
-	return TooltipWidget.ToSharedPtr();
 }
 
 void SActorIOActionListViewRow::UpdateFunctionArgumentsErrorText(const FText& InArguments)
