@@ -10,6 +10,7 @@
 #include "GameFramework/Pawn.h"
 #include "GameFramework/CameraBlockingVolume.h"
 #include "Engine/StaticMeshActor.h"
+#include "Engine/TextRenderActor.h"
 #include "Engine/BlockingVolume.h"
 #include "Engine/TriggerVolume.h"
 #include "Engine/TriggerBase.h"
@@ -461,6 +462,27 @@ void UActorIOSubsystemBase::RegisterNativeFunctionsForObject(AActor* InObject, F
             .SetDisplayName(LOCTEXT("StaticMeshActor.SetHiddenInGame", "SetHiddenInGame"))
             .SetTooltipText(LOCTEXT("StaticMeshActor.SetHiddenInGameTooltip", "Set whether the actor is hidden or not."))
             .SetFunction(TEXT("SetActorHiddenInGame")));
+    }
+
+    //==================================
+    // Mesh Actors
+    //==================================
+
+    if (InObject->IsA<ATextRenderActor>())
+    {
+        FunctionRegistry.RegisterFunction(FActorIOFunction()
+            .SetId(TEXT("ATextRenderActor::SetText"))
+            .SetDisplayName(LOCTEXT("TextRenderActor.SetText", "SetText"))
+            .SetTooltipText(LOCTEXT("TextRenderActor.SetTextTooltip", "Change the displayed text."))
+            .SetFunction(TEXT("K2_SetText"))
+            .SetSubobject(TEXT("NewTextRenderComponent")));
+
+        FunctionRegistry.RegisterFunction(FActorIOFunction()
+            .SetId(TEXT("ATextRenderActor::SetTextRenderColor"))
+            .SetDisplayName(LOCTEXT("TextRenderActor.SetTextRenderColor", "SetTextRenderColor"))
+            .SetTooltipText(LOCTEXT("TextRenderActor.SetTextRenderColorTooltip", "Set color of the text."))
+            .SetFunction(TEXT("SetTextRenderColor"))
+            .SetSubobject(TEXT("NewTextRenderComponent")));
     }
 
     //==================================
