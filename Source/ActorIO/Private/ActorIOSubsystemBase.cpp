@@ -243,7 +243,7 @@ void UActorIOSubsystemBase::RegisterNativeEventsForObject(AActor* InObject, FAct
     // In the case of ALevelSequenceActor, we are comparing the class name directly to avoid dependency to LevelSequence module.
     // Note that this does not support class inheritance, so it only works for exact classes.
     // Since LevelSequenceActor is just a component wrapper, I do not think anyone will ever subclass it anyways.
-    if (InObject->GetClass()->GetFName() == TEXT("LevelSequenceActor"))
+    if (InObject->GetClass()->GetFName() == TEXT("LevelSequenceActor") || InObject->GetClass()->GetFName() == TEXT("ReplicatedLevelSequenceActor"))
     {
         // The callback events are in the ULevelSequencePlayer subobject of the ALevelSequenceActor.
         // We can simply get it as a UObject and use reflection data to bind to it (via SetBlueprintDelegate).
