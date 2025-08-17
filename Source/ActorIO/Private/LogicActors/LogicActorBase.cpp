@@ -10,6 +10,7 @@ ALogicActorBase::ALogicActorBase()
 
 	bReplicates = false;
 	bNetLoadOnClient = true;
+	bIsSpatiallyLoaded = false;
 
 #if UE_VERSION_NEWER_THAN(5, 5, 0)
 	SetNetUpdateFrequency(10.0f);
