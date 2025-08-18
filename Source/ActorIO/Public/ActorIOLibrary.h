@@ -52,7 +52,7 @@ public:
 	/**
 	 * Add a named argument (parameter) to the current execution context.
 	 * If it already exists then the value is simply updated.
-	 * Should only be called from within an I/O event processor!
+	 * Should only be called during GetGlobalNamedArguments, GetLocalNamedArguments, or an I/O event processor!
 	 * 
 	 * @param WorldContextObject Reference to the object where this function is being called.
 	 * @param ArgumentName Text to swap into the argument value. Text must start with '$'.

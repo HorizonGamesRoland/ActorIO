@@ -25,6 +25,7 @@ protected:
     //~ Begin ALogicActorBase Interface
     virtual void RegisterIOEvents(FActorIOEventList& EventRegistry) override;
     virtual void RegisterIOFunctions(FActorIOFunctionList& FunctionRegistry) override;
+    virtual void GetLocalNamedArguments(FActionExecutionContext& ExecutionContext) override;
     virtual void PostInitializeComponents() override;
     //~ End ALogicActorBase Interface
 
@@ -73,10 +74,4 @@ public:
     /** Get the current boolean value of the branch. */
     UFUNCTION(BlueprintPure, Category = "Branch")
     bool GetValue() const { return bCurrentValue; }
-
-protected:
-
-    /** Event processor for the 'OnTrue' and 'OnFalse' events. */
-    UFUNCTION()
-    void ProcessEvent_OnTest();
 };

@@ -26,15 +26,13 @@ void ALogicBranch::RegisterIOEvents(FActorIOEventList& EventRegistry)
 		.SetId(TEXT("ALogicBranch::OnTrue"))
 		.SetDisplayName(LOCTEXT("LogicBranch.OnTrue", "OnTrue"))
 		.SetTooltipText(LOCTEXT("LogicBranch.OnTrueTooltip", "Event when the stored boolean value is true when 'Test' is called."))
-		.SetMulticastDelegate(this, &OnTrue)
-		.SetEventProcessor(this, TEXT("ProcessEvent_OnTest")));
+		.SetMulticastDelegate(this, &OnTrue));
 
 	EventRegistry.RegisterEvent(FActorIOEvent()
 		.SetId(TEXT("ALogicBranch::OnFalse"))
 		.SetDisplayName(LOCTEXT("LogicBranch.OnFalse", "OnFalse"))
 		.SetTooltipText(LOCTEXT("LogicBranch.OnFalseTooltip", "Event when the stored boolean value is false when 'Test' is called."))
-		.SetMulticastDelegate(this, &OnFalse)
-		.SetEventProcessor(this, TEXT("ProcessEvent_OnTest")));
+		.SetMulticastDelegate(this, &OnFalse));
 }
 
 void ALogicBranch::RegisterIOFunctions(FActorIOFunctionList& FunctionRegistry)
@@ -68,6 +66,11 @@ void ALogicBranch::RegisterIOFunctions(FActorIOFunctionList& FunctionRegistry)
 		.SetDisplayName(LOCTEXT("LogicBranch.Test", "Test"))
 		.SetTooltipText(LOCTEXT("LogicBranch.TestTooltip", "Test the boolean value and fire 'OnTrue' or 'OnFalse' based on the value."))
 		.SetFunction(TEXT("Test")));
+}
+
+void ALogicBranch::GetLocalNamedArguments(FActionExecutionContext& ExecutionContext)
+{
+	ExecutionContext.SetNamedArgument(TEXT("$Value"), bCurrentValue ? TEXT("True") : TEXT("False"));
 }
 
 void ALogicBranch::PostInitializeComponents()
@@ -113,12 +116,6 @@ void ALogicBranch::Test()
 	{
 		OnFalse.Broadcast();
 	}
-}
-
-void ALogicBranch::ProcessEvent_OnTest()
-{
-	FActionExecutionContext& ExecContext = FActionExecutionContext::Get(this);
-	ExecContext.SetNamedArgument(TEXT("$Value"), bCurrentValue ? TEXT("True") : TEXT("False"));
 }
 
 #undef LOCTEXT_NAMESPACE

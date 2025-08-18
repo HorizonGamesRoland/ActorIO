@@ -56,6 +56,7 @@ protected:
     //~ Begin ALogicActorBase Interface
     virtual void RegisterIOEvents(FActorIOEventList& EventRegistry) override;
     virtual void RegisterIOFunctions(FActorIOFunctionList& FunctionRegistry) override;
+    virtual void GetLocalNamedArguments(FActionExecutionContext& ExecutionContext) override;
     virtual void PostInitializeComponents() override;
     //~ End ALogicActorBase Interface
 
@@ -72,10 +73,4 @@ public:
 
     /** Compare the current value with the compare value. */
     void Compare();
-
-protected:
-
-    /** Event processor for the comparison events. */
-    UFUNCTION()
-    void ProcessEvent_OnCompare();
 };

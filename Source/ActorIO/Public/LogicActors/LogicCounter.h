@@ -68,6 +68,7 @@ protected:
     //~ Begin ALogicActorBase Interface
     virtual void RegisterIOEvents(FActorIOEventList& EventRegistry) override;
     virtual void RegisterIOFunctions(FActorIOFunctionList& FunctionRegistry) override;
+    virtual void GetLocalNamedArguments(FActionExecutionContext& ExecutionContext) override;
     virtual void PostInitializeComponents() override;
     //~ End ALogicActorBase Interface
 
@@ -92,14 +93,4 @@ public:
     /** Fire the 'OnGetValue' event with the current value. */
     UFUNCTION(BlueprintPure, Category = "Counter")
     int32 GetValue() const;
-
-protected:
-
-    /** Event processor for the 'OnValueChanged' and 'OnTargetValueChanged' events. */
-    UFUNCTION()
-    void ProcessEvent_OnValueChanged(int32 Value);
-
-    /** Event processor for the 'OnGetValue' event. */
-    UFUNCTION()
-    void ProcessEvent_OnGetValue(int32 Value);
 };
