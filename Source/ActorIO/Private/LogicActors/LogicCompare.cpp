@@ -10,6 +10,7 @@ ALogicCompare::ALogicCompare()
 	InitialValue = FString();
 	CompareValue = FString();
 	CurrentValue = FString();
+	ErrorToleranceForNumericValues = 0.001f;
 
 #if WITH_EDITORONLY_DATA
 	ConstructorHelpers::FObjectFinderOptional<UTexture2D> SpriteTexture(TEXT("/ActorIO/AssetIcons/S_Compare"));
@@ -109,19 +110,19 @@ void ALogicCompare::SetCompareValue(FString InValue)
 
 void ALogicCompare::Compare()
 {
-	if (CurrentValue == CompareValue)
-	{
-		OnEquals.Broadcast();
-	}
-	else
-	{
-		OnNotEquals.Broadcast();
-	}
-
 	if (CurrentValue.IsNumeric() && CompareValue.IsNumeric())
 	{
 		const float NumericCurrentValue = FCString::Atof(*CurrentValue);
 		const float NumericCompareValue = FCString::Atof(*CompareValue);
+
+		if (FMath::IsNearlyEqual(NumericCurrentValue, NumericCompareValue, ErrorToleranceForNumericValues))
+		{
+			OnEquals.Broadcast();
+		}
+		else
+		{
+			OnNotEquals.Broadcast();
+		}
 
 		if (NumericCurrentValue < NumericCompareValue)
 		{
@@ -130,6 +131,17 @@ void ALogicCompare::Compare()
 		else if (NumericCurrentValue > NumericCompareValue)
 		{
 			OnGreaterThen.Broadcast();
+		}
+	}
+	else
+	{
+		if (CurrentValue == CompareValue)
+		{
+			OnEquals.Broadcast();
+		}
+		else
+		{
+			OnNotEquals.Broadcast();
 		}
 	}
 }

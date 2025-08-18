@@ -29,6 +29,10 @@ public:
     UPROPERTY(EditInstanceOnly, Category = "Compare")
     FString CompareValue;
 
+    /** Maximum allowed difference before considering numeric values as equal. */
+    UPROPERTY(EditInstanceOnly, Category = "Compare", meta = (ClampMin = "0"))
+    float ErrorToleranceForNumericValues;
+
     /** Event when the current value equals the compare value. */
     UPROPERTY(BlueprintAssignable, Category = "Compare")
     FSimpleActionDelegate OnEquals;
