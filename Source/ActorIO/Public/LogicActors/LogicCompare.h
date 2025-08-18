@@ -67,14 +67,18 @@ protected:
 public:
 
     /** Set the current value without performing the comparison. */
+    UFUNCTION(BlueprintCallable, Category = "Compare")
     void SetValue(FString InValue);
 
     /** Set the current value and compare it against the compare value. */
+    UFUNCTION(BlueprintCallable, Category = "Compare")
     void SetValueAndCompare(FString InValue);
 
     /** Set the compare value. */
+    UFUNCTION(BlueprintCallable, Category = "Compare")
     void SetCompareValue(FString InValue);
 
     /** Compare the current value with the compare value. */
+    UFUNCTION(BlueprintCallable, Category = "Compare")
     void Compare();
 };

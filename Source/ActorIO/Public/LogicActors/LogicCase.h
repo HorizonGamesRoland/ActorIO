@@ -91,5 +91,6 @@ protected:
 public:
 
     /** Compare the value to the case values, and fire the appropriate 'OnCase' event. */
+    UFUNCTION(BlueprintCallable, Category = "Case")
     void Test(FString InValue);
 };
