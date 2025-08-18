@@ -246,11 +246,18 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 
 	UE_CLOG(DebugIOActions, LogActorIO, Log, TEXT("Executing action: %s -> %s (Caller: '%s')"), *EventId.ToString(), *FunctionId.ToString(), *ActionOwner->GetActorNameOrLabel());
 
-	if (!IsTargetActorAlive())
+	if (TargetActor.IsNull())
+	{
+		// Do nothing if no target actor is selected.
+		UE_CLOG(DebugIOActions && WarnIOInvalidTarget, LogActorIO, Warning, TEXT("No target actor selected."));
+		return;
+	}
+
+	if (!IActorIO::ConfirmObjectIsAlive(TargetActor.Get()))
 	{
 		// Do nothing if the target actor is invalid.
-		// The actor was most likely destroyed or unloaded.
-		UE_CLOG(DebugIOActions && WarnIOInvalidTarget, LogActorIO, Warning, TEXT("Could not find target actor. Actor was destroyed or unloaded?"));
+		// The actor was most likely unloaded or destroyed.
+		UE_CLOG(DebugIOActions && WarnIOInvalidTarget, LogActorIO, Warning, TEXT("Could not find target actor. Actor was unloaded or destroyed? Path: %s"), *TargetActor.ToString());
 		return;
 	}
 
@@ -279,15 +286,28 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 		return;
 	}
 
+	IActorIOInterface* ActionOwnerIOInterface = nullptr;
+	if (ActionOwner->Implements<UActorIOInterface>())
+	{
+		ActionOwnerIOInterface = Cast<IActorIOInterface>(ActionOwner);
+	}
+
 	const bool bProcessNamedArgs = FunctionArguments.Contains(NAMEDARGUMENT_PREFIX);
 	if (bProcessNamedArgs || LogIONamedArgs)
 	{
-		// Let the I/O subsystem to add globally available named arguments to the current execution context.
+		// Let the I/O subsystem add globally available named arguments to the current execution context.
 		// Think stuff like reference to player character, or player controller.
 		UActorIOSubsystemBase* IOSubsystem = UActorIOSubsystemBase::Get(this);
 		IOSubsystem->GetGlobalNamedArguments(ExecutionContext);
 
-		// Let the event processor assign values to arbitrary named arguments.
+		// Let the owning actor add locally available named arguments to the current execution context.
+		if (ActionOwnerIOInterface)
+		{
+			ActionOwnerIOInterface->GetLocalNamedArguments(ExecutionContext);
+			IActorIOInterface::Execute_K2_GetLocalNamedArguments(ActionOwner);
+		}
+
+		// Let the event processor add extra named arguments to the current execution context.
 		// We are calling the event processor with the original params memory that we received from the delegate.
 		// This way the event processor will receive the proper values for its params given that its signature matches the delegate.
 		FActorIOEventList ValidEvents = IActorIO::GetEventsForObject(ActionOwner);
@@ -316,7 +336,7 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 
 	// Give the owning actor a chance to abort action execution.
 	// Deliberately doing this after collecting named arguments in case we want to access them.
-	if (ActionOwner->Implements<UActorIOInterface>())
+	if (ActionOwnerIOInterface)
 	{
 		if (IActorIOInterface::Execute_ConditionalAbortIOAction(ActionOwner, this))
 		{
@@ -405,23 +425,22 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 
 void UActorIOAction::SendCommand(UObject* Target, FString Command)
 {
-	if (IActorIO::ConfirmObjectIsAlive(Target))
+	if (!IActorIO::ConfirmObjectIsAlive(Target))
 	{
-		FStringOutputDevice Ar;
-
-		// Invoke the function.
-		UActorIOSubsystemBase* IOSubsystem = UActorIOSubsystemBase::Get(this);
-		IOSubsystem->ExecuteCommand(Target, *Command, Ar, this);
-
-		// Log execution errors.
-		if (!Ar.IsEmpty())
-		{
-			UE_CLOG(DebugIOActions, LogActorIO, Error, TEXT("%s"), *Ar);
-		}
+		UE_CLOG(DebugIOActions && WarnIOInvalidTarget, LogActorIO, Warning, TEXT("Could not find action target during SendCommand of '%s'. Target was unloaded or destroyed?"), *FunctionId.ToString());
+		return;
 	}
-	else
+
+	FStringOutputDevice Ar;
+
+	// Invoke the function.
+	UActorIOSubsystemBase* IOSubsystem = UActorIOSubsystemBase::Get(this);
+	IOSubsystem->ExecuteCommand(Target, *Command, Ar, this);
+
+	// Log execution errors.
+	if (!Ar.IsEmpty())
 	{
-		UE_CLOG(DebugIOActions && WarnIOInvalidTarget, LogActorIO, Warning, TEXT("Could not find action target during SendCommand of '%s'. Target was destroyed or unloaded?"), *FunctionId.ToString());
+		UE_CLOG(DebugIOActions, LogActorIO, Error, TEXT("%s"), *Ar);
 	}
 }
 

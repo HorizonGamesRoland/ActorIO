@@ -77,14 +77,14 @@ public:
 
 	/**
 	 * Opportunity to add globally available named arguments to the current execution context.
-	 * Think stuff like reference to player character, or player controller.
+	 * These named arguments are available for all actors.
 	 * Called at runtime, when executing an I/O action.
 	 */
 	virtual void GetGlobalNamedArguments(FActionExecutionContext& ExecutionContext);
 
 	/**
 	 * Opportunity for blueprints to add globally available named arguments to the current execution context.
-	 * Think stuff like reference to player character, or player controller.
+	 * These named arguments are available for all actors.
 	 * Called at runtime, before executing an I/O action.
 	 */
 	UFUNCTION(BlueprintImplementableEvent, Category = "Actor IO", DisplayName = "Get Global Named Arguments", meta = (ForceAsFunction, Keywords = "IO"))

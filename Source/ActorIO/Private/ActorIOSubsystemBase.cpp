@@ -465,7 +465,7 @@ void UActorIOSubsystemBase::RegisterNativeFunctionsForObject(AActor* InObject, F
     }
 
     //==================================
-    // Mesh Actors
+    // Text Render Actors
     //==================================
 
     if (InObject->IsA<ATextRenderActor>())

@@ -54,7 +54,20 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, CallInEditor, Category = "Actor IO", DisplayName = "Register I/O Functions", meta = (ForceAsFunction, Keywords = "IO"))
 	void K2_RegisterIOFunctions(UPARAM(Ref) FActorIOFunctionList& FunctionRegistry);
 
-public:
+	/**
+	 * Opportunity to add locally available named arguments to the current execution context.
+	 * These named arguments are available for the implementing actor only.
+	 * Called at runtime, when executing an I/O action.
+	 */
+	virtual void GetLocalNamedArguments(FActionExecutionContext& ExecutionContext) {}
+
+	/**
+	 * Opportunity for blueprints to add locally available named arguments to the current execution context.
+	 * These named arguments are available for the implementing actor only.
+	 * Called at runtime, before executing an I/O action.
+	 */
+	UFUNCTION(BlueprintImplementableEvent, Category = "Actor IO", DisplayName = "Get Local Named Arguments", meta = (ForceAsFunction, Keywords = "IO"))
+	void K2_GetLocalNamedArguments();
 
 	/**
 	 * Called before the actor executes one of its output I/O actions.
