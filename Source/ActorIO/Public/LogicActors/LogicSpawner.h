@@ -79,21 +79,21 @@ public:
     bool bSpawnActorsOnStart;
 
     /** Event whenever a new actor is spawned */
-    UPROPERTY(BlueprintAssignable, Category = "Spawner")
+    UPROPERTY(BlueprintAssignable, Category = "Events")
     FOnSpawnerSpawnActor OnActorSpawned;
 
     /** Event when all actors have finished spawning. */
-    UPROPERTY(BlueprintAssignable, Category = "Spawner")
+    UPROPERTY(BlueprintAssignable, Category = "Events")
     FSimpleActionDelegate OnSpawnFinished;
 
     /** Event when getting a spawned actor using the 'GetSpawnedActorForEntry' function. */
-    UPROPERTY(BlueprintAssignable, Category = "Spawner")
+    UPROPERTY(BlueprintAssignable, Category = "Events")
     FOnGetSpawnedActor OnGetSpawnedActor;
 
 protected:
 
     /** Reference to all actors spawned by the spawner. */
-    UPROPERTY(Transient)
+    UPROPERTY()
     TArray<TObjectPtr<AActor>> SpawnedActors;
 
 protected:
@@ -107,23 +107,23 @@ protected:
 public:
 
     /** Spawn the actors. */
-    UFUNCTION(BlueprintCallable, Category = "Spawner")
+    UFUNCTION(BlueprintCallable, Category = "LogicActors|LogicSpawner")
     void SpawnActors();
 
     /** Destroy all spawned actors. */
-    UFUNCTION(BlueprintCallable, Category = "Spawner")
+    UFUNCTION(BlueprintCallable, Category = "LogicActors|LogicSpawner")
     void DestroySpawnedActors();
 
     /** Destroy the actor that was spawned for the given entry. */
-    UFUNCTION(BlueprintCallable, Category = "Spawner")
+    UFUNCTION(BlueprintCallable, Category = "LogicActors|LogicSpawner")
     void DestroySpawnedActorForEntry(int32 EntryIdx);
 
     /** Get the actor that was spawned for the given entry and fire 'OnGetSpawnedActor' event. */
-    UFUNCTION(BlueprintPure, Category = "Spawner")
+    UFUNCTION(BlueprintPure, Category = "LogicActors|LogicSpawner")
     AActor* GetSpawnedActorForEntry(int32 EntryIdx) const;
 
     /** Get the number of spawned actors. */
-    UFUNCTION(BlueprintPure, Category = "Spawner")
+    UFUNCTION(BlueprintPure, Category = "LogicActors|LogicSpawner")
     int32 GetSpawnedActorCount() const;
 
 protected:

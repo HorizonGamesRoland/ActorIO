@@ -37,12 +37,13 @@ public:
     bool bLoop;
 
     /** Event when the timer expires. */
-    UPROPERTY(BlueprintAssignable, Category = "Timer")
+    UPROPERTY(BlueprintAssignable, Category = "Events")
     FSimpleActionDelegate OnTimer;
 
 protected:
 
     /** Handle for the current timer. */
+    UPROPERTY()
     FTimerHandle CurrentTimerHandle;
 
 protected:
@@ -55,19 +56,19 @@ protected:
 public:
 
     /** Start the timer. If the timer is already active then it will be restarted. */
-    UFUNCTION(BlueprintCallable, Category = "Timer")
+    UFUNCTION(BlueprintCallable, Category = "LogicActors|LogicTimer")
     void StartTimer();
 
     /** Start the timer with custom params. If the timer is already active then it will be restarted. */
-    UFUNCTION(BlueprintCallable, Category = "Timer")
+    UFUNCTION(BlueprintCallable, Category = "LogicActors|LogicTimer")
     void StartTimerWithParams(float InTime, float InTimeRandomization, bool bInLoop);
 
     /** Stop the timer if it is active. */
-    UFUNCTION(BlueprintCallable, Category = "Timer")
+    UFUNCTION(BlueprintCallable, Category = "LogicActors|LogicTimer")
     void StopTimer();
 
     /** Get whether the timer is active or not. */
-    UFUNCTION(BlueprintPure, Category = "Timer")
+    UFUNCTION(BlueprintPure, Category = "LogicActors|LogicTimer")
     bool IsTimerActive() const;
 
 protected:

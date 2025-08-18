@@ -29,56 +29,56 @@ public:
     TArray<FString> Cases;
 
     /** Event when the input value equals the case value at index 0. */
-    UPROPERTY(BlueprintAssignable, Category = "Case")
+    UPROPERTY(BlueprintAssignable, Category = "Events")
     FSimpleActionDelegate OnCase01;
     /** Event when the input value equals the case value at index 1. */
-    UPROPERTY(BlueprintAssignable, Category = "Case")
+    UPROPERTY(BlueprintAssignable, Category = "Events")
     FSimpleActionDelegate OnCase02;
     /** Event when the input value equals the case value at index 2. */
-    UPROPERTY(BlueprintAssignable, Category = "Case")
+    UPROPERTY(BlueprintAssignable, Category = "Events")
     FSimpleActionDelegate OnCase03;
     /** Event when the input value equals the case value at index 3. */
-    UPROPERTY(BlueprintAssignable, Category = "Case")
+    UPROPERTY(BlueprintAssignable, Category = "Events")
     FSimpleActionDelegate OnCase04;
     /** Event when the input value equals the case value at index 4. */
-    UPROPERTY(BlueprintAssignable, Category = "Case")
+    UPROPERTY(BlueprintAssignable, Category = "Events")
     FSimpleActionDelegate OnCase05;
     /** Event when the input value equals the case value at index 5. */
-    UPROPERTY(BlueprintAssignable, Category = "Case")
+    UPROPERTY(BlueprintAssignable, Category = "Events")
     FSimpleActionDelegate OnCase06;
     /** Event when the input value equals the case value at index 6. */
-    UPROPERTY(BlueprintAssignable, Category = "Case")
+    UPROPERTY(BlueprintAssignable, Category = "Events")
     FSimpleActionDelegate OnCase07;
     /** Event when the input value equals the case value at index 7. */
-    UPROPERTY(BlueprintAssignable, Category = "Case")
+    UPROPERTY(BlueprintAssignable, Category = "Events")
     FSimpleActionDelegate OnCase08;
     /** Event when the input value equals the case value at index 8. */
-    UPROPERTY(BlueprintAssignable, Category = "Case")
+    UPROPERTY(BlueprintAssignable, Category = "Events")
     FSimpleActionDelegate OnCase09;
     /** Event when the input value equals the case value at index 9. */
-    UPROPERTY(BlueprintAssignable, Category = "Case")
+    UPROPERTY(BlueprintAssignable, Category = "Events")
     FSimpleActionDelegate OnCase10;
     /** Event when the input value equals the case value at index 10. */
-    UPROPERTY(BlueprintAssignable, Category = "Case")
+    UPROPERTY(BlueprintAssignable, Category = "Events")
     FSimpleActionDelegate OnCase11;
     /** Event when the input value equals the case value at index 11. */
-    UPROPERTY(BlueprintAssignable, Category = "Case")
+    UPROPERTY(BlueprintAssignable, Category = "Events")
     FSimpleActionDelegate OnCase12;
     /** Event when the input value equals the case value at index 12. */
-    UPROPERTY(BlueprintAssignable, Category = "Case")
+    UPROPERTY(BlueprintAssignable, Category = "Events")
     FSimpleActionDelegate OnCase13;
     /** Event when the input value equals the case value at index 13. */
-    UPROPERTY(BlueprintAssignable, Category = "Case")
+    UPROPERTY(BlueprintAssignable, Category = "Events")
     FSimpleActionDelegate OnCase14;
     /** Event when the input value equals the case value at index 14. */
-    UPROPERTY(BlueprintAssignable, Category = "Case")
+    UPROPERTY(BlueprintAssignable, Category = "Events")
     FSimpleActionDelegate OnCase15;
     /** Event when the input value equals the case value at index 15. */
-    UPROPERTY(BlueprintAssignable, Category = "Case")
+    UPROPERTY(BlueprintAssignable, Category = "Events")
     FSimpleActionDelegate OnCase16;
 
     /** Event when the input value does not equal any of the cases. */
-    UPROPERTY(BlueprintAssignable, Category = "Case")
+    UPROPERTY(BlueprintAssignable, Category = "Events")
     FSimpleActionDelegate OnDefault;
 
 protected:
@@ -91,6 +91,6 @@ protected:
 public:
 
     /** Compare the value to the case values, and fire the appropriate 'OnCase' event. */
-    UFUNCTION(BlueprintCallable, Category = "Case")
+    UFUNCTION(BlueprintCallable, Category = "LogicActors|LogicCase")
     void Test(FString InValue);
 };

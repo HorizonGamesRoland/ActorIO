@@ -42,19 +42,19 @@ public:
     bool bClampValue;
 
     /** Event when the current value is changed. */
-    UPROPERTY(BlueprintAssignable, Category = "Counter")
+    UPROPERTY(BlueprintAssignable, Category = "Events")
     FOnCounterValue OnValueChanged;
 
     /** Event when the target value is changed. */
-    UPROPERTY(BlueprintAssignable, Category = "Counter")
+    UPROPERTY(BlueprintAssignable, Category = "Events")
     FOnCounterValue OnTargetValueChanged;
 
     /** Event when the current value equals or greater then the target value. */
-    UPROPERTY(BlueprintAssignable, Category = "Counter")
+    UPROPERTY(BlueprintAssignable, Category = "Events")
     FOnCounterValue OnTargetValueReached;
 
     /** Event when the current value is read using the 'GetValue' function. */
-    UPROPERTY(BlueprintAssignable, Category = "Counter")
+    UPROPERTY(BlueprintAssignable, Category = "Events")
     FOnCounterValue OnGetValue;
 
 protected:
@@ -75,22 +75,22 @@ protected:
 public:
 
     /** Add to the current value. */
-    UFUNCTION(BlueprintCallable, Category = "Counter")
+    UFUNCTION(BlueprintCallable, Category = "LogicActors|LogicCounter")
     void Add(int32 Amount = 1);
 
     /** Subtract from the current value. */
-    UFUNCTION(BlueprintCallable, Category = "Counter")
+    UFUNCTION(BlueprintCallable, Category = "LogicActors|LogicCounter")
     void Subtract(int32 Amount = 1);
 
     /** Set the current value directly. */
-    UFUNCTION(BlueprintCallable, Category = "Counter")
+    UFUNCTION(BlueprintCallable, Category = "LogicActors|LogicCounter")
     void SetValue(int32 Value);
 
     /** Set a new target value. Fires 'OnTargetValueReached' if current value equals or greater then the new target value. */
-    UFUNCTION(BlueprintCallable, Category = "Counter")
+    UFUNCTION(BlueprintCallable, Category = "LogicActors|LogicCounter")
     void SetTargetValue(int32 Value);
 
     /** Fire the 'OnGetValue' event with the current value. */
-    UFUNCTION(BlueprintPure, Category = "Counter")
+    UFUNCTION(BlueprintPure, Category = "LogicActors|LogicCounter")
     int32 GetValue() const;
 };

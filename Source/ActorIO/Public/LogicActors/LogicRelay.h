@@ -28,7 +28,7 @@ public:
     bool bIsEnabled;
 
     /** Event when the relay is triggered */
-    UPROPERTY(BlueprintAssignable, Category = "Relay")
+    UPROPERTY(BlueprintAssignable, Category = "Events")
     FSimpleActionDelegate OnTrigger;
 
 protected:
@@ -41,18 +41,18 @@ protected:
 public:
 
     /** Trigger the relay, causing the 'OnTrigger' event to fire if enabled. */
-    UFUNCTION(BlueprintCallable, Category = "Relay")
+    UFUNCTION(BlueprintCallable, Category = "LogicActors|LogicRelay")
     void Trigger();
 
     /** Allow the relay to fire the 'OnTrigger' event. */
-    UFUNCTION(BlueprintCallable, Category = "Relay")
+    UFUNCTION(BlueprintCallable, Category = "LogicActors|LogicRelay")
     void Enable();
 
     /** Prevent the relay from firing the 'OnTrigger' event. */
-    UFUNCTION(BlueprintCallable, Category = "Relay")
+    UFUNCTION(BlueprintCallable, Category = "LogicActors|LogicRelay")
     void Disable();
 
     /** Get whether the relay is currently enabled or not. */
-    UFUNCTION(BlueprintPure, Category = "Relay")
+    UFUNCTION(BlueprintPure, Category = "LogicActors|LogicRelay")
     bool IsEnabled() const;
 };
