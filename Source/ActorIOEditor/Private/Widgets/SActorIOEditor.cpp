@@ -2,7 +2,7 @@
 
 #include "Widgets/SActorIOEditor.h"
 #include "Widgets/SActorIOActionList.h"
-#include "ActorIOEditor.h"
+#include "ActorIOEditorSubsystem.h"
 #include "ActorIOEditorStyle.h"
 #include "ActorIOComponent.h"
 #include "ActorIOAction.h"
@@ -153,8 +153,8 @@ END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 void SActorIOEditor::Refresh()
 {
-    FActorIOEditor& ActorIOEditor = FActorIOEditor::Get();
-    AActor* SelectedActor = ActorIOEditor.GetSelectedActor();
+    UActorIOEditorSubsystem* ActorIOEditorSubsystem = UActorIOEditorSubsystem::Get();
+    AActor* SelectedActor = ActorIOEditorSubsystem->GetSelectedActor();
     UActorIOComponent* ActorIOComponent = SelectedActor ? SelectedActor->GetComponentByClass<UActorIOComponent>() : nullptr;
 
     const FString ActorName = SelectedActor ? SelectedActor->GetActorNameOrLabel() : TEXT("None");
@@ -234,8 +234,8 @@ void SActorIOEditor::OnInputsButtonChecked(ECheckBoxState InState)
 
 FReply SActorIOEditor::OnClick_NewAction()
 {
-    FActorIOEditor& ActorIOEditor = FActorIOEditor::Get();
-    AActor* SelectedActor = ActorIOEditor.GetSelectedActor();
+    UActorIOEditorSubsystem* ActorIOEditorSubsystem = UActorIOEditorSubsystem::Get();
+    AActor* SelectedActor = ActorIOEditorSubsystem->GetSelectedActor();
     if (IsValid(SelectedActor))
     {
         const FScopedTransaction Transaction(LOCTEXT("AddActorIOAction", "Add ActorIO Action"));
@@ -243,7 +243,7 @@ FReply SActorIOEditor::OnClick_NewAction()
         UActorIOComponent* ActorIOComponent = SelectedActor->GetComponentByClass<UActorIOComponent>();
         if (!ActorIOComponent)
         {
-            ActorIOComponent = ActorIOEditor.AddIOComponentToActor(SelectedActor, true);
+            ActorIOComponent = ActorIOEditorSubsystem->AddIOComponentToActor(SelectedActor, true);
         }
 
         if (ActorIOComponent)

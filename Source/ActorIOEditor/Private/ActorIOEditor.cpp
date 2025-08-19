@@ -3,27 +3,16 @@
 #include "ActorIOEditor.h"
 #include "ActorIOEditorStyle.h"
 #include "ActorIOAction.h"
-#include "ActorIOComponent.h"
 #include "ActorIOComponentVisualizer.h"
-#include "LogicActors/LogicBranch.h"
-#include "LogicActors/LogicCase.h"
-#include "LogicActors/LogicCompare.h"
-#include "LogicActors/LogicCounter.h"
-#include "LogicActors/LogicGlobalEvent.h"
-#include "LogicActors/LogicRelay.h"
-#include "LogicActors/LogicSpawner.h"
-#include "LogicActors/LogicTimeline.h"
-#include "LogicActors/LogicTimer.h"
+#include "LogicActors/LogicActorBase.h"
 #include "Widgets/SActorIOEditor.h"
 #include "Widgets/Docking/SDockTab.h"
 #include "Framework/Docking/TabManager.h"
-#include "GameFramework/Actor.h"
 #include "Engine/Blueprint.h"
 #include "IPlacementModeModule.h"
 #include "Features/IModularFeatures.h"
 #include "WorkspaceMenuStructure.h"
 #include "WorkspaceMenuStructureModule.h"
-#include "Selection.h"
 #include "Editor.h"
 #include "UnrealEdGlobals.h"
 #include "Editor/UnrealEdEngine.h"
@@ -49,28 +38,13 @@ void FActorIOEditor::StartupModule()
 		.SetGroup(WorkspaceMenu::GetMenuStructure().GetLevelEditorCategory())
 		.SetIcon(FSlateIcon(FAppStyle::GetAppStyleSetName(), "Icons.Event"));
 
-	if (GEditor)
-	{
-		// Bind delegates.
-		DelegateHandle_SelectionChanged = USelection::SelectionChangedEvent.AddRaw(this, &FActorIOEditor::OnObjectSelectionChanged);
-		DelegateHandle_DeleteActorsBegin = FEditorDelegates::OnDeleteActorsBegin.AddRaw(this, &FActorIOEditor::OnDeleteOrCutActorsBegin);
-		DelegateHandle_CutActorsBegin = FEditorDelegates::OnEditCutActorsBegin.AddRaw(this, &FActorIOEditor::OnDeleteOrCutActorsBegin);
-#if UE_VERSION_NEWER_THAN(5, 5, 0)
-		DelegateHandle_ActorReplaced = FEditorDelegates::OnEditorActorReplaced.AddRaw(this, &FActorIOEditor::OnActorReplaced);
-#endif
-		DelegateHandle_BlueprintCompiled = GEditor->OnBlueprintCompiled().AddRaw(this, &FActorIOEditor::OnBlueprintCompiled);
-
-		// Register undo client.
-		GEditor->RegisterForUndo(this);
-	}
+	// Register undo client.
+	GEditor->RegisterForUndo(this);
 
 	// Register component visualizer to draw I/O lines between actors.
-	if (GUnrealEd)
-	{
-		TSharedPtr<FComponentVisualizer> IOComponentVisualizer = MakeShared<FActorIOComponentVisualizer>();
-		GUnrealEd->RegisterComponentVisualizer(UActorIOComponent::StaticClass()->GetFName(), IOComponentVisualizer);
-		IOComponentVisualizer->OnRegister();
-	}
+	TSharedPtr<FComponentVisualizer> IOComponentVisualizer = MakeShared<FActorIOComponentVisualizer>();
+	GUnrealEd->RegisterComponentVisualizer(TEXT("ActorIOComponent"), IOComponentVisualizer);
+	IOComponentVisualizer->OnRegister();
 
 	// Register PIE authorizer to abort PIE sessions if the plugin is configured incorrectly.
 	// #NOTE: IModularFeatures won't compile in IWYU mode.
@@ -100,15 +74,6 @@ void FActorIOEditor::ShutdownModule()
 
 	if (GEditor)
 	{
-		// Clear delegates.
-		USelection::SelectionChangedEvent.Remove(DelegateHandle_SelectionChanged);
-		FEditorDelegates::OnDeleteActorsBegin.Remove(DelegateHandle_DeleteActorsBegin);
-		FEditorDelegates::OnEditCutActorsBegin.Remove(DelegateHandle_CutActorsBegin);
-#if UE_VERSION_NEWER_THAN(5, 5, 0)
-		FEditorDelegates::OnEditorActorReplaced.Remove(DelegateHandle_ActorReplaced);
-#endif
-		GEditor->OnBlueprintCompiled().Remove(DelegateHandle_BlueprintCompiled);
-
 		// Unegister undo client.
 		GEditor->UnregisterForUndo(this);
 	}
@@ -116,7 +81,7 @@ void FActorIOEditor::ShutdownModule()
 	// Unregister component visualizer.
 	if (GUnrealEd)
 	{
-		GUnrealEd->UnregisterComponentVisualizer(UActorIOComponent::StaticClass()->GetFName());
+		GUnrealEd->UnregisterComponentVisualizer(TEXT("ActorIOComponent"));
 	}
 
 	// Unregister PIE authorizer.
@@ -140,12 +105,10 @@ TSharedRef<SDockTab> FActorIOEditor::CreateActorIOEditorTab(const FSpawnTabArgs&
 
 	TSharedRef<SDockTab> SpawnedTab = SNew(SDockTab)
 	.TabRole(ETabRole::NomadTab)
+	.OnTabClosed(SDockTab::FOnTabClosedCallback::CreateRaw(this, &FActorIOEditor::OnActorIOEditorClosed))
 	[
 		SAssignNew(EditorWidget, SActorIOEditor)
 	];
-
-	const SDockTab::FOnTabClosedCallback TabClosedDelegate = SDockTab::FOnTabClosedCallback::CreateRaw(this, &FActorIOEditor::OnActorIOEditorClosed);
-	SpawnedTab->SetOnTabClosed(TabClosedDelegate);
 
 	// Refresh the editor window immediately.
 	UpdateEditorWidget();
@@ -164,58 +127,6 @@ void FActorIOEditor::UpdateEditorWidget()
 void FActorIOEditor::OnActorIOEditorClosed(TSharedRef<SDockTab> DockTab)
 {
 	EditorWidget.Reset();
-}
-
-void FActorIOEditor::OnObjectSelectionChanged(UObject* NewSelection)
-{
-	USelection* SelectedActors = GEditor->GetSelectedActors();
-	SelectedActor = SelectedActors->GetBottom<AActor>();
-
-	UpdateEditorWidget();
-}
-
-void FActorIOEditor::OnDeleteOrCutActorsBegin()
-{
-	// Modify all actions who's caller is about to be deleted.
-	// The transaction is already active at this point.
-	for (FSelectionIterator It(GEditor->GetSelectedActorIterator()); It; ++It)
-	{
-		AActor* Actor = static_cast<AActor*>(*It);
-		for (UActorIOAction* InputAction : IActorIO::GetInputActionsForObject(Actor))
-		{
-			InputAction->Modify();
-			InputAction->TargetActor = nullptr;
-		}
-	}
-}
-
-void FActorIOEditor::OnActorReplaced(AActor* OldActor, AActor* NewActor)
-{
-	// Modify all actions that point to the old actor.
-	// The transaction is already active at this point.
-	const TArray<UActorIOAction*> InputActions = IActorIO::GetInputActionsForObject(OldActor);
-	for (UActorIOAction* InputAction : InputActions)
-	{
-		InputAction->Modify();
-		InputAction->TargetActor = NewActor;
-	}
-
-	// Auto add an IO component to the new actor if needed.
-	if (OldActor->GetComponentByClass<UActorIOComponent>() || InputActions.Num() > 0)
-	{
-		if (!NewActor->GetComponentByClass<UActorIOComponent>())
-		{
-			AddIOComponentToActor(NewActor, false);
-		}
-	}
-}
-
-void FActorIOEditor::OnBlueprintCompiled()
-{
-	// A blueprint was recompiled, so the user may have exposed new I/O events or functions.
-	// To make the changes appear immediately, we need to update the editor window.
-	// This also handles the case where no I/O stuff was being exposed due to an error in the blueprint which may have got fixed with this recompile.
-	UpdateEditorWidget();
 }
 
 void FActorIOEditor::OnPlacementModeCategoryRefreshed(FName CategoryName)
@@ -281,34 +192,6 @@ void FActorIOEditor::OnPlacementModeCategoryRefreshed(FName CategoryName)
 SActorIOEditor* FActorIOEditor::GetEditorWidget() const
 {
 	return EditorWidget.Get();
-}
-
-AActor* FActorIOEditor::GetSelectedActor() const
-{
-	return SelectedActor.Get();
-}
-
-UActorIOComponent* FActorIOEditor::AddIOComponentToActor(AActor* TargetActor, bool bSelectActor)
-{
-	// Modify the actor to support undo/redo.
-	// The transaction should already be active at this point.
-	TargetActor->Modify();
-
-	UActorIOComponent* NewComponent = NewObject<UActorIOComponent>(TargetActor, TEXT("ActorIOComponent"), RF_Transactional);
-	NewComponent->OnComponentCreated();
-	NewComponent->RegisterComponent();
-
-	TargetActor->AddInstanceComponent(NewComponent);
-
-	// Re-select the actor so that the render state is created for the I/O visualizer.
-	// Also the component list of the actor gets updated.
-	if (bSelectActor && GEditor)
-	{
-		GEditor->SelectNone(true, false, false);
-		GEditor->SelectActor(TargetActor, true, true);
-	}
-
-	return NewComponent;
 }
 
 bool FActorIOEditor::MatchesContext(const FTransactionContext& InContext, const TArray<TPair<UObject*, FTransactionObjectEvent>>& TransactionObjects) const

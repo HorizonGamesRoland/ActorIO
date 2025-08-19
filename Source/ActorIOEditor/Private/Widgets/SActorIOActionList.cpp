@@ -7,6 +7,7 @@
 #include "Widgets/SActorIOTooltip.h"
 #include "ActorIOComponent.h"
 #include "ActorIOEditor.h"
+#include "ActorIOEditorSubsystem.h"
 #include "ActorIOEditorStyle.h"
 #include "GameFramework/Actor.h"
 #include "Widgets/SBoxPanel.h"
@@ -119,9 +120,8 @@ void SActorIOActionListView::Refresh()
 {
 	ActionListItems.Reset();
 
-	FActorIOEditor& ActorIOEditor = FActorIOEditor::Get();
-	AActor* SelectedActor = ActorIOEditor.GetSelectedActor();
-
+	UActorIOEditorSubsystem* ActorIOEditorSubsystem = UActorIOEditorSubsystem::Get();
+	AActor* SelectedActor = ActorIOEditorSubsystem->GetSelectedActor();
 	if (bViewInputActions)
 	{
 		ActionListItems = IActorIO::GetInputActionsForObject(SelectedActor);
@@ -558,8 +558,8 @@ void SActorIOActionListViewRow::OnTargetActorChanged(const FAssetData& InAssetDa
 		UActorIOComponent* TargetIOComponent = NewTarget->GetComponentByClass<UActorIOComponent>();
 		if (!TargetIOComponent)
 		{
-			FActorIOEditor& ActorIOEditor = FActorIOEditor::Get();
-			ActorIOEditor.AddIOComponentToActor(NewTarget, false);
+			UActorIOEditorSubsystem* ActorIOEditorSubsystem = UActorIOEditorSubsystem::Get();
+			ActorIOEditorSubsystem->AddIOComponentToActor(NewTarget, false);
 		}
 	}
 
