@@ -34,7 +34,7 @@ void FActorIOEditor::StartupModule()
 	// Register Actor I/O editor tab.
 	FGlobalTabmanager::Get()->RegisterNomadTabSpawner(TEXT("ActorIO"), FOnSpawnTab::CreateRaw(this, &FActorIOEditor::CreateActorIOEditorTab))
 		.SetDisplayName(LOCTEXT("TabName", "Actor I/O"))
-		.SetTooltipText(LOCTEXT("TabTooltip", "Open the Actor I/O tab. Use this for level scripting."))
+		.SetTooltipText(LOCTEXT("TabTooltip", "Open the Actor I/O editor tab to edit scripted actions of actors in the level."))
 		.SetGroup(WorkspaceMenu::GetMenuStructure().GetLevelEditorCategory())
 		.SetIcon(FSlateIcon(FAppStyle::GetAppStyleSetName(), "Icons.Event"));
 
@@ -55,7 +55,7 @@ void FActorIOEditor::StartupModule()
 	if (IPlacementModeModule::IsAvailable())
 	{
 		FPlacementCategoryInfo Info(LOCTEXT("ActorIOPlaceCategoryName", "Logic Actors"),
-			FSlateIcon(FAppStyle::GetAppStyleSetName(), "Icons.Event"), "ActorIOPlaceCategory", TEXT("PMActorIOPlaceCategory"), 45);
+			FSlateIcon(FAppStyle::GetAppStyleSetName(), "Icons.Event"), TEXT("ActorIOPlaceCategory"), TEXT("PMActorIOPlaceCategory"), 25);
 
 #if UE_VERSION_NEWER_THAN(5, 5, 0)
 		Info.ShortDisplayName = LOCTEXT("ActorIOPlaceCategoryShortName", "Logic");
@@ -74,7 +74,7 @@ void FActorIOEditor::ShutdownModule()
 
 	if (GEditor)
 	{
-		// Unegister undo client.
+		// Unregister undo client.
 		GEditor->UnregisterForUndo(this);
 	}
 
