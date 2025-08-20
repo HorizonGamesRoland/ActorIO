@@ -13,7 +13,7 @@
 DEFINE_LOG_CATEGORY(LogActorIO);
 
 //==================================
-// Console Variables
+//~ Begin Console Variables
 //==================================
 
 TAutoConsoleVariable<bool> CVarDebugIOActions(
@@ -33,7 +33,7 @@ TAutoConsoleVariable<bool> CVarLogIOActionFinalCommand(
     TEXT("<bool> Log the final command sent to the target actor after executing I/O action."), ECVF_Default);
 
 //==================================
-// FActionExecutionContext
+//~ Begin FActionExecutionContext
 //==================================
 
 FActionExecutionContext& FActionExecutionContext::Get(UObject* WorldContextObject)
@@ -92,7 +92,7 @@ void FActionExecutionContext::SetNamedArgument(const FString& InName, const FStr
 }
 
 //==================================
-// IActorIO
+//~ Begin IActorIO
 //==================================
 
 FActorIOEventList IActorIO::GetEventsForObject(AActor* InObject)

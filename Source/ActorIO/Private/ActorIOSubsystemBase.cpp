@@ -66,6 +66,7 @@ bool UActorIOSubsystemBase::ExecuteCommand(UObject* Target, const TCHAR* Str, FO
      *   - FindFunction and ProcessEvent are called on Target.
      *   - Add IsValid check for Target before finding UFunction.
      *   - Use Ar.Logf instead of UE_LOG(LogScriptCore) because LogScriptCore is static and its verbosity cannot be changed.
+     *   - Return success/failure properly.
      */
 
 #if UE_VERSION_NEWER_THAN(5, 6, 999) // <- patch version doesn't matter so use 999 to pass the check
@@ -142,14 +143,14 @@ bool UActorIOSubsystemBase::ExecuteCommand(UObject* Target, const TCHAR* Str, FO
          * 
          * In Unreal's reflection system, out properties and reference properties are differentiated.
          * Out params that are NOT passed by ref only appear on return nodes.
-         * They do not require a specific input value since they are just initialize to zero/null, and the function itself will give it a value when returning it.
-         * However, if the property is passed by ref then it will also appear as an input, and you can initialize it to some value.
+         * They do not have an input value, instead they are initialized to zero/null and the function itself will give it a value when returning it.
+         * However, if the property is passed by ref then it will also appear as an input, and we will have to initialize it ourselves.
          * 
          * In C++ this differentiation translates to:
          *  - "FString& OutString" <- an out param that is not passed by ref and will only appear on return nodes (even though the value is passed by ref in C++).
          *  - "UPARAM(Ref) FString& OutString" <- an out param that is passed by ref, and will behave the same as regular C++ code.
          * 
-         * So to properly support out params, we need to skip importing values for out params that are not passed by ref.
+         * So to properly support out params, we need to skip importing values for these params if they are NOT passed by ref.
          * At this point we've already initialized a value for these params above.
          */
         if (PropertyParam->HasAnyPropertyFlags(CPF_OutParm) && !PropertyParam->HasAnyPropertyFlags(CPF_ReferenceParm))
@@ -230,8 +231,7 @@ bool UActorIOSubsystemBase::ExecuteCommand(UObject* Target, const TCHAR* Str, FO
         It->DestroyValue_InContainer(Parms);
     }
 
-    // Success.
-    return true;
+    return !bFailed;
 }
 
 void UActorIOSubsystemBase::RegisterNativeEventsForObject(AActor* InObject, FActorIOEventList& EventRegistry)
