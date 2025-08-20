@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Widgets/SCompoundWidget.h"
+#include "EditorUndoClient.h"
 
 class FReply;
 enum class ECheckBoxState : uint8;
@@ -11,7 +12,7 @@ enum class ECheckBoxState : uint8;
 /**
  * Widget inside the I/O editor tab.
  */
-class ACTORIOEDITOR_API SActorIOEditor : public SCompoundWidget
+class ACTORIOEDITOR_API SActorIOEditor : public SCompoundWidget, public FEditorUndoClient
 {
     SLATE_DECLARE_WIDGET(SActorIOEditor, SCompoundWidget)
 
@@ -23,6 +24,9 @@ public:
 
     /** Widget constructor. */
     void Construct(const FArguments& InArgs);
+
+    /** Widget destructor. */
+    ~SActorIOEditor();
 
     /**
      * Updates the widget to reflect the current state.
@@ -78,4 +82,12 @@ protected:
 
     /** Called when the new action button is clicked. */
     FReply OnClick_NewAction();
+
+public:
+
+    //~ Begin FEditorUndoClient Interface
+    virtual bool MatchesContext(const FTransactionContext& InContext, const TArray<TPair<UObject*, FTransactionObjectEvent>>& TransactionObjects) const override;
+    virtual void PostUndo(bool bSuccess) override;
+    virtual void PostRedo(bool bSuccess) override;
+    //~ End FEditorUndoClient Interface
 };

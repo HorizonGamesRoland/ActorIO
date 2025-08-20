@@ -5,7 +5,6 @@
 #include "CoreMinimal.h"
 #include "Modules/ModuleManager.h"
 #include "ActorIOPIEAuthorizer.h"
-#include "EditorUndoClient.h"
 #include "Misc/Optional.h"
 
 class SActorIOEditor;
@@ -16,7 +15,7 @@ class FPlacementModeID;
 /**
  * Editor module implementation of the Actor I/O plugin.
  */
-class FActorIOEditor : public IModuleInterface, public FEditorUndoClient
+class FActorIOEditor : public IModuleInterface
 {
 private:
 
@@ -57,10 +56,4 @@ public:
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
 	//~ End IModuleInterface Interface
-
-	//~ Begin FEditorUndoClient Interface
-	virtual bool MatchesContext(const FTransactionContext& InContext, const TArray<TPair<UObject*, FTransactionObjectEvent>>& TransactionObjects) const override;
-	virtual void PostUndo(bool bSuccess) override;
-	virtual void PostRedo(bool bSuccess) override;
-	//~ End FEditorUndoClient Interface
 };

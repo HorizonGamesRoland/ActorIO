@@ -27,6 +27,8 @@ void SActorIOEditor::PrivateRegisterAttributes(FSlateAttributeInitializer& Attri
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SActorIOEditor::Construct(const FArguments& InArgs)
 {
+    GEditor->RegisterForUndo(this);
+
     bViewInputActions = false;
     bActionListNeedsRegenerate = true;
 
@@ -147,9 +149,18 @@ void SActorIOEditor::Construct(const FArguments& InArgs)
         ]
     ];
 
+    // Update the editor window immediately.
     Refresh();
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
+
+SActorIOEditor::~SActorIOEditor()
+{
+    if (GEditor)
+    {
+        GEditor->UnregisterForUndo(this);
+    }
+}
 
 void SActorIOEditor::Refresh()
 {
@@ -255,6 +266,35 @@ FReply SActorIOEditor::OnClick_NewAction()
 
     Refresh();
     return FReply::Handled();
+}
+
+bool SActorIOEditor::MatchesContext(const FTransactionContext& InContext, const TArray<TPair<UObject*, FTransactionObjectEvent>>& TransactionObjects) const
+{
+    // Ensure that we only react to a very specific transaction called 'ViewIOAction'.
+    // For more info see PostUndo below.
+    return InContext.Context == TEXT("ViewIOAction");
+}
+
+void SActorIOEditor::PostUndo(bool bSuccess)
+{
+    // We are undoing a 'ViewIOAction' transaction.
+    // This means the user was viewing input actions, and clicked on one an action's view button.
+    // This resulted in the actor being selected and the I/O editor switching to outputs tab.
+    // Since the 'bViewInputActions' param is not UPROPERTY we need to manually revert it.
+    if (bSuccess)
+    {
+        SetViewInputActions(true);
+    }
+}
+
+void SActorIOEditor::PostRedo(bool bSuccess)
+{
+    // We are redoing a 'ViewIOAction' transaction.
+    // Do the opposite of PostUndo.
+    if (bSuccess)
+    {
+        SetViewInputActions(false);
+    }
 }
 
 #undef LOCTEXT_NAMESPACE

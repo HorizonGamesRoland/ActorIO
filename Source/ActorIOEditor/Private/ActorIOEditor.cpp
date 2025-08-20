@@ -38,9 +38,6 @@ void FActorIOEditor::StartupModule()
 		.SetGroup(WorkspaceMenu::GetMenuStructure().GetLevelEditorCategory())
 		.SetIcon(FSlateIcon(FAppStyle::GetAppStyleSetName(), "Icons.Event"));
 
-	// Register undo client.
-	GEditor->RegisterForUndo(this);
-
 	// Register component visualizer to draw I/O lines between actors.
 	TSharedPtr<FComponentVisualizer> IOComponentVisualizer = MakeShared<FActorIOComponentVisualizer>();
 	GUnrealEd->RegisterComponentVisualizer(TEXT("ActorIOComponent"), IOComponentVisualizer);
@@ -71,12 +68,6 @@ void FActorIOEditor::ShutdownModule()
 {
 	// Unregister Actor I/O editor tab.
 	FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(TEXT("ActorIO"));
-
-	if (GEditor)
-	{
-		// Unregister undo client.
-		GEditor->UnregisterForUndo(this);
-	}
 
 	// Unregister component visualizer.
 	if (GUnrealEd)
@@ -109,9 +100,6 @@ TSharedRef<SDockTab> FActorIOEditor::CreateActorIOEditorTab(const FSpawnTabArgs&
 	[
 		SAssignNew(EditorWidget, SActorIOEditor)
 	];
-
-	// Refresh the editor window immediately.
-	UpdateEditorWidget();
 
 	return SpawnedTab;
 }
@@ -192,35 +180,6 @@ void FActorIOEditor::OnPlacementModeCategoryRefreshed(FName CategoryName)
 SActorIOEditor* FActorIOEditor::GetEditorWidget() const
 {
 	return EditorWidget.Get();
-}
-
-bool FActorIOEditor::MatchesContext(const FTransactionContext& InContext, const TArray<TPair<UObject*, FTransactionObjectEvent>>& TransactionObjects) const
-{
-	// Ensure that we only react to a very specific transaction called 'ViewIOAction'.
-	// For more info see PostUndo below.
-	return InContext.Context == TEXT("ViewIOAction");
-}
-
-void FActorIOEditor::PostUndo(bool bSuccess)
-{
-	// We are undoing a 'ViewIOAction' transaction.
-	// This means the user was viewing input actions, and clicked on one an action's view button.
-	// This resulted in the actor being selected and the I/O editor switching to outputs tab.
-	// Since the 'bViewInputActions' param is not UPROPERTY we need to manually revert it.
-	if (bSuccess && EditorWidget.IsValid())
-	{
-		EditorWidget->SetViewInputActions(true);
-	}
-}
-
-void FActorIOEditor::PostRedo(bool bSuccess)
-{
-	// We are redoing a 'ViewIOAction' transaction.
-	// Do the opposite of PostUndo.
-	if (bSuccess && EditorWidget.IsValid())
-	{
-		EditorWidget->SetViewInputActions(false);
-	}
 }
 
 #undef LOCTEXT_NAMESPACE
