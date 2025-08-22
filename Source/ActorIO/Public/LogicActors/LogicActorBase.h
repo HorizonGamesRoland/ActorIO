@@ -40,8 +40,8 @@ protected:
 
 protected:
 
-	//~ Begin ALogicActorBase Interface
+	//~ Begin IActorIOInterface
 	virtual void RegisterIOEvents(FActorIOEventList& EventRegistry) override {}
 	virtual void RegisterIOFunctions(FActorIOFunctionList& FunctionRegistry) override {}
-	//~ End ALogicActorBase Interface
+	//~ End IActorIOInterface
 };

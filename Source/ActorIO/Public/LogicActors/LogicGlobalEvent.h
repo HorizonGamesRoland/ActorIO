@@ -23,15 +23,19 @@ public:
 
 public:
 
-    /** Event when the world is initialized. Called after all actors have been initialized, but before 'BeginPlay'. */
+    /** Event when the game world is initialized. Called after all actors in the persistent level have been initialized, but before 'BeginPlay'. */
     UPROPERTY(BlueprintAssignable, Category = "Events")
     FSimpleActionDelegate OnWorldInitialized;
 
-    /** Event when 'BeginPlay' is called for this actor. */
+    /** Event when 'BeginPlay' is called for this actor, or when the owning streaming level is fully loaded. */
     UPROPERTY(BlueprintAssignable, Category = "Events")
-    FSimpleActionDelegate OnBeginPlay;
+    FSimpleActionDelegate OnActorBeginPlay;
 
-    /** Event when the world is being torn down. This means we are leaving the map. Called before 'EndPlay' is dispatched to all actors. */
+    /** Event when 'EndPlay' is called for this actor. */
+    UPROPERTY(BlueprintAssignable, Category = "Events")
+    FSimpleActionDelegate OnActorEndPlay;
+
+    /** Event when the game world is being torn down. This means we are leaving the map. Called before 'EndPlay' is dispatched to all actors. */
     UPROPERTY(BlueprintAssignable, Category = "Events")
     FSimpleActionDelegate OnWorldTeardown;
 
@@ -60,5 +64,8 @@ protected:
     void OnWorldInitializedCallback(const FActorsInitializedParams& ActorInitParams);
 
     /** Called when the world is being torn down (unloaded). */
-    void OnWorldTeardownCallback(UWorld* World);
+    void OnWorldTeardownCallback(UWorld* InWorld);
+
+    /** Called when a level is added to the world. */
+    void OnLevelAddedToWorldCallback(ULevel* InLevel, UWorld* InWorld);
 };
