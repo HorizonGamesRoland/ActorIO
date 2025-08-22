@@ -16,7 +16,6 @@
 #include "Editor.h"
 #include "UnrealEdGlobals.h"
 #include "Editor/UnrealEdEngine.h"
-#include "Misc/ITransaction.h"
 #include "Misc/EngineVersionComparison.h"
 
 #define LOCTEXT_NAMESPACE "ActorIOEditor"

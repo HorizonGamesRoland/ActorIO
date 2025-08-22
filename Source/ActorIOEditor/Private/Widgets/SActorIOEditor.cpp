@@ -13,7 +13,9 @@
 #include "SPositiveActionButton.h"
 #include "Styling/SlateIconFinder.h"
 #include "Styling/SlateTypes.h"
+#include "Editor.h"
 #include "ScopedTransaction.h"
+#include "Misc/ITransaction.h"
 #include "Misc/Optional.h"
 #include "SlateOptMacros.h"
 

@@ -3,6 +3,7 @@
 #include "LogicActors/LogicGlobalEvent.h"
 #include "ActorIOSubsystemBase.h"
 #include "Engine/World.h"
+#include "Engine/Level.h"
 #include "Engine/LevelScriptActor.h"
 
 #define LOCTEXT_NAMESPACE "ActorIO"
