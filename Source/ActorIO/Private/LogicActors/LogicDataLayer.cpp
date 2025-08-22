@@ -10,6 +10,15 @@ ALogicDataLayer::ALogicDataLayer()
 {
 	DataLayerAsset = nullptr;
 	bLoadRecursive = false;
+
+#if WITH_EDITORONLY_DATA
+	ConstructorHelpers::FObjectFinderOptional<UTexture2D> SpriteTexture(TEXT("/ActorIO/AssetIcons/S_DataLayer"));
+	if (SpriteComponent && SpriteTexture.Succeeded())
+	{
+		SpriteComponent->SetSprite(SpriteTexture.Get());
+		SpriteComponent->SetRelativeScale3D_Direct(FVector(1.0f));
+	}
+#endif
 }
 
 void ALogicDataLayer::RegisterIOEvents(FActorIOEventList& EventRegistry)
