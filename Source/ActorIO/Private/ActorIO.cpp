@@ -219,7 +219,7 @@ bool IActorIO::ConfirmObjectIsAlive(UObject* InObject)
     }
 
     UWorld* World = InObject->GetWorld();
-    if (!World || World->bIsTearingDown)
+    if (!World)
     {
         return false;
     }
