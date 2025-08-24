@@ -33,13 +33,18 @@ public:
     UPROPERTY(EditInstanceOnly, Category = "Data Layer Settings")
     bool bLoadRecursive;
 
-    /** Event when the data layer is loaded and activated. */
+    /** Event when the data layer is loaded. Note that this only means the data layer is now active, but its actors are NOT streamed in yet! */
     UPROPERTY(BlueprintAssignable, Category = "Events")
     FSimpleActionDelegate OnDataLayerLoaded;
 
     /** Event when the data layer is unloaded. */
     UPROPERTY(BlueprintAssignable, Category = "Events")
     FSimpleActionDelegate OnDataLayerUnloaded;
+
+private:
+
+    /** The currently known load state of the selected data layer. */
+    bool bIsLoaded;
 
 public:
 
@@ -52,7 +57,7 @@ public:
 
 public:
 
-    /** Load the selected data layer. Fires 'OnDataLayerLoaded' once finished. */
+    /** Load the selected data layer, and activate it. Fires 'OnDataLayerLoaded' once finished. */
     UFUNCTION(BlueprintCallable, Category = "LogicActors|LogicDataLayer")
     void LoadDataLayer();
 
@@ -62,9 +67,12 @@ public:
 
     /** Get the load state of the selected data layer. */
     UFUNCTION(BlueprintPure, Category = "LogicActors|LogicDataLayer")
-    bool IsDataLayerLoaded() const;
+    bool IsDataLayerLoaded() const { return bIsLoaded; }
 
 protected:
+
+    /** @return The effective load state of the selected data layer, optionally including its childrens. */
+    bool CheckDataLayerLoadState(bool bIncludeChildren) const;
 
     /** Called when a data layer is loaded or unloaded. */
     UFUNCTION()

@@ -10,6 +10,7 @@ ALogicDataLayer::ALogicDataLayer()
 {
 	DataLayerAsset = nullptr;
 	bLoadRecursive = false;
+	bIsLoaded = false;
 
 #if WITH_EDITORONLY_DATA
 	ConstructorHelpers::FObjectFinderOptional<UTexture2D> SpriteTexture(TEXT("/ActorIO/AssetIcons/S_DataLayer"));
@@ -26,7 +27,7 @@ void ALogicDataLayer::RegisterIOEvents(FActorIOEventList& EventRegistry)
 	EventRegistry.RegisterEvent(FActorIOEvent()
 		.SetId(TEXT("ALogicDataLayer::OnDataLayerLoaded"))
 		.SetDisplayName(LOCTEXT("ALogicDataLayer.OnDataLayerLoaded", "OnDataLayerLoaded"))
-		.SetTooltipText(LOCTEXT("ALogicDataLayer.OnDataLayerLoadedTooltip", "Event when the data layer is loaded and activated."))
+		.SetTooltipText(LOCTEXT("ALogicDataLayer.OnDataLayerLoadedTooltip", "Event when the data layer is loaded. Note that this only means the data layer is now active, but its actors are NOT streamed in yet!"))
 		.SetMulticastDelegate(this, &OnDataLayerLoaded));
 
 	EventRegistry.RegisterEvent(FActorIOEvent()
@@ -41,7 +42,7 @@ void ALogicDataLayer::RegisterIOFunctions(FActorIOFunctionList& FunctionRegistry
 	FunctionRegistry.RegisterFunction(FActorIOFunction()
 		.SetId(TEXT("ALogicDataLayer::LoadDataLayer"))
 		.SetDisplayName(LOCTEXT("ALogicDataLayer.LoadDataLayer", "LoadDataLayer"))
-		.SetTooltipText(LOCTEXT("ALogicDataLayer.LoadDataLayerTooltip", "Load the selected data layer. Fires 'OnDataLayerLoaded' once finished."))
+		.SetTooltipText(LOCTEXT("ALogicDataLayer.LoadDataLayerTooltip", "Load the selected data layer, and activate it. Fires 'OnDataLayerLoaded' once finished."))
 		.SetFunction(TEXT("LoadDataLayer")));
 
 	FunctionRegistry.RegisterFunction(FActorIOFunction()
@@ -61,6 +62,7 @@ void ALogicDataLayer::PostInitializeComponents()
 		UDataLayerManager* DataLayerManager = UDataLayerManager::GetDataLayerManager(MyWorld);
 		if (DataLayerManager)
 		{
+			bIsLoaded = CheckDataLayerLoadState(bLoadRecursive);
 			DataLayerManager->OnDataLayerInstanceRuntimeStateChanged.AddDynamic(this, &ThisClass::OnDataLayerLoadStateChanged);
 		}
 	}
@@ -86,13 +88,10 @@ void ALogicDataLayer::LoadDataLayer()
 	}
 
 	UDataLayerManager* DataLayerManager = UDataLayerManager::GetDataLayerManager(GetWorld());
-	if (DataLayerManager)
+	const UDataLayerInstance* DataLayerInstance = DataLayerManager ? DataLayerManager->GetDataLayerInstanceFromAsset(DataLayerAsset) : nullptr;
+	if (DataLayerInstance)
 	{
-		const UDataLayerInstance* DataLayerInstance = DataLayerManager->GetDataLayerInstanceFromAsset(DataLayerAsset);
-		if (DataLayerInstance)
-		{
-			DataLayerManager->SetDataLayerInstanceRuntimeState(DataLayerInstance, EDataLayerRuntimeState::Activated, bLoadRecursive);
-		}
+		DataLayerManager->SetDataLayerInstanceRuntimeState(DataLayerInstance, EDataLayerRuntimeState::Activated, bLoadRecursive);
 	}
 }
 
@@ -105,17 +104,14 @@ void ALogicDataLayer::UnloadDataLayer()
 	}
 
 	UDataLayerManager* DataLayerManager = UDataLayerManager::GetDataLayerManager(GetWorld());
-	if (DataLayerManager)
+	const UDataLayerInstance* DataLayerInstance = DataLayerManager ? DataLayerManager->GetDataLayerInstanceFromAsset(DataLayerAsset) : nullptr;
+	if (DataLayerInstance)
 	{
-		const UDataLayerInstance* DataLayerInstance = DataLayerManager->GetDataLayerInstanceFromAsset(DataLayerAsset);
-		if (DataLayerInstance)
-		{
-			DataLayerManager->SetDataLayerInstanceRuntimeState(DataLayerInstance, EDataLayerRuntimeState::Unloaded, bLoadRecursive);
-		}
+		DataLayerManager->SetDataLayerInstanceRuntimeState(DataLayerInstance, EDataLayerRuntimeState::Unloaded, bLoadRecursive);
 	}
 }
 
-bool ALogicDataLayer::IsDataLayerLoaded() const
+bool ALogicDataLayer::CheckDataLayerLoadState(bool bIncludeChildren) const
 {
 	if (!DataLayerAsset)
 	{
@@ -124,41 +120,40 @@ bool ALogicDataLayer::IsDataLayerLoaded() const
 	}
 
 	UDataLayerManager* DataLayerManager = UDataLayerManager::GetDataLayerManager(GetWorld());
-	if (DataLayerManager)
+	const UDataLayerInstance* DataLayerInstance = DataLayerManager ? DataLayerManager->GetDataLayerInstanceFromAsset(DataLayerAsset) : nullptr;
+	if (!DataLayerInstance || DataLayerInstance->GetEffectiveRuntimeState() != EDataLayerRuntimeState::Activated)
 	{
-		const UDataLayerInstance* DataLayerInstance = DataLayerManager->GetDataLayerInstanceFromAsset(DataLayerAsset);
-		if (DataLayerInstance)
+		return false;
+	}
+
+	if (bIncludeChildren)
+	{
+		for (const UDataLayerInstance* ChildDataLayer : DataLayerInstance->GetChildren())
 		{
-			EDataLayerRuntimeState CurrentState = DataLayerManager->GetDataLayerInstanceRuntimeState(DataLayerInstance);
-			return CurrentState == EDataLayerRuntimeState::Activated;
+			if (ChildDataLayer->GetEffectiveRuntimeState() != EDataLayerRuntimeState::Activated)
+			{
+				return false;
+			}
 		}
 	}
 
-	return false;
+	return true;
 }
 
 void ALogicDataLayer::OnDataLayerLoadStateChanged(const UDataLayerInstance* InDataLayer, EDataLayerRuntimeState InState)
 {
-	if (!DataLayerAsset)
+	const bool bPreviousLoadState = bIsLoaded;
+	bIsLoaded = CheckDataLayerLoadState(bLoadRecursive);
+	
+	if (bIsLoaded != bPreviousLoadState)
 	{
-		// Do nothing if no data layer is selected.
-		return;
-	}
-
-	UDataLayerManager* DataLayerManager = UDataLayerManager::GetDataLayerManager(GetWorld());
-	if (DataLayerManager)
-	{
-		const UDataLayerInstance* DataLayerInstance = DataLayerManager->GetDataLayerInstanceFromAsset(DataLayerAsset);
-		if (DataLayerInstance == InDataLayer)
+		if (bIsLoaded)
 		{
-			if (InState == EDataLayerRuntimeState::Activated)
-			{
-				OnDataLayerLoaded.Broadcast();
-			}
-			else
-			{
-				OnDataLayerUnloaded.Broadcast();
-			}
+			OnDataLayerLoaded.Broadcast();
+		}
+		else
+		{
+			OnDataLayerUnloaded.Broadcast();
 		}
 	}
 }
