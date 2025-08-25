@@ -336,7 +336,7 @@ TSharedRef<SWidget> SActorIOActionListViewRow::GenerateWidgetForColumn(const FNa
 	{
 		OutWidget->SetContent
 		(
-			SNew(SObjectPropertyEntryBox)
+			SAssignNew(ActorPicker, SObjectPropertyEntryBox)
 			.AllowedClass(AActor::StaticClass())
 			.AllowClear(true)
 			.EnableContentPicker(true)
@@ -346,6 +346,12 @@ TSharedRef<SWidget> SActorIOActionListViewRow::GenerateWidgetForColumn(const FNa
 			.OnObjectChanged(this, &SActorIOActionListViewRow::OnTargetActorChanged)
 			.IsEnabled(!bIsInputAction)
 		);
+
+		// Handle case where the target actor is invalid but path info exists (actor most likely unloaded).
+		if (ActionPtr->TargetActor.IsPending())
+		{
+			OnTargetActorIsPending();
+		}
 	}
 	else if (ColumnName == ColumnId::Action)
 	{
@@ -564,6 +570,53 @@ void SActorIOActionListViewRow::OnTargetActorChanged(const FAssetData& InAssetDa
 	}
 
 	GetOwnerActionListView()->Refresh();
+}
+
+void SActorIOActionListViewRow::OnTargetActorIsPending()
+{
+	// Pending means the selected target actor is invalid, but path info exists so the actor is most likely unloaded.
+	// By default the actor picker would just display 'None' which is not ideal, so we'll modify it.
+	// Since there is no way to access elements of the actor picker widget such as its text, we are going to iterate over child widgets and find them ourselves.
+	// This is a pretty dirty solution, but it works, and the only other solution would be to completely remake the built-in actor picker widget.
+
+	STextBlock* ActorPickerText = nullptr;
+	SButton* ActorPickerComboButton = nullptr;
+
+	FActorIOChildWidgetIterator WidgetIterator(*ActorPicker.Get(), [&](SWidget& InChild) -> bool
+	{
+		// The actor picker's text block is inside a horizontal box.
+		// This should be enough confirmation that this text block is the one we are looking for.
+		if (!ActorPickerText)
+		{
+			if (InChild.GetType() == FName(TEXT("STextBlock"), FNAME_Find))
+			{
+				if (InChild.GetParentWidget()->GetType() == FName(TEXT("SHorizontalBox"), FNAME_Find))
+				{
+					ActorPickerText = static_cast<STextBlock*>(&InChild);
+					ActorPickerText->SetText(FText::FromString(ActionPtr->TargetActor.ToString()));
+					ActorPickerText->SetColorAndOpacity(FActorIOEditorStyle::Get().GetSlateColor(TEXT("ActionListView.UnverifiedReferenceColor")));
+				}
+			}
+		}
+
+		// The actual button that opens the actor picker combo button.
+		// There is only one combo button widget in the actor picker, so we can use that as confirmation.
+		if (!ActorPickerComboButton)
+		{
+			if (InChild.GetType() == FName(TEXT("SButton"), FNAME_Find))
+			{
+				if (InChild.GetParentWidget()->GetType() == FName(TEXT("SComboButton"), FNAME_Find))
+				{
+					ActorPickerComboButton = static_cast<SButton*>(&InChild);
+					ActorPickerComboButton->SetToolTipText(FText::FormatOrdered(LOCTEXT("ActionListViewRow.UnverifiedTargetActor",
+						"Unloaded reference to Actor ID '{0}'"), FText::FromString(ActionPtr->TargetActor.ToString())));
+				}
+			}
+		}
+
+		// Continue iteration until we find all relevant widgets.
+		return !(ActorPickerText && ActorPickerComboButton);
+	});
 }
 
 TSharedRef<SWidget> SActorIOActionListViewRow::OnGenerateFunctionComboBoxWidget(FName InName)
@@ -821,7 +874,7 @@ FSlateColor SActorIOActionListViewRow::GetFunctionDisplayColor(FName InFunctionI
 		// Also accept case where the target actor is invalid but path info exists (actor most likely unloaded).
 		// Since the actor is currently invalid we cannot verify that the function is valid either,
 		// but it might be so we are not going to treat it as error.
-		return FStyleColors::AccentPurple;
+		return FActorIOEditorStyle::Get().GetSlateColor(TEXT("ActionListView.UnverifiedReferenceColor"));
 	}
 
 	const FActorIOFunction* TargetFunction = ValidFunctions.GetFunction(InFunctionId);
@@ -842,7 +895,7 @@ TSharedPtr<SToolTip> SActorIOActionListViewRow::GetFunctionTooltip(FName InFunct
 		// but it might be so we are not treating this as error.
 		return SNew(SActorIOTooltip)
 			.RegistryId(InFunctionId)
-			.Description(LOCTEXT("UnverifiedActorIOFunction", "Unverified function reference (target actor is unloaded)."));
+			.Description(LOCTEXT("ActionListViewRow.UnverifiedFunction", "Function reference cannot be verified because the target is unloaded."));
 	}
 
 	const FActorIOFunction* TargetFunction = ValidFunctions.GetFunction(InFunctionId);
@@ -982,6 +1035,40 @@ FReply SActorIOActionListViewRow::HandleAcceptDrop(const FDragDropEvent& DragDro
 	GetOwnerActionListView()->Refresh();
 
 	return FReply::Handled();
+}
+
+
+//=======================================================
+//~ Begin FActorIOChildWidgetIterator
+//=======================================================
+
+FActorIOChildWidgetIterator::FActorIOChildWidgetIterator(SWidget& InParent, TWidgetIterationFunc InIterationFunc)
+{
+	IterationFunc = InIterationFunc;
+	Advance(InParent);
+}
+
+bool FActorIOChildWidgetIterator::Advance(SWidget& InWidget)
+{
+	if (!IterationFunc(InWidget))
+	{
+		return false;
+	}
+
+	FChildren* Children = InWidget.GetChildren();
+	if (Children && Children->Num() > 0)
+	{
+		// Recursively go into child widgets.
+		for (int32 ChildrenIdx = 0; ChildrenIdx != Children->Num(); ++ChildrenIdx)
+		{
+			if (!Advance(*Children->GetChildAt(ChildrenIdx)))
+			{
+				return false;
+			}
+		}
+	}
+
+	return true;
 }
 
 #undef LOCTEXT_NAMESPACE

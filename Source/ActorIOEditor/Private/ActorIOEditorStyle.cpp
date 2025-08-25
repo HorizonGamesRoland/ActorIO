@@ -71,6 +71,7 @@ void FActorIOEditorStyle::Initialize()
 	StyleSet->Set("ActionListView.ActionSpacing", 2.0f);
 	StyleSet->Set("ActionListView.ActionArgumentsBoxDefaultPadding", FMargin(5.0f, 3.0f, 5.0f, 3.0f));
 	StyleSet->Set("ActionListView.ActionArgumentsBoxErrorPadding", FMargin(5.0f, 3.0f, 0.0f, 3.0f)); // no padding on right to fix big gap when error text is present
+	StyleSet->Set("ActionListView.UnverifiedReferenceColor", FStyleColors::AccentPurple);
 
 	SetupActionListColumnSizes();
 
