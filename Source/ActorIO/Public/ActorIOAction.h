@@ -59,6 +59,7 @@ public:
 protected:
 
 	/** Whether the action was executed before. */
+	UPROPERTY()
 	bool bWasExecuted;
 
 	/** Whether the action is bound to the assigned I/O event. */
