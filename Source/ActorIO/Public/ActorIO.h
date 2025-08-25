@@ -446,7 +446,7 @@ public:
 	static int32 GetNumOutputActionsForObject(AActor* InObject);
 
 	/** Check that given object is truly valid and loaded. */
-	static bool ConfirmObjectIsAlive(UObject* InObject);
+	static bool ConfirmObjectIsAlive(UObject* InObject, FString& OutError);
 
 	/** Perform basic checks to see if the given arguments can be imported into the function as parameters. */
 	static bool ValidateFunctionArguments(UFunction* FunctionPtr, const FString& InArguments, FText& OutError);

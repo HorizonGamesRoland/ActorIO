@@ -211,16 +211,18 @@ int32 IActorIO::GetNumOutputActionsForObject(AActor* InObject)
     return 0;
 }
 
-bool IActorIO::ConfirmObjectIsAlive(UObject* InObject)
+bool IActorIO::ConfirmObjectIsAlive(UObject* InObject, FString& OutError)
 {
     if (!IsValid(InObject))
     {
+        OutError = TEXT("Target object is null, or pending kill (unloaded or destroyed?).");
         return false;
     }
 
     UWorld* World = InObject->GetWorld();
     if (!World)
     {
+        OutError = TEXT("Target object does not have a valid world.");
         return false;
     }
 
@@ -231,6 +233,7 @@ bool IActorIO::ConfirmObjectIsAlive(UObject* InObject)
     ULevel* Level = InObject->GetTypedOuter<ULevel>(); // same as AActor::GetLevel
     if (!Level || !Level->bIsVisible)
     {
+        OutError = TEXT("Target object is not part of an active level (streaming in progress?).");
         return false;
     }
 

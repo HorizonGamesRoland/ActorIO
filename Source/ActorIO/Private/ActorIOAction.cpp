@@ -253,11 +253,12 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 		return;
 	}
 
-	if (!IActorIO::ConfirmObjectIsAlive(TargetActor.Get()))
+	FString ErrorReason;
+	if (!IActorIO::ConfirmObjectIsAlive(TargetActor.Get(), ErrorReason))
 	{
 		// Do nothing if the target actor is invalid.
 		// The actor was most likely unloaded or destroyed.
-		UE_CLOG(DebugIOActions && WarnIOInvalidTarget, LogActorIO, Warning, TEXT("Could not find target actor. Actor was unloaded or destroyed? Path: %s"), *TargetActor.ToString());
+		UE_CLOG(DebugIOActions && WarnIOInvalidTarget, LogActorIO, Warning, TEXT("Target actor is invalid. Reason: %s"), *ErrorReason);
 		return;
 	}
 
@@ -425,9 +426,10 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 
 void UActorIOAction::SendCommand(UObject* Target, FString Command)
 {
-	if (!IActorIO::ConfirmObjectIsAlive(Target))
+	FString ErrorReason;
+	if (!IActorIO::ConfirmObjectIsAlive(Target, ErrorReason))
 	{
-		UE_CLOG(DebugIOActions && WarnIOInvalidTarget, LogActorIO, Warning, TEXT("Could not find action target during SendCommand of '%s'. Target was unloaded or destroyed?"), *FunctionId.ToString());
+		UE_CLOG(DebugIOActions && WarnIOInvalidTarget, LogActorIO, Warning, TEXT("Target was invalid when sending command '%s'. Reason: %s"), *FunctionId.ToString(), *ErrorReason);
 		return;
 	}
 
@@ -463,7 +465,8 @@ bool UActorIOAction::IsTargetActorAlive() const
 		return false;
 	}
 
-	return IActorIO::ConfirmObjectIsAlive(TargetActor.Get());
+	FString ErrorReason;
+	return IActorIO::ConfirmObjectIsAlive(TargetActor.Get(), ErrorReason);
 }
 
 UObject* UActorIOAction::ResolveTargetObject(const FActorIOFunction* TargetFunction) const
