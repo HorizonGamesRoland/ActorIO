@@ -134,8 +134,6 @@ void SActorIOActionListView::Tick(const FGeometry& AllottedGeometry, const doubl
 
 void SActorIOActionListView::Refresh()
 {
-	UE_LOG(LogTemp, Warning, TEXT("SActorIOActionListView::Refresh"));
-
 	ActionListItems.Reset();
 
 	UActorIOEditorSubsystem* ActorIOEditorSubsystem = UActorIOEditorSubsystem::Get();
