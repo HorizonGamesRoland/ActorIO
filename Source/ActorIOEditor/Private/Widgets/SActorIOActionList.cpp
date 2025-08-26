@@ -579,43 +579,44 @@ void SActorIOActionListViewRow::OnTargetActorIsPending()
 	// Since there is no way to access elements of the actor picker widget such as its text, we are going to iterate over child widgets and find them ourselves.
 	// This is a pretty dirty solution, but it works, and the only other solution would be to completely remake the built-in actor picker widget.
 
-	STextBlock* ActorPickerText = nullptr;
-	SButton* ActorPickerComboButton = nullptr;
+	const FText PendingActorPath = FText::FromString(ActionPtr->TargetActor.ToString());
+	const FText PendingActorTooltip = FText::FormatOrdered(LOCTEXT("ActionListViewRow.UnverifiedTargetActor", "Unloaded reference to Actor ID '{0}'"), PendingActorPath);
 
-	FActorIOChildWidgetIterator WidgetIterator(*ActorPicker.Get(), [&](SWidget& InChild) -> bool
+	SWidget* ActorPickerComboButton = nullptr;
+	FActorIOChildWidgetIterator PickerWidgetIterator(*ActorPicker.Get(), [&](SWidget& InChild) -> bool
 	{
-		// The actor picker's text block is inside a horizontal box.
-		// This should be enough confirmation that this text block is the one we are looking for.
-		if (!ActorPickerText)
+		if (InChild.GetType() == FName(TEXT("SComboButton"), FNAME_Find))
 		{
-			if (InChild.GetType() == FName(TEXT("STextBlock"), FNAME_Find))
+			ActorPickerComboButton = &InChild;
+			return false;
+		}
+
+		return true; // continue iteration
+	});
+
+	TSharedRef<SWidget> ComboButtonInnerButton = ActorPickerComboButton->GetChildren()->GetChildAt(0);
+	ComboButtonInnerButton->SetToolTipText(PendingActorTooltip);
+
+	FActorIOChildWidgetIterator ButtonWidgetIterator(ComboButtonInnerButton.Get(), [&](SWidget& InChild) -> bool
+	{
+		// The combo button content we care about is nested in two horizontal boxes.
+		if (InChild.GetType() == FName(TEXT("SHorizontalBox"), FNAME_Find))
+		{
+			if (InChild.GetParentWidget()->GetType() == FName(TEXT("SHorizontalBox"), FNAME_Find))
 			{
-				if (InChild.GetParentWidget()->GetType() == FName(TEXT("SHorizontalBox"), FNAME_Find))
-				{
-					ActorPickerText = static_cast<STextBlock*>(&InChild);
-					ActorPickerText->SetText(FText::FromString(ActionPtr->TargetActor.ToString()));
-					ActorPickerText->SetColorAndOpacity(FActorIOEditorStyle::Get().GetSlateColor(TEXT("ActionListView.UnverifiedReferenceColor")));
-				}
+				// Hide the status indicator because it looks really bad.
+				TSharedRef<SImage> ActorReferenceStatusImage = StaticCastSharedRef<SImage>(InChild.GetChildren()->GetChildAt(0));
+				ActorReferenceStatusImage->SetVisibility(EVisibility::Collapsed);
+
+				TSharedRef<STextBlock> ActorNameText = StaticCastSharedRef<STextBlock>(InChild.GetChildren()->GetChildAt(1));
+				ActorNameText->SetText(PendingActorPath);
+				ActorNameText->SetColorAndOpacity(FActorIOEditorStyle::Get().GetSlateColor(TEXT("ActionListView.UnverifiedReferenceColor")));
+
+				return false;
 			}
 		}
 
-		// The actual button that opens the actor picker combo button.
-		// There is only one combo button widget in the actor picker, so we can use that as confirmation.
-		if (!ActorPickerComboButton)
-		{
-			if (InChild.GetType() == FName(TEXT("SButton"), FNAME_Find))
-			{
-				if (InChild.GetParentWidget()->GetType() == FName(TEXT("SComboButton"), FNAME_Find))
-				{
-					ActorPickerComboButton = static_cast<SButton*>(&InChild);
-					ActorPickerComboButton->SetToolTipText(FText::FormatOrdered(LOCTEXT("ActionListViewRow.UnverifiedTargetActor",
-						"Unloaded reference to Actor ID '{0}'"), FText::FromString(ActionPtr->TargetActor.ToString())));
-				}
-			}
-		}
-
-		// Continue iteration until we find all relevant widgets.
-		return !(ActorPickerText && ActorPickerComboButton);
+		return true; // continue iteration
 	});
 }
 
