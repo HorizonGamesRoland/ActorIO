@@ -42,8 +42,6 @@ private:
 	FDelegateHandle DelegateHandle_CutActorsBegin;
 	/** Handle for when an actor is replaced in the level editor. */
 	FDelegateHandle DelegateHandle_ActorReplaced;
-	/** Handle for when a data layers load state changes in the editor. */
-	FDelegateHandle DelegateHandle_DataLayersEditorLoadStateChanged;
 	/** Handle for when a blueprint is compiled in the editor. */
 	FDelegateHandle DelegateHandle_BlueprintCompiled;
 
@@ -57,9 +55,6 @@ private:
 
 	/** Called when an actor is replaced in the level editor. */
 	void OnActorReplaced(AActor* OldActor, AActor* NewActor);
-
-	/** Called when a data layers load state changes in the editor. */
-	void OnDataLayersEditorLoadStateChanged(bool bIsFromUserChange);
 
 	/** Called when a blueprint is compiled in the editor. */
 	void OnBlueprintCompiled();

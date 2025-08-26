@@ -5,10 +5,8 @@
 #include "ActorIOComponent.h"
 #include "ActorIOAction.h"
 #include "GameFramework/Actor.h"
-#include "DataLayer/DataLayerEditorSubsystem.h"
 #include "Selection.h"
 #include "Editor.h"
-#include "Containers/Ticker.h"
 #include "Misc/EngineVersionComparison.h"
 
 UActorIOEditorSubsystem* UActorIOEditorSubsystem::Get()
@@ -27,13 +25,6 @@ void UActorIOEditorSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	DelegateHandle_ActorReplaced = FEditorDelegates::OnEditorActorReplaced.AddUObject(this, &ThisClass::OnActorReplaced);
 #endif
 
-	UDataLayerEditorSubsystem* DataLayerSubsystem = Collection.InitializeDependency<UDataLayerEditorSubsystem>();
-	if (DataLayerSubsystem)
-	{
-		DelegateHandle_DataLayersEditorLoadStateChanged =
-			DataLayerSubsystem->OnActorDataLayersEditorLoadingStateChanged().AddUObject(this, &ThisClass::OnDataLayersEditorLoadStateChanged);
-	}
-
 	DelegateHandle_BlueprintCompiled = GEditor->OnBlueprintCompiled().AddUObject(this, &ThisClass::OnBlueprintCompiled);
 }
 
@@ -45,12 +36,6 @@ void UActorIOEditorSubsystem::Deinitialize()
 #if UE_VERSION_NEWER_THAN(5, 5, 0)
 	FEditorDelegates::OnEditorActorReplaced.Remove(DelegateHandle_ActorReplaced);
 #endif
-
-	UDataLayerEditorSubsystem* DataLayerSubsystem = GEditor->GetEditorSubsystem<UDataLayerEditorSubsystem>();
-	if (DataLayerSubsystem)
-	{
-		DataLayerSubsystem->OnActorDataLayersEditorLoadingStateChanged().Remove(DelegateHandle_DataLayersEditorLoadStateChanged);
-	}
 
 	GEditor->OnBlueprintCompiled().Remove(DelegateHandle_BlueprintCompiled);
 }
@@ -126,19 +111,6 @@ void UActorIOEditorSubsystem::OnActorReplaced(AActor* OldActor, AActor* NewActor
 			AddIOComponentToActor(NewActor, false);
 		}
 	}
-}
-
-void UActorIOEditorSubsystem::OnDataLayersEditorLoadStateChanged(bool bIsFromUserChange)
-{
-	// Update the I/O editor to catch case where one or more currrently visible actions' target actor gets unloaded with the data layer.
-	// Additional one frame delay is needed for the target actor to become truly invalid.
-	FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateLambda([](float DeltaTime)
-	{
-		FActorIOEditor& ActorIOEditor = FActorIOEditor::Get();
-		ActorIOEditor.UpdateEditorWidget();
-
-		return false; // stops the timer
-	}));
 }
 
 void UActorIOEditorSubsystem::OnBlueprintCompiled()

@@ -77,6 +77,12 @@ protected:
     /** Whether the list shows input actions. If false, output actions are shown. */
     bool bViewInputActions;
 
+    /**
+     * Number of actions in 'ActionListItems' whose target actor is unloaded.
+     * Updated every frame, to catch case where one or more of the targets were unloaded and we need to update the list.
+     */
+    int32 NumActionsWithPendingTarget;
+
     /** Popup menu of the params viewer that is visible while editing action params. */
     TSharedPtr<class IMenu> ParamsViewerMenu;
 
@@ -93,6 +99,15 @@ protected:
 
     /** Called when a column is resized. */
     void OnColumnWidthChanged(const float InSize, const FName InColumnName);
+
+    /** Recount how many actions in 'ActionListItems' has a target actor that is unloaded. */
+    void UpdatePendingTargetCount();
+
+public:
+
+    //~ Begin SWidget Interface
+    virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
+    //~ End SWidget Interface
 };
 
 

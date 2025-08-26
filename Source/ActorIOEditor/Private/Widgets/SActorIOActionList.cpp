@@ -40,6 +40,7 @@ BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SActorIOActionListView::Construct(const FArguments& InArgs)
 {
 	bViewInputActions = InArgs._ViewInputActions;
+	NumActionsWithPendingTarget = 0;
 
     SListView::Construct
 	(
@@ -116,8 +117,25 @@ void SActorIOActionListView::Construct(const FArguments& InArgs)
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
+void SActorIOActionListView::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
+{
+	SListView<UActorIOAction*>::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
+
+	const int32 PendingTargetCountLastFrame = NumActionsWithPendingTarget;
+	UpdatePendingTargetCount();
+
+	// Detect pending target count difference compared to last frame.
+	// If this passes, one ore more actions' target actor was unloaded in the previous frame.
+	if (PendingTargetCountLastFrame != NumActionsWithPendingTarget)
+	{
+		Refresh();
+	}
+}
+
 void SActorIOActionListView::Refresh()
 {
+	UE_LOG(LogTemp, Warning, TEXT("SActorIOActionListView::Refresh"));
+
 	ActionListItems.Reset();
 
 	UActorIOEditorSubsystem* ActorIOEditorSubsystem = UActorIOEditorSubsystem::Get();
@@ -131,6 +149,7 @@ void SActorIOActionListView::Refresh()
 		ActionListItems = IActorIO::GetOutputActionsForObject(SelectedActor);
 	}
 
+	UpdatePendingTargetCount();
 	RebuildList();
 }
 
@@ -222,6 +241,18 @@ void SActorIOActionListView::OnColumnWidthChanged(const float InSize, const FNam
 	PropertyName += InColumnName.ToString();
 
 	FActorIOEditorStyle::GetMutableStyle()->Set(FName(PropertyName), InSize);
+}
+
+void SActorIOActionListView::UpdatePendingTargetCount()
+{
+	NumActionsWithPendingTarget = 0;
+	for (UActorIOAction* Action : ActionListItems)
+	{
+		if (Action->TargetActor.IsPending())
+		{
+			NumActionsWithPendingTarget++;
+		}
+	}
 }
 
 
