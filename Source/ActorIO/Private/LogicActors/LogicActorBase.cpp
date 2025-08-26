@@ -1,6 +1,8 @@
 // Copyright 2024-2025 Horizon Games and all contributors at https://github.com/HorizonGamesRoland/ActorIO/graphs/contributors
 
 #include "LogicActors/LogicActorBase.h"
+#include "Components/SceneComponent.h"
+#include "Components/BillboardComponent.h"
 #include "Misc/EngineVersionComparison.h"
 
 ALogicActorBase::ALogicActorBase()
@@ -17,9 +19,14 @@ ALogicActorBase::ALogicActorBase()
 	NetUpdateFrequency = 10.0f;
 #endif
 
+	SceneComponent = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
+	SceneComponent->Mobility = EComponentMobility::Static;
+	RootComponent = SceneComponent;
+
 #if WITH_EDITORONLY_DATA
 	SpriteComponent = CreateEditorOnlyDefaultSubobject<UBillboardComponent>(TEXT("Sprite"));
-	RootComponent = SpriteComponent;
+	SpriteComponent->Mobility = EComponentMobility::Static;
+	SpriteComponent->SetupAttachment(RootComponent);
 
 	if (!IsRunningCommandlet() && (SpriteComponent != nullptr))
 	{
@@ -47,13 +54,4 @@ ALogicActorBase::ALogicActorBase()
 	bEnableAutoLODGeneration = false;
 	SetReplicatingMovement(false);
 	SetCanBeDamaged(false);
-}
-
-UBillboardComponent* ALogicActorBase::GetEditorSpriteComponent() const
-{
-#if WITH_EDITORONLY_DATA
-	return SpriteComponent.Get();
-#else
-	return nullptr;
-#endif
 }
