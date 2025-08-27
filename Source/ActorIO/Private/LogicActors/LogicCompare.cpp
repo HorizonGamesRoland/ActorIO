@@ -9,8 +9,9 @@ ALogicCompare::ALogicCompare()
 {
 	InitialValue = FString();
 	CompareValue = FString();
-	CurrentValue = FString();
 	ErrorToleranceForNumericValues = 0.001f;
+
+	CurrentValue = FString();
 
 #if WITH_EDITORONLY_DATA
 	ConstructorHelpers::FObjectFinderOptional<UTexture2D> SpriteTexture(TEXT("/ActorIO/AssetIcons/S_Compare"));

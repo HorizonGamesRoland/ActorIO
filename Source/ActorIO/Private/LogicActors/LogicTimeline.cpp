@@ -18,6 +18,7 @@ ALogicTimeline::ALogicTimeline()
 	bIgnoreTimeDilation = false;
 
 	Timeline = FTimeline();
+	TimelineCurve = nullptr;
 
 #if WITH_EDITORONLY_DATA
 	ConstructorHelpers::FObjectFinderOptional<UTexture2D> SpriteTexture(TEXT("/ActorIO/AssetIcons/S_Timeline"));
