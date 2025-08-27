@@ -21,7 +21,10 @@ public:
 
 public:
 
-    /** Base timer duration. 'TimerRandomization' is added to this. */
+    /**
+     * Base timer duration. 'TimeRandomization' will be added to this.
+     * If 0.0, then the timer will delay for one frame.
+     */
     UPROPERTY(EditInstanceOnly, Category = "Timer")
     float Time;
 
@@ -36,6 +39,10 @@ public:
     UPROPERTY(EditInstanceOnly, Category = "Timer")
     bool bLoop;
 
+    /** Whether to start the timer automatically during 'BeginPlay'. */
+    UPROPERTY(EditInstanceOnly, Category = "Timer")
+    bool bAutoStart;
+
     /** Event when the timer expires. */
     UPROPERTY(BlueprintAssignable, Category = "Events")
     FSimpleActionDelegate OnTimer;
@@ -43,7 +50,6 @@ public:
 protected:
 
     /** Handle for the current timer. */
-    UPROPERTY()
     FTimerHandle CurrentTimerHandle;
 
 protected:
@@ -51,6 +57,7 @@ protected:
     //~ Begin ALogicActorBase Interface
     virtual void RegisterIOEvents(FActorIOEventList& EventRegistry) override;
     virtual void RegisterIOFunctions(FActorIOFunctionList& FunctionRegistry) override;
+    virtual void ReadyForPlay() override;
     //~ End ALogicActorBase Interface
 
 public:

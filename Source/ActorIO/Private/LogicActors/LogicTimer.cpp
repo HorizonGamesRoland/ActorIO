@@ -8,7 +8,10 @@
 
 ALogicTimer::ALogicTimer()
 {
-	CurrentTimerHandle = FTimerHandle();
+	Time = 0.0f;
+	TimeRandomization = 0.0f;
+	bLoop = false;
+	bAutoStart = false;
 
 #if WITH_EDITORONLY_DATA
 	ConstructorHelpers::FObjectFinderOptional<UTexture2D> SpriteTexture(TEXT("/ActorIO/AssetIcons/S_Timer"));
@@ -50,31 +53,34 @@ void ALogicTimer::RegisterIOFunctions(FActorIOFunctionList& FunctionRegistry)
 		.SetFunction(TEXT("StopTimer")));
 }
 
+void ALogicTimer::ReadyForPlay()
+{
+	Super::ReadyForPlay();
+
+	if (bAutoStart)
+	{
+		StartTimer();
+	}
+}
+
 void ALogicTimer::StartTimer()
 {
-	FTimerDelegate TimerDelegate = FTimerDelegate::CreateUObject(this, &ThisClass::OnTimerCallback);
-	FTimerManager& TimerManager = GetWorld()->GetTimerManager();
-
-	const float TimerRate = Time + FMath::RandRange(-TimeRandomization, TimeRandomization);
-	if (TimerRate > 0.0f)
-	{
-		TimerManager.SetTimer(CurrentTimerHandle, TimerDelegate, TimerRate, bLoop);
-	}
-	else
-	{
-		CurrentTimerHandle = TimerManager.SetTimerForNextTick(TimerDelegate);
-	}
+	StartTimerWithParams(Time, TimeRandomization, bLoop);
 }
 
 void ALogicTimer::StartTimerWithParams(float InTime, float InTimeRandomization, bool bInLoop)
 {
-	FTimerDelegate TimerDelegate = FTimerDelegate::CreateUObject(this, &ThisClass::OnTimerCallback);
 	FTimerManager& TimerManager = GetWorld()->GetTimerManager();
-	
+	if (TimerManager.IsTimerActive(CurrentTimerHandle))
+	{
+		TimerManager.ClearTimer(CurrentTimerHandle);
+	}
+
+	FTimerDelegate TimerDelegate = FTimerDelegate::CreateUObject(this, &ThisClass::OnTimerCallback);
 	const float TimerRate = InTime + FMath::RandRange(-InTimeRandomization, InTimeRandomization);
 	if (TimerRate > 0.0f)
 	{
-		TimerManager.SetTimer(CurrentTimerHandle, TimerDelegate, TimerRate, bLoop);
+		TimerManager.SetTimer(CurrentTimerHandle, TimerDelegate, TimerRate, bInLoop);
 	}
 	else
 	{
