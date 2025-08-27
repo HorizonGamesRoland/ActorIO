@@ -65,49 +65,24 @@ void ALogicGlobalEvent::PostInitializeComponents()
 	{
 		FWorldDelegates::OnWorldInitializedActors.AddUObject(this, &ThisClass::OnWorldInitializedCallback);
 		FWorldDelegates::OnWorldBeginTearDown.AddUObject(this, &ThisClass::OnWorldTeardownCallback);
-		FWorldDelegates::LevelAddedToWorld.AddUObject(this, &ThisClass::OnLevelAddedToWorldCallback);
 	}
 }
 
-void ALogicGlobalEvent::BeginPlay()
+void ALogicGlobalEvent::ReadyForPlay()
 {
-	Super::BeginPlay();
+	Super::ReadyForPlay();
 
-	ULevel* Level = GetLevel();
-	if (Level && Level->IsPersistentLevel())
-	{
-		OnActorBeginPlay.Broadcast();
-	}
+	OnActorBeginPlay.Broadcast();
 }
 
 void ALogicGlobalEvent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	FWorldDelegates::OnWorldInitializedActors.RemoveAll(this);
 	FWorldDelegates::OnWorldBeginTearDown.RemoveAll(this);
-	FWorldDelegates::LevelAddedToWorld.RemoveAll(this);
 
 	OnActorEndPlay.Broadcast();
 
 	Super::EndPlay(EndPlayReason);
-}
-
-void ALogicGlobalEvent::CallLevelBlueprintFunction(FString Command)
-{
-	ALevelScriptActor* LevelScriptActor = GetLevel()->GetLevelScriptActor();
-	if (IsValid(LevelScriptActor))
-	{
-		FStringOutputDevice Ar;
-
-		// Invoke the function.
-		UActorIOSubsystemBase* IOSubsystem = UActorIOSubsystemBase::Get(this);
-		IOSubsystem->ExecuteCommand(LevelScriptActor, *Command, Ar, this);
-
-		// Log execution errors.
-		if (!Ar.IsEmpty())
-		{
-			UE_LOG(LogActorIO, Error, TEXT("%s"), *Ar);
-		}
-	}
 }
 
 void ALogicGlobalEvent::OnWorldInitializedCallback(const FActorsInitializedParams& ActorInitParams)
@@ -128,15 +103,21 @@ void ALogicGlobalEvent::OnWorldTeardownCallback(UWorld* World)
 	}
 }
 
-void ALogicGlobalEvent::OnLevelAddedToWorldCallback(ULevel* InLevel, UWorld* InWorld)
+void ALogicGlobalEvent::CallLevelBlueprintFunction(FString Command)
 {
-	UWorld* MyWorld = GetWorld();
-	if (MyWorld && MyWorld == InWorld)
+	ALevelScriptActor* LevelScriptActor = GetLevel()->GetLevelScriptActor();
+	if (IsValid(LevelScriptActor))
 	{
-		ULevel* MyLevel = GetLevel();
-		if (InLevel == MyLevel)
+		FStringOutputDevice Ar;
+
+		// Invoke the function.
+		UActorIOSubsystemBase* IOSubsystem = UActorIOSubsystemBase::Get(this);
+		IOSubsystem->ExecuteCommand(LevelScriptActor, *Command, Ar, this);
+
+		// Log execution errors.
+		if (!Ar.IsEmpty())
 		{
-			OnActorBeginPlay.Broadcast();
+			UE_LOG(LogActorIO, Error, TEXT("%s"), *Ar);
 		}
 	}
 }

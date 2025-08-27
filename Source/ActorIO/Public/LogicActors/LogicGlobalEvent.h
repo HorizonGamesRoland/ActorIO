@@ -45,7 +45,7 @@ protected:
     virtual void RegisterIOEvents(FActorIOEventList& EventRegistry) override;
     virtual void RegisterIOFunctions(FActorIOFunctionList& FunctionRegistry) override;
     virtual void PostInitializeComponents() override;
-    virtual void BeginPlay() override;
+    virtual void ReadyForPlay() override;
     virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
     //~ End ALogicActorBase Interface
 
@@ -65,7 +65,4 @@ protected:
 
     /** Called when the world is being torn down (unloaded). */
     void OnWorldTeardownCallback(UWorld* InWorld);
-
-    /** Called when a level is added to the world. */
-    void OnLevelAddedToWorldCallback(ULevel* InLevel, UWorld* InWorld);
 };

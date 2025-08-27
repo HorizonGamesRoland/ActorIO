@@ -1,8 +1,6 @@
 // Copyright 2024-2025 Horizon Games and all contributors at https://github.com/HorizonGamesRoland/ActorIO/graphs/contributors
 
 #include "LogicActors/LogicActorBase.h"
-#include "Components/SceneComponent.h"
-#include "Components/BillboardComponent.h"
 #include "Misc/EngineVersionComparison.h"
 
 ALogicActorBase::ALogicActorBase()
@@ -54,4 +52,67 @@ ALogicActorBase::ALogicActorBase()
 	bEnableAutoLODGeneration = false;
 	SetReplicatingMovement(false);
 	SetCanBeDamaged(false);
+
+	bLogicActorHasBegunPlay = false;
+}
+
+void ALogicActorBase::BeginPlay()
+{
+	Super::BeginPlay();
+
+	ULevel* Level = GetLevel();
+	if (Level && Level->IsPersistentLevel())
+	{
+		ReadyForPlay();
+	}
+	else
+	{
+		DelegateHandle_OnLevelAddedToWorld = FWorldDelegates::LevelAddedToWorld.AddUObject(this, &ThisClass::OnLevelAddedToWorldCallback);
+	}
+}
+
+void ALogicActorBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	FWorldDelegates::LevelAddedToWorld.Remove(DelegateHandle_OnLevelAddedToWorld);
+
+	Super::EndPlay(EndPlayReason);
+}
+
+void ALogicActorBase::TickActor(float DeltaTime, ELevelTick TickType, FActorTickFunction& ThisTickFunction)
+{
+	if (!bAllowTickBeforeBeginPlay && bLogicActorHasBegunPlay)
+	{
+		// Do not tick until logic actor has begun play.
+		return;
+	}
+
+	Super::TickActor(DeltaTime, TickType, ThisTickFunction);
+}
+
+void ALogicActorBase::ReadyForPlay()
+{
+	bLogicActorHasBegunPlay = true;
+	K2_ReadyForPlay();
+}
+
+void ALogicActorBase::OnLevelAddedToWorldCallback(ULevel* InLevel, UWorld* InWorld)
+{
+	UWorld* MyWorld = GetWorld();
+	if (!MyWorld || InWorld != MyWorld)
+	{
+		// Do nothing if this was not called for our world.
+		// This can happen when running multiple PIE instances.
+		return;
+	}
+
+	ULevel* MyLevel = GetLevel();
+	if (InLevel == MyLevel)
+	{
+		// Callback was for the actors own level, so we are ready.
+		// At this point the level has received the "bVisible" state, meaning it is now active.
+		// @see IActorIO::ConfirmObjectIsAlive
+
+		FWorldDelegates::LevelAddedToWorld.Remove(DelegateHandle_OnLevelAddedToWorld);
+		ReadyForPlay();
+	}
 }

@@ -222,7 +222,7 @@ bool IActorIO::ConfirmObjectIsAlive(UObject* InObject, FString& OutError)
     UWorld* World = InObject->GetWorld();
     if (!World)
     {
-        OutError = TEXT("Target object does not have a valid world.");
+        OutError = TEXT("Target object does not have a valid world (streaming in progress?).");
         return false;
     }
 

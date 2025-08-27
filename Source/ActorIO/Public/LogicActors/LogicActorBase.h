@@ -5,6 +5,7 @@
 #include "ActorIO.h"
 #include "ActorIOInterface.h"
 #include "GameFramework/Actor.h"
+#include "Components/SceneComponent.h"
 #include "Components/BillboardComponent.h"
 #include "Engine/Texture2D.h"
 #include "UObject/ConstructorHelpers.h"
@@ -38,10 +39,44 @@ protected:
 	TObjectPtr<UBillboardComponent> SpriteComponent;
 #endif
 
+	/** Handle for when a level is added to the world. */
+	FDelegateHandle DelegateHandle_OnLevelAddedToWorld;
+
+	/** Whether the logic actor has truly begun play. Set during 'ReadyForPlay'. */
+	bool bLogicActorHasBegunPlay;
+
 protected:
+
+	//~ Begin AActor Interface
+	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+	virtual void TickActor(float DeltaTime, enum ELevelTick TickType, FActorTickFunction& ThisTickFunction) override;
+	//~ End AActor Interface
 
 	//~ Begin IActorIOInterface
 	virtual void RegisterIOEvents(FActorIOEventList& EventRegistry) override {}
 	virtual void RegisterIOFunctions(FActorIOFunctionList& FunctionRegistry) override {}
 	//~ End IActorIOInterface
+
+protected:
+
+	/**
+	 * Called when the actor's level is activated, and ready to execute I/O actions.
+	 * For actors in the persistent level this is the same as 'BeginPlay'.
+	 * For actors in streaming levels, this is called after the level was made visible (active).
+	 */
+	virtual void ReadyForPlay();
+
+	/**
+	 * Event when the actor's level is activated, and ready to execute I/O actions.
+	 * For actors in the persistent level this is the same as 'BeginPlay'.
+	 * For actors in streaming levels, this is called after the level was made visible (active).
+	 */
+	UFUNCTION(BlueprintImplementableEvent, DisplayName = "ReadyForPlay", Category = "Events")
+	void K2_ReadyForPlay();
+
+private:
+
+	/** Called when a level is added to the world. */
+	void OnLevelAddedToWorldCallback(ULevel* InLevel, UWorld* InWorld);
 };

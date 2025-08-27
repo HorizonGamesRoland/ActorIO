@@ -101,7 +101,7 @@ protected:
     //~ Begin ALogicActorBase Interface
     virtual void RegisterIOEvents(FActorIOEventList& EventRegistry) override;
     virtual void RegisterIOFunctions(FActorIOFunctionList& FunctionRegistry) override;
-    virtual void BeginPlay() override;
+    virtual void ReadyForPlay() override;
     //~ End ALogicActorBase Interface
 
 public:

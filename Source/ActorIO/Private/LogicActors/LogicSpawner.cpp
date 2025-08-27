@@ -71,9 +71,9 @@ void ALogicSpawner::RegisterIOFunctions(FActorIOFunctionList& FunctionRegistry)
 		.SetFunction(TEXT("GetSpawnedActorForEntry")));
 }
 
-void ALogicSpawner::BeginPlay()
+void ALogicSpawner::ReadyForPlay()
 {
-	Super::BeginPlay();
+	Super::ReadyForPlay();
 
 	if (bSpawnActorsOnStart)
 	{
