@@ -42,8 +42,11 @@ protected:
 	/** Handle for when a level is added to the world. */
 	FDelegateHandle DelegateHandle_OnLevelAddedToWorld;
 
-	/** Whether the logic actor has truly begun play. Set during 'ReadyForPlay'. */
-	bool bLogicActorHasBegunPlay;
+	/**
+	 * Whether the logic actor is post 'BeginPlay' and level activation.
+	 * If true, the actor is ready to execute I/O actions even from streaming levels.
+	 */
+	bool bLogicActorIsReady;
 
 protected:
 
@@ -57,6 +60,19 @@ protected:
 	virtual void RegisterIOEvents(FActorIOEventList& EventRegistry) override {}
 	virtual void RegisterIOFunctions(FActorIOFunctionList& FunctionRegistry) override {}
 	//~ End IActorIOInterface
+
+public:
+
+	/**
+	 * Whether the actor is post 'BeginPlay' and level activation.
+	 * If true, the actor is ready to execute I/O actions even from streaming levels.
+	 * For actors in the persistent level this is true immediately after 'BeginPlay'.
+	 * For actors in streaming levels, this is true after the level was made visible (active).
+	 * 
+	 * @see ALogicActorBase::ReadyForPlay
+	 */
+	UFUNCTION(BlueprintPure, Category = "LogicActors")
+	bool IsLogicActorReady() const { return bLogicActorIsReady; }
 
 protected:
 

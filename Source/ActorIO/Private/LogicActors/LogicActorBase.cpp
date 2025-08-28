@@ -53,7 +53,7 @@ ALogicActorBase::ALogicActorBase()
 	SetReplicatingMovement(false);
 	SetCanBeDamaged(false);
 
-	bLogicActorHasBegunPlay = false;
+	bLogicActorIsReady = false;
 }
 
 void ALogicActorBase::BeginPlay()
@@ -80,7 +80,7 @@ void ALogicActorBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 void ALogicActorBase::TickActor(float DeltaTime, ELevelTick TickType, FActorTickFunction& ThisTickFunction)
 {
-	if (!bAllowTickBeforeBeginPlay && bLogicActorHasBegunPlay)
+	if (!bAllowTickBeforeBeginPlay && bLogicActorIsReady)
 	{
 		// Do not tick until logic actor has begun play.
 		return;
@@ -91,7 +91,7 @@ void ALogicActorBase::TickActor(float DeltaTime, ELevelTick TickType, FActorTick
 
 void ALogicActorBase::ReadyForPlay()
 {
-	bLogicActorHasBegunPlay = true;
+	bLogicActorIsReady = true;
 	K2_ReadyForPlay();
 }
 
