@@ -52,19 +52,23 @@ void ALogicDataLayer::RegisterIOFunctions(FActorIOFunctionList& FunctionRegistry
 		.SetFunction(TEXT("UnloadDataLayer")));
 }
 
-void ALogicDataLayer::PostInitializeComponents()
+void ALogicDataLayer::ReadyForPlay()
 {
-	Super::PostInitializeComponents();
+	Super::ReadyForPlay();
 
-	UWorld* MyWorld = GetWorld();
-	if (MyWorld && MyWorld->IsGameWorld())
+	// World Partition blocks the world from beginning play until streaming is finished.
+	// @see UWorldPartition::OnWorldPreBeginPlay
+
+	UDataLayerManager* DataLayerManager = UDataLayerManager::GetDataLayerManager(GetWorld());
+	if (DataLayerManager)
 	{
-		UDataLayerManager* DataLayerManager = UDataLayerManager::GetDataLayerManager(MyWorld);
-		if (DataLayerManager)
+		const UDataLayerInstance* DataLayerInstance = DataLayerManager->GetDataLayerInstanceFromAsset(DataLayerAsset);
+		if (DataLayerInstance)
 		{
-			bIsLoaded = CheckDataLayerLoadState(bLoadRecursive);
-			DataLayerManager->OnDataLayerInstanceRuntimeStateChanged.AddDynamic(this, &ThisClass::OnDataLayerLoadStateChanged);
+			bIsLoaded = CheckDataLayerLoadState(DataLayerInstance, bLoadRecursive);
 		}
+
+		DataLayerManager->OnDataLayerInstanceRuntimeStateChanged.AddDynamic(this, &ThisClass::OnDataLayerLoadStateChanged);
 	}
 }
 
@@ -111,26 +115,19 @@ void ALogicDataLayer::UnloadDataLayer()
 	}
 }
 
-bool ALogicDataLayer::CheckDataLayerLoadState(bool bIncludeChildren) const
+bool ALogicDataLayer::CheckDataLayerLoadState(const UDataLayerInstance* InDataLayer, bool bIncludeChildren) const
 {
-	if (!DataLayerAsset)
-	{
-		// Do nothing if no data layer is selected.
-		return false;
-	}
-
-	UDataLayerManager* DataLayerManager = UDataLayerManager::GetDataLayerManager(GetWorld());
-	const UDataLayerInstance* DataLayerInstance = DataLayerManager ? DataLayerManager->GetDataLayerInstanceFromAsset(DataLayerAsset) : nullptr;
-	if (!DataLayerInstance || DataLayerInstance->GetEffectiveRuntimeState() != EDataLayerRuntimeState::Activated)
+	if (!InDataLayer || InDataLayer->GetEffectiveRuntimeState() != EDataLayerRuntimeState::Activated)
 	{
 		return false;
 	}
 
 	if (bIncludeChildren)
 	{
-		for (const UDataLayerInstance* ChildDataLayer : DataLayerInstance->GetChildren())
+		// Recursively check child data layers load state.
+		for (const UDataLayerInstance* ChildDataLayer : InDataLayer->GetChildren())
 		{
-			if (ChildDataLayer->GetEffectiveRuntimeState() != EDataLayerRuntimeState::Activated)
+			if (!CheckDataLayerLoadState(ChildDataLayer, true))
 			{
 				return false;
 			}
@@ -142,8 +139,11 @@ bool ALogicDataLayer::CheckDataLayerLoadState(bool bIncludeChildren) const
 
 void ALogicDataLayer::OnDataLayerLoadStateChanged(const UDataLayerInstance* InDataLayer, EDataLayerRuntimeState InState)
 {
+	UDataLayerManager* DataLayerManager = UDataLayerManager::GetDataLayerManager(GetWorld());
+	const UDataLayerInstance* DataLayerInstance = DataLayerManager ? DataLayerManager->GetDataLayerInstanceFromAsset(DataLayerAsset) : nullptr;
+
 	const bool bPreviousLoadState = bIsLoaded;
-	bIsLoaded = CheckDataLayerLoadState(bLoadRecursive);
+	bIsLoaded = CheckDataLayerLoadState(DataLayerInstance, bLoadRecursive); // nullptr safe
 	
 	if (bIsLoaded != bPreviousLoadState)
 	{

@@ -51,7 +51,7 @@ public:
     //~ Begin ALogicActorBase Interface
     virtual void RegisterIOEvents(FActorIOEventList& EventRegistry) override;
     virtual void RegisterIOFunctions(FActorIOFunctionList& FunctionRegistry) override;
-    virtual void PostInitializeComponents() override;
+    virtual void ReadyForPlay() override;
     virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
     //~ End ALogicActorBase Interface
 
@@ -71,8 +71,8 @@ public:
 
 protected:
 
-    /** @return The effective load state of the selected data layer, optionally including its childrens. */
-    bool CheckDataLayerLoadState(bool bIncludeChildren) const;
+    /** Recursively check the effective load state of the data layer and its childrens. */
+    bool CheckDataLayerLoadState(const UDataLayerInstance* InDataLayer, bool bIncludeChildren) const;
 
     /** Called when a data layer is loaded or unloaded. */
     UFUNCTION()
