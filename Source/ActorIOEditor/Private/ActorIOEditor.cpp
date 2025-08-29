@@ -3,6 +3,7 @@
 #include "ActorIOEditor.h"
 #include "ActorIOEditorStyle.h"
 #include "ActorIOAction.h"
+#include "ActorIOComponent.h"
 #include "ActorIOComponentVisualizer.h"
 #include "LogicActors/LogicActorBase.h"
 #include "Widgets/SActorIOEditor.h"
@@ -38,9 +39,13 @@ void FActorIOEditor::StartupModule()
 		.SetIcon(FSlateIcon(FAppStyle::GetAppStyleSetName(), "Icons.Event"));
 
 	// Register component visualizer to draw I/O lines between actors.
-	TSharedPtr<FComponentVisualizer> IOComponentVisualizer = MakeShared<FActorIOComponentVisualizer>();
-	GUnrealEd->RegisterComponentVisualizer(TEXT("ActorIOComponent"), IOComponentVisualizer);
-	IOComponentVisualizer->OnRegister();
+	// The GUnrealEd check is important here for packaging.
+	if (GUnrealEd)
+	{
+		TSharedPtr<FComponentVisualizer> IOComponentVisualizer = MakeShared<FActorIOComponentVisualizer>();
+		GUnrealEd->RegisterComponentVisualizer(UActorIOComponent::StaticClass()->GetFName(), IOComponentVisualizer);
+		IOComponentVisualizer->OnRegister();
+	}
 
 	// Register PIE authorizer to abort PIE sessions if the plugin is configured incorrectly.
 	// #NOTE: IModularFeatures won't compile in IWYU mode.
@@ -71,7 +76,7 @@ void FActorIOEditor::ShutdownModule()
 	// Unregister component visualizer.
 	if (GUnrealEd)
 	{
-		GUnrealEd->UnregisterComponentVisualizer(TEXT("ActorIOComponent"));
+		GUnrealEd->UnregisterComponentVisualizer(UActorIOComponent::StaticClass()->GetFName());
 	}
 
 	// Unregister PIE authorizer.

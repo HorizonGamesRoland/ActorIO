@@ -1,6 +1,8 @@
 // Copyright 2024-2025 Horizon Games and all contributors at https://github.com/HorizonGamesRoland/ActorIO/graphs/contributors
 
 #include "LogicActors/LogicActorBase.h"
+#include "Engine/Level.h"
+#include "Engine/World.h"
 #include "Misc/EngineVersionComparison.h"
 
 ALogicActorBase::ALogicActorBase()
