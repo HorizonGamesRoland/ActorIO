@@ -388,7 +388,7 @@ struct ACTORIO_API FActionExecutionContext
 
 	/**
 	 * List of named arguments and their corresponding values.
-	 * Elements should only be assigned from within an I/O event processor.
+	 * Elements should only be set from GetGlobalNamedArguments, GetLocalNamedArguments, or an I/O event processor!
 	 * Do not modify directly. Use SetNamedArgument() instead.
 	 */
 	TMap<FString, FString> NamedArguments;
@@ -415,9 +415,12 @@ struct ACTORIO_API FActionExecutionContext
 	/**
 	 * Add a named argument (parameter) to the current execution context.
 	 * If it already exists then the value is simply updated.
-	 * Should only be called from within an I/O event processor!
+	 * Should only be called from GetGlobalNamedArguments, GetLocalNamedArguments, or an I/O event processor!
 	 */
 	void SetNamedArgument(const FString& InName, const FString& InValue);
+
+	/** Log an execution failure message to the console and game screen. */
+	static void ExecutionError(bool bCondition, ELogVerbosity::Type InVerbosity, const FString& InMessage);
 };
 
 /**

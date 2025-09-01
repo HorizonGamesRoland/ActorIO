@@ -198,7 +198,7 @@ void UActorIOAction::UnbindAction()
 void UActorIOAction::ProcessEvent(UFunction* Function, void* Parms)
 {
 	// This function is called whenever Unreal Script is executing a function on the object.
-	// We are going to use this to catch when 'execute action' was called by the I/O event delegate that we are bound to.
+	// We are going to use this to catch when 'execute action' is called by the I/O event delegate that we are bound to.
 	// The actual function bound to the delegate is empty as it's just used as an event signal here.
 	// Since we cannot know what parameters the I/O event delegate has, we will preserve the params memory here.
 	// Then we are going to execute the action manually so that we can have full control.
@@ -249,7 +249,7 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 	if (TargetActor.IsNull())
 	{
 		// Do nothing if no target actor is selected.
-		UE_CLOG(DebugIOActions && WarnIOInvalidTarget, LogActorIO, Warning, TEXT("No target actor selected."));
+		FActionExecutionContext::ExecutionError(DebugIOActions && WarnIOInvalidTarget, ELogVerbosity::Warning, TEXT("No target actor selected."));
 		return;
 	}
 
@@ -258,7 +258,7 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 	{
 		// Do nothing if the target actor is invalid.
 		// The actor was most likely unloaded or destroyed.
-		UE_CLOG(DebugIOActions && WarnIOInvalidTarget, LogActorIO, Warning, TEXT("Target actor is invalid. Reason: %s"), *ErrorReason);
+		FActionExecutionContext::ExecutionError(DebugIOActions && WarnIOInvalidTarget, ELogVerbosity::Warning, FString::Printf(TEXT("Target actor is invalid. Reason: %s"), *ErrorReason));
 		return;
 	}
 
@@ -268,13 +268,13 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 	FActorIOFunction* TargetFunction = ValidFunctions.GetFunction(FunctionId);
 	if (!TargetFunction)
 	{
-		UE_CLOG(DebugIOActions, LogActorIO, Error, TEXT("Could not find function '%s' on target actor '%s'."), *FunctionId.ToString(), *TargetActorPtr->GetActorNameOrLabel());
+		FActionExecutionContext::ExecutionError(DebugIOActions, ELogVerbosity::Error, FString::Printf(TEXT("Could not find function '%s' on target actor '%s'."), *FunctionId.ToString(), *TargetActorPtr->GetActorNameOrLabel()));
 		return;
 	}
 
 	if (TargetFunction->FunctionToExec.IsEmpty())
 	{
-		UE_CLOG(DebugIOActions, LogActorIO, Error, TEXT("Function '%s' points to an empty func name."), *FunctionId.ToString());
+		FActionExecutionContext::ExecutionError(DebugIOActions, ELogVerbosity::Error, FString::Printf(TEXT("Function '%s' points to an empty func name."), *FunctionId.ToString()));
 		return;
 	}
 
@@ -283,7 +283,7 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 	UObject* ObjectToSendCommandTo = ResolveTargetObject(TargetFunction);
 	if (!IsValid(ObjectToSendCommandTo))
 	{
-		UE_CLOG(DebugIOActions, LogActorIO, Error, TEXT("Could not find default subobject '%s' on target actor '%s'."), *TargetFunction->TargetSubobject.ToString(), *TargetActorPtr->GetActorNameOrLabel());
+		FActionExecutionContext::ExecutionError(DebugIOActions, ELogVerbosity::Error, FString::Printf(TEXT("Could not find default subobject '%s' on target actor '%s'."), *TargetFunction->TargetSubobject.ToString(), *TargetActorPtr->GetActorNameOrLabel()));
 		return;
 	}
 
@@ -429,7 +429,7 @@ void UActorIOAction::SendCommand(UObject* Target, FString Command)
 	FString ErrorReason;
 	if (!IActorIO::ConfirmObjectIsAlive(Target, ErrorReason))
 	{
-		UE_CLOG(DebugIOActions && WarnIOInvalidTarget, LogActorIO, Warning, TEXT("Target was invalid when sending command '%s'. Reason: %s"), *FunctionId.ToString(), *ErrorReason);
+		FActionExecutionContext::ExecutionError(DebugIOActions, ELogVerbosity::Warning, FString::Printf(TEXT("Target was invalid when sending command '%s'. Reason: %s"), *FunctionId.ToString(), *ErrorReason));
 		return;
 	}
 
@@ -442,7 +442,7 @@ void UActorIOAction::SendCommand(UObject* Target, FString Command)
 	// Log execution errors.
 	if (!Ar.IsEmpty())
 	{
-		UE_CLOG(DebugIOActions, LogActorIO, Error, TEXT("%s"), *Ar);
+		FActionExecutionContext::ExecutionError(DebugIOActions, ELogVerbosity::Error, Ar);
 	}
 }
 
