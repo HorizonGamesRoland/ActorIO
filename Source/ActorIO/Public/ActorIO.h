@@ -437,7 +437,7 @@ public:
 	static FActorIOFunctionList GetFunctionsForObject(AActor* InObject);
 
 	/** @return List of I/O actions currently loaded in the world that are targeting the given actor. */
-	static const TArray<UActorIOAction*> GetInputActionsForObject(AActor* InObject);
+	static const TArray<TWeakObjectPtr<UActorIOAction>> GetInputActionsForObject(AActor* InObject);
 
 	/** @return Number of I/O actions currently loaded in the world that are targeting the given actor. */
 	static int32 GetNumInputActionsForObject(AActor* InObject);

@@ -84,10 +84,13 @@ void UActorIOEditorSubsystem::OnDeleteOrCutActorsBegin()
 	for (FSelectionIterator It(GEditor->GetSelectedActorIterator()); It; ++It)
 	{
 		AActor* Actor = static_cast<AActor*>(*It);
-		for (UActorIOAction* InputAction : IActorIO::GetInputActionsForObject(Actor))
+		for (const TWeakObjectPtr<UActorIOAction>& InputAction : IActorIO::GetInputActionsForObject(Actor))
 		{
-			InputAction->Modify();
-			InputAction->TargetActor = nullptr;
+			if (InputAction.IsValid())
+			{
+				InputAction->Modify();
+				InputAction->TargetActor = nullptr;
+			}
 		}
 	}
 }
@@ -96,11 +99,14 @@ void UActorIOEditorSubsystem::OnActorReplaced(AActor* OldActor, AActor* NewActor
 {
 	// Modify all actions that point to the old actor.
 	// The transaction is already active at this point.
-	const TArray<UActorIOAction*> InputActions = IActorIO::GetInputActionsForObject(OldActor);
-	for (UActorIOAction* InputAction : InputActions)
+	const TArray<TWeakObjectPtr<UActorIOAction>> InputActions = IActorIO::GetInputActionsForObject(OldActor);
+	for (const TWeakObjectPtr<UActorIOAction>& InputAction : InputActions)
 	{
-		InputAction->Modify();
-		InputAction->TargetActor = NewActor;
+		if (InputAction.IsValid())
+		{
+			InputAction->Modify();
+			InputAction->TargetActor = NewActor;
+		}
 	}
 
 	// Auto add an IO component to the new actor if needed.

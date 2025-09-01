@@ -140,7 +140,13 @@ void SActorIOActionListView::Refresh()
 	AActor* SelectedActor = ActorIOEditorSubsystem->GetSelectedActor();
 	if (bViewInputActions)
 	{
-		ActionListItems = IActorIO::GetInputActionsForObject(SelectedActor);
+		for (const TWeakObjectPtr<UActorIOAction>& InputAction : IActorIO::GetInputActionsForObject(SelectedActor))
+		{
+			if (InputAction.IsValid())
+			{
+				ActionListItems.Add(InputAction.Get());
+			}
+		}
 	}
 	else
 	{

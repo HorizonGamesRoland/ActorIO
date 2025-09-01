@@ -30,9 +30,9 @@ void FActorIOComponentVisualizer::DrawVisualization(const UActorComponent* Compo
 		}
 	}
 
-	for (UActorIOAction* InputAction : IActorIO::GetInputActionsForObject(IOComponentOwner))
+	for (const TWeakObjectPtr<UActorIOAction>& InputAction : IActorIO::GetInputActionsForObject(IOComponentOwner))
 	{
-		if (InputAction)
+		if (InputAction.IsValid())
 		{
 			const AActor* ActionOwner = InputAction->GetOwnerActor();
 			if (IsValid(ActionOwner))

@@ -177,21 +177,29 @@ FActorIOFunctionList IActorIO::GetFunctionsForObject(AActor* InObject)
     return OutFunctions;
 }
 
-const TArray<UActorIOAction*> IActorIO::GetInputActionsForObject(AActor* InObject)
+const TArray<TWeakObjectPtr<UActorIOAction>> IActorIO::GetInputActionsForObject(AActor* InObject)
 {
     // Internally there is no such thing as an input action.
     // Just actions pointing to actors.
     // Essentially this just gets all actions that point to the given actor.
 
-    TArray<UActorIOAction*> OutActions = TArray<UActorIOAction*>();
+    TArray<TWeakObjectPtr<UActorIOAction>> OutActions = TArray<TWeakObjectPtr<UActorIOAction>>();
     if (IsValid(InObject))
     {
         for (TObjectIterator<UActorIOAction> ActionItr; ActionItr; ++ActionItr)
         {
             UActorIOAction* Action = *ActionItr;
-            if (IsValid(Action) && IsValid(Action->GetOwnerActor()) && Action->TargetActor.Get() == InObject)
+            if (IsValid(Action) && IsValid(Action->GetOwnerActor()))
             {
-                OutActions.Add(Action);
+                // According to TObjectIterator description, we need to make sure that we
+                // don't include objects from different worlds (e.g. PIE sessions).
+                if (Action->GetWorld() == InObject->GetWorld())
+                {
+                    if (Action->TargetActor.Get() == InObject)
+                    {
+                        OutActions.Emplace(Action);
+                    }
+                }
             }
         }
     }
@@ -201,7 +209,7 @@ const TArray<UActorIOAction*> IActorIO::GetInputActionsForObject(AActor* InObjec
 
 int32 IActorIO::GetNumInputActionsForObject(AActor* InObject)
 {
-    const TArray<UActorIOAction*> InputActions = GetInputActionsForObject(InObject);
+    const TArray<TWeakObjectPtr<UActorIOAction>> InputActions = GetInputActionsForObject(InObject);
     return InputActions.Num();
 }
 
