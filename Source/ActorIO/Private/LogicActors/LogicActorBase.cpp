@@ -61,15 +61,18 @@ ALogicActorBase::ALogicActorBase()
 void ALogicActorBase::BeginPlay()
 {
 	Super::BeginPlay();
-
+	
 	ULevel* Level = GetLevel();
-	if (Level && Level->IsPersistentLevel())
+	if (!Level || !Level->bIsVisible)
 	{
-		ReadyForPlay();
+		// This actor is part of a streaming level, that isn't active yet. Await level activation...
+		// Deliberately not using 'IsPersistentLevel' or 'IsActorBeginningPlayFromLevelStreaming' because
+		// these checks fail when World Partition is streaming in default loaded actors.
+		DelegateHandle_OnLevelAddedToWorld = FWorldDelegates::LevelAddedToWorld.AddUObject(this, &ThisClass::OnLevelAddedToWorldCallback);
 	}
 	else
 	{
-		DelegateHandle_OnLevelAddedToWorld = FWorldDelegates::LevelAddedToWorld.AddUObject(this, &ThisClass::OnLevelAddedToWorldCallback);
+		ReadyForPlay();
 	}
 }
 
