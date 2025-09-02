@@ -166,7 +166,10 @@ SActorIOEditor::~SActorIOEditor()
 
 void SActorIOEditor::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
 {
-    // #TODO: Detect if an action becomes stale
+    if (TickAutoRefreshRequired())
+    {
+        Refresh();
+    }
 }
 
 void SActorIOEditor::Refresh()
@@ -278,6 +281,35 @@ FReply SActorIOEditor::OnClick_NewAction()
 
     Refresh();
     return FReply::Handled();
+}
+
+bool SActorIOEditor::TickAutoRefreshRequired() const
+{
+    UActorIOEditorSubsystem* ActorIOEditorSubsystem = UActorIOEditorSubsystem::Get();
+    AActor* SelectedActor = ActorIOEditorSubsystem->GetSelectedActor();
+    if (!SelectedActor)
+    {
+        // Do nothing if no actor is selected.
+        // Selection change is handled so no auto refresh required.
+        return false;
+    }
+
+    if (ActionListView->TickAutoRefreshRequired())
+    {
+        // The action list wants a refresh.
+        // This is most likely happened due to an action's target actor becoming loaded/unloaded.
+        return true;
+    }
+
+    const int32 ExpectedNumInputActions = IActorIO::GetNumInputActionsForObject(SelectedActor);
+    if (InputActions.Num() != ExpectedNumInputActions)
+    {
+        // The number of cached input actions does not match the actual amount of input actions for the selected actor.
+        // An actor with actions was loaded or unloaded in the editor, so we need to refresh.
+        return true;
+    }
+
+    return false;
 }
 
 bool SActorIOEditor::MatchesContext(const FTransactionContext& InContext, const TArray<TPair<UObject*, FTransactionObjectEvent>>& TransactionObjects) const

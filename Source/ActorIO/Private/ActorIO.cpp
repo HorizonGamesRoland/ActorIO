@@ -197,6 +197,7 @@ const TArray<TWeakObjectPtr<UActorIOAction>> IActorIO::GetInputActionsForObject(
                 {
                     if (Action->TargetActor.Get() == InObject)
                     {
+                        // Convert to weak ptr so that we cannot modify action's lifetime in editor.
                         OutActions.Emplace(Action);
                     }
                 }
@@ -226,6 +227,7 @@ const TArray<TWeakObjectPtr<UActorIOAction>> IActorIO::GetOutputActionsForObject
         {
             for (const TObjectPtr<UActorIOAction>& Action : IOComponent->GetActions())
             {
+                // Convert to weak ptr so that we cannot modify action's lifetime in editor.
                 OutActions.Emplace(Action);
             }
         }

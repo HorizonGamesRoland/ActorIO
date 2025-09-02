@@ -58,14 +58,14 @@ protected:
     /** Border that the action list should be added to. */
     TSharedPtr<class SBorder> ActionListContainer;
 
+    /** The action list that is displaying I/O actions. */
+    TSharedPtr<class SActorIOActionListView> ActionListView;
+
     /** List of I/O actions that are inputs of the selected actor. */
     TArray<TWeakObjectPtr<UActorIOAction>> InputActions;
 
     /** List of I/O actions that are outputs of the selected actor. */
     TArray<TWeakObjectPtr<UActorIOAction>> OutputActions;
-
-    /** The action list that is displaying I/O actions. */
-    TSharedPtr<class SActorIOActionListView> ActionListView;
 
     /** Whether the editor is displaying input actions. If false, output actions are shown. */
     bool bViewInputActions;
@@ -97,6 +97,12 @@ protected:
 
     /** Called when the new action button is clicked. */
     FReply OnClick_NewAction();
+
+    /**
+     * Detect if the editor should be refreshed (e.g. input actions changed because an actor was unloaded).
+     * Called every frame during widget tick.
+     */
+    bool TickAutoRefreshRequired() const;
 
 public:
 

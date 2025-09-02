@@ -201,9 +201,30 @@ void SActorIOActionListView::UpdateParamsViewer(int32 InHighlightedParamIdx)
 	}
 }
 
+bool SActorIOActionListView::TickAutoRefreshRequired() const
+{
+	for (int32 RowIdx = 0; RowIdx != GetNumGeneratedChildren(); ++RowIdx)
+	{
+		TSharedPtr<SActorIOActionListViewRow> RowWidget = StaticCastSharedPtr<SActorIOActionListViewRow>(GetGeneratedChildAt(RowIdx));
+		if (RowWidget)
+		{
+			const TWeakObjectPtr<UActorIOAction>& RowAction = RowWidget->GetActionPtr();
+			if (RowAction.IsValid() && (RowWidget->GetTargetActorIsPending() != RowAction->TargetActor.IsPending()))
+			{
+				// An action's target actor became loaded/unloaded, but the row hasn't picked up on the change yet.
+				// This most likely happened due to level streaming in editor (e.g. World Partition load regions changed by user).
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
 TSharedRef<ITableRow> SActorIOActionListView::OnGenerateRowItem(TWeakObjectPtr<UActorIOAction> Item, const TSharedRef<STableViewBase>& OwnerTable)
 {
 	const TArray<TWeakObjectPtr<UActorIOAction>>* ActionListSource = IOEditor.Pin()->GetActionListSource();
+	check(ActionListSource);
 
 	// Figure out if this is the last row so that we can add extra padding at the bottom.
 	// I couldn't find a better solution for this.
@@ -363,6 +384,7 @@ TSharedRef<SWidget> SActorIOActionListViewRow::GenerateWidgetForColumn(const FNa
 		// Handle case where the target actor is invalid but path info exists (actor most likely unloaded).
 		if (ActionPtr->TargetActor.IsPending())
 		{
+			bIsTargetActorPending = true;
 			OnTargetActorIsPending();
 		}
 	}
@@ -1100,7 +1122,7 @@ FReply SActorIOActionListViewRow::HandleAcceptDrop(const FDragDropEvent& DragDro
 		return FReply::Unhandled();
 	}
 
-	int32 FromIdx = IOComponent->GetActions().IndexOfByKey(DragDropOp->Element);
+	int32 FromIdx = IOComponent->GetActions().IndexOfByKey(DragDropOp->Element.Get());
 	int32 ToIdx = IOComponent->GetActions().IndexOfByKey(TargetItem.Get());
 	if (FromIdx == INDEX_NONE || ToIdx == INDEX_NONE)
 	{

@@ -68,6 +68,12 @@ public:
     /** Changes the highlighted param index in the params viewer widget if there is one. */
     void UpdateParamsViewer(int32 InHighlightedParamIdx);
 
+    /**
+     * Detect if the editor should be refreshed (e.g. action's target actor became unloaded).
+     * Called every frame during I/O editor widget tick.
+     */
+    bool TickAutoRefreshRequired() const;
+
 protected:
 
     /** Reference to the I/O editor widget that owns this action list. */
@@ -123,8 +129,18 @@ public:
      */
     virtual TSharedRef<SWidget> GenerateWidgetForColumn(const FName& ColumnName) override;
 
+    /** @return Weak reference to the action that this row represents. */
+    const TWeakObjectPtr<UActorIOAction>& GetActionPtr() const { return ActionPtr; }
+
     /** @return The action list that owns this row. */
     TSharedPtr<SActorIOActionListView> GetOwnerActionListView() const;
+
+    /**
+     * Get the cached state of whether the action's target actor is pending or not.
+     * Only set during construction, so it can become out of date.
+     * If out of date, the action list forces a refresh during SActorIOActionListView::TickAutoRefreshRequired.
+     */
+    bool GetTargetActorIsPending() const { return bIsTargetActorPending; }
 
 protected:
 
@@ -133,6 +149,9 @@ protected:
 
     /** Whether this is an input action on the actor. If false, it's an output action. */
     bool bIsInputAction;
+
+    /** Whether the action's target actor is pending or not. */
+    bool bIsTargetActorPending;
 
     /** Cached list of registered I/O events found on the action's owning actor. */
     FActorIOEventList ValidEvents;
