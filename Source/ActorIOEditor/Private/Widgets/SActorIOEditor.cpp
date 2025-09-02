@@ -152,7 +152,7 @@ void SActorIOEditor::Construct(const FArguments& InArgs)
     ];
 
     // Update the editor window immediately.
-    Refresh();
+    RequestRefresh(true);
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
@@ -166,14 +166,125 @@ SActorIOEditor::~SActorIOEditor()
 
 void SActorIOEditor::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
 {
-    if (TickAutoRefreshRequired())
+    if (!bRefreshPending && TickAutoRefreshRequired())
+    {
+        bRefreshPending = true;
+    }
+
+    if (bRefreshPending)
     {
         Refresh();
     }
 }
 
+void SActorIOEditor::RequestRefresh(bool bImmediate)
+{
+    bRefreshPending = true;
+    if (bImmediate)
+    {
+        Refresh();
+    }
+}
+
+void SActorIOEditor::SetViewInputActions(bool bEnabled)
+{
+    bViewInputActions = bEnabled;
+    bActionListNeedsRegenerate = true;
+}
+
+const TArray<TWeakObjectPtr<UActorIOAction>>* SActorIOEditor::GetActionListSource() const
+{
+    return bViewInputActions ? &InputActions : &OutputActions;
+}
+
+ECheckBoxState SActorIOEditor::IsOutputsButtonChecked() const
+{
+    return bViewInputActions ? ECheckBoxState::Unchecked : ECheckBoxState::Checked;
+}
+
+void SActorIOEditor::OnOutputsButtonChecked(ECheckBoxState InState)
+{
+    if (InState == ECheckBoxState::Checked && bViewInputActions)
+    {
+        bViewInputActions = false;
+        bActionListNeedsRegenerate = true;
+        RequestRefresh();
+    }
+}
+
+ECheckBoxState SActorIOEditor::IsInputsButtonChecked() const
+{
+    return bViewInputActions ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+}
+
+void SActorIOEditor::OnInputsButtonChecked(ECheckBoxState InState)
+{
+    if (InState == ECheckBoxState::Checked && !bViewInputActions)
+    {
+        bViewInputActions = true;
+        bActionListNeedsRegenerate = true;
+        RequestRefresh();
+    }
+}
+
+FReply SActorIOEditor::OnClick_NewAction()
+{
+    UActorIOEditorSubsystem* ActorIOEditorSubsystem = UActorIOEditorSubsystem::Get();
+    AActor* SelectedActor = ActorIOEditorSubsystem->GetSelectedActor();
+    if (IsValid(SelectedActor))
+    {
+        const FScopedTransaction Transaction(LOCTEXT("AddActorIOAction", "Add ActorIO Action"));
+
+        UActorIOComponent* ActorIOComponent = SelectedActor->GetComponentByClass<UActorIOComponent>();
+        if (!ActorIOComponent)
+        {
+            ActorIOComponent = ActorIOEditorSubsystem->AddIOComponentToActor(SelectedActor, true);
+        }
+
+        if (ActorIOComponent)
+        {
+            ActorIOComponent->Modify();
+            ActorIOComponent->CreateNewAction();
+        }
+    }
+
+    RequestRefresh();
+    return FReply::Handled();
+}
+
+bool SActorIOEditor::TickAutoRefreshRequired() const
+{
+    UActorIOEditorSubsystem* ActorIOEditorSubsystem = UActorIOEditorSubsystem::Get();
+    AActor* SelectedActor = ActorIOEditorSubsystem->GetSelectedActor();
+    if (!SelectedActor)
+    {
+        // Do nothing if no actor is selected.
+        // Selection change is handled so no auto refresh required.
+        return false;
+    }
+
+    if (ActionListView->TickAutoRefreshRequired())
+    {
+        // The action list wants a refresh.
+        // This is most likely happened due to an action's target actor becoming loaded/unloaded.
+        return true;
+    }
+
+    const int32 ExpectedNumInputActions = IActorIO::GetNumInputActionsForObject(SelectedActor);
+    if (InputActions.Num() != ExpectedNumInputActions)
+    {
+        // The number of cached input actions does not match the actual amount of input actions for the selected actor.
+        // An actor with actions was loaded or unloaded in the editor, so we need to refresh.
+        return true;
+    }
+
+    return false;
+}
+
 void SActorIOEditor::Refresh()
 {
+    bRefreshPending = false;
+
     UActorIOEditorSubsystem* ActorIOEditorSubsystem = UActorIOEditorSubsystem::Get();
     AActor* SelectedActor = ActorIOEditorSubsystem->GetSelectedActor();
     UActorIOComponent* ActorIOComponent = SelectedActor ? SelectedActor->GetComponentByClass<UActorIOComponent>() : nullptr;
@@ -209,107 +320,8 @@ void SActorIOEditor::Refresh()
     }
     else
     {
-        ActionListView->Refresh();
+        ActionListView->RebuildList();
     }
-}
-
-void SActorIOEditor::SetViewInputActions(bool bEnabled, bool bRefresh)
-{
-    bViewInputActions = bEnabled;
-    if (bRefresh)
-    {
-        bActionListNeedsRegenerate = true;
-        Refresh();
-    }
-}
-
-const TArray<TWeakObjectPtr<UActorIOAction>>* SActorIOEditor::GetActionListSource() const
-{
-    return bViewInputActions ? &InputActions : &OutputActions;
-}
-
-ECheckBoxState SActorIOEditor::IsOutputsButtonChecked() const
-{
-    return bViewInputActions ? ECheckBoxState::Unchecked : ECheckBoxState::Checked;
-}
-
-void SActorIOEditor::OnOutputsButtonChecked(ECheckBoxState InState)
-{
-    if (InState == ECheckBoxState::Checked && bViewInputActions)
-    {
-        bViewInputActions = false;
-        bActionListNeedsRegenerate = true;
-        Refresh();
-    }
-}
-
-ECheckBoxState SActorIOEditor::IsInputsButtonChecked() const
-{
-    return bViewInputActions ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
-}
-
-void SActorIOEditor::OnInputsButtonChecked(ECheckBoxState InState)
-{
-    if (InState == ECheckBoxState::Checked && !bViewInputActions)
-    {
-        bViewInputActions = true;
-        bActionListNeedsRegenerate = true;
-        Refresh();
-    }
-}
-
-FReply SActorIOEditor::OnClick_NewAction()
-{
-    UActorIOEditorSubsystem* ActorIOEditorSubsystem = UActorIOEditorSubsystem::Get();
-    AActor* SelectedActor = ActorIOEditorSubsystem->GetSelectedActor();
-    if (IsValid(SelectedActor))
-    {
-        const FScopedTransaction Transaction(LOCTEXT("AddActorIOAction", "Add ActorIO Action"));
-
-        UActorIOComponent* ActorIOComponent = SelectedActor->GetComponentByClass<UActorIOComponent>();
-        if (!ActorIOComponent)
-        {
-            ActorIOComponent = ActorIOEditorSubsystem->AddIOComponentToActor(SelectedActor, true);
-        }
-
-        if (ActorIOComponent)
-        {
-            ActorIOComponent->Modify();
-            ActorIOComponent->CreateNewAction();
-        }
-    }
-
-    Refresh();
-    return FReply::Handled();
-}
-
-bool SActorIOEditor::TickAutoRefreshRequired() const
-{
-    UActorIOEditorSubsystem* ActorIOEditorSubsystem = UActorIOEditorSubsystem::Get();
-    AActor* SelectedActor = ActorIOEditorSubsystem->GetSelectedActor();
-    if (!SelectedActor)
-    {
-        // Do nothing if no actor is selected.
-        // Selection change is handled so no auto refresh required.
-        return false;
-    }
-
-    if (ActionListView->TickAutoRefreshRequired())
-    {
-        // The action list wants a refresh.
-        // This is most likely happened due to an action's target actor becoming loaded/unloaded.
-        return true;
-    }
-
-    const int32 ExpectedNumInputActions = IActorIO::GetNumInputActionsForObject(SelectedActor);
-    if (InputActions.Num() != ExpectedNumInputActions)
-    {
-        // The number of cached input actions does not match the actual amount of input actions for the selected actor.
-        // An actor with actions was loaded or unloaded in the editor, so we need to refresh.
-        return true;
-    }
-
-    return false;
 }
 
 bool SActorIOEditor::MatchesContext(const FTransactionContext& InContext, const TArray<TPair<UObject*, FTransactionObjectEvent>>& TransactionObjects) const
@@ -328,6 +340,7 @@ void SActorIOEditor::PostUndo(bool bSuccess)
     if (bSuccess)
     {
         SetViewInputActions(true);
+        RequestRefresh();
     }
 }
 
@@ -338,6 +351,7 @@ void SActorIOEditor::PostRedo(bool bSuccess)
     if (bSuccess)
     {
         SetViewInputActions(false);
+        RequestRefresh();
     }
 }
 

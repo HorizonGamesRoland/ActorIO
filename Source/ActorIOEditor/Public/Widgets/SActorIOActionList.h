@@ -7,6 +7,8 @@
 #include "Widgets/Views/SListView.h"
 #include "Widgets/Views/STableRow.h"
 
+class SActorIOEditor;
+
 /**
  * Columns used by the action list.
  * Each column must have a matching entry in FActorIOEditorStyle::SetupActionListColumnSizes!
@@ -36,18 +38,18 @@ public:
     {}
 
     /** Reference to the I/O editor widget that owns this action list. */
-    SLATE_ARGUMENT(TWeakPtr<class SActorIOEditor>, IOEditor);
+    SLATE_ARGUMENT(TWeakPtr<SActorIOEditor>, IOEditor);
 
     SLATE_END_ARGS()
 
     /** Widget constructor. */
     void Construct(const FArguments& InArgs);
 
-    /**
-     * Updates the widget to reflect the current state.
-     * Used when the widget structure doesn't need to change, just the displayed values.
-     */
-    void Refresh();
+    /** Request an editor widget refresh. */
+    void RequestEditorRefresh();
+
+    /** Request the editor to display input actions. If false, output actions are shown. */
+    void RequestEditorViewInputActions(bool bEnabled);
 
     /** @return Whether the list is currently displaying input actions. */
     bool IsViewingInputActions() const;
@@ -69,15 +71,15 @@ public:
     void UpdateParamsViewer(int32 InHighlightedParamIdx);
 
     /**
-     * Detect if the editor should be refreshed (e.g. action's target actor became unloaded).
-     * Called every frame during I/O editor widget tick.
+     * Detect if the editor should auto refresh (e.g. an action's target actor became unloaded).
+     * Called every frame during owning I/O editor widget tick.
      */
     bool TickAutoRefreshRequired() const;
 
 protected:
 
     /** Reference to the I/O editor widget that owns this action list. */
-    TWeakPtr<class SActorIOEditor> IOEditor;
+    TWeakPtr<SActorIOEditor> IOEditor;
 
     /** Popup menu of the params viewer that is visible while editing action params. */
     TSharedPtr<class IMenu> ParamsViewerMenu;
@@ -106,6 +108,8 @@ class ACTORIOEDITOR_API SActorIOActionListViewRow : public SMultiColumnTableRow<
 {
     SLATE_DECLARE_WIDGET(SActorIOActionListViewRow, SMultiColumnTableRow<TWeakObjectPtr<UActorIOAction>>)
 
+    friend class SActorIOActionListView;
+
 public:
 
     SLATE_BEGIN_ARGS(SActorIOActionListViewRow)
@@ -129,18 +133,8 @@ public:
      */
     virtual TSharedRef<SWidget> GenerateWidgetForColumn(const FName& ColumnName) override;
 
-    /** @return Weak reference to the action that this row represents. */
-    const TWeakObjectPtr<UActorIOAction>& GetActionPtr() const { return ActionPtr; }
-
     /** @return The action list that owns this row. */
     TSharedPtr<SActorIOActionListView> GetOwnerActionListView() const;
-
-    /**
-     * Get the cached state of whether the action's target actor is pending or not.
-     * Only set during construction, so it can become out of date.
-     * If out of date, the action list forces a refresh during SActorIOActionListView::TickAutoRefreshRequired.
-     */
-    bool GetTargetActorIsPending() const { return bIsTargetActorPending; }
 
 protected:
 
@@ -150,7 +144,11 @@ protected:
     /** Whether this is an input action on the actor. If false, it's an output action. */
     bool bIsInputAction;
 
-    /** Whether the action's target actor is pending or not. */
+    /**
+     * Whether the action's target actor is pending or not.
+     * Only set during construction, so it can become out of date.
+     * If out of date, the action list forces a refresh during SActorIOActionListView::TickAutoRefreshRequired.
+     */
     bool bIsTargetActorPending;
 
     /** Cached list of registered I/O events found on the action's owning actor. */

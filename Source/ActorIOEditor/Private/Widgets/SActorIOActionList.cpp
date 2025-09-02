@@ -112,14 +112,26 @@ void SActorIOActionListView::Construct(const FArguments& InArgs)
 			.HeaderContentPadding(FMargin(5.0f, 0.0f, 0.0f, 0.0f))
         )
     );
-
-    Refresh();
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
-void SActorIOActionListView::Refresh()
+void SActorIOActionListView::RequestEditorRefresh()
 {
-	RebuildList();
+	if (IOEditor.IsValid())
+	{
+		TSharedPtr<SActorIOEditor> PinnedEditor = IOEditor.Pin();
+		PinnedEditor->RequestRefresh();
+	}
+}
+
+void SActorIOActionListView::RequestEditorViewInputActions(bool bEnabled)
+{
+	if (IOEditor.IsValid())
+	{
+		TSharedPtr<SActorIOEditor> PinnedEditor = IOEditor.Pin();
+		PinnedEditor->SetViewInputActions(bEnabled);
+		PinnedEditor->RequestRefresh();
+	}
 }
 
 bool SActorIOActionListView::IsViewingInputActions() const
@@ -206,10 +218,9 @@ bool SActorIOActionListView::TickAutoRefreshRequired() const
 	for (int32 RowIdx = 0; RowIdx != GetNumGeneratedChildren(); ++RowIdx)
 	{
 		TSharedPtr<SActorIOActionListViewRow> RowWidget = StaticCastSharedPtr<SActorIOActionListViewRow>(GetGeneratedChildAt(RowIdx));
-		if (RowWidget)
+		if (RowWidget.IsValid() && RowWidget->ActionPtr.IsValid())
 		{
-			const TWeakObjectPtr<UActorIOAction>& RowAction = RowWidget->GetActionPtr();
-			if (RowAction.IsValid() && (RowWidget->GetTargetActorIsPending() != RowAction->TargetActor.IsPending()))
+			if (RowWidget->bIsTargetActorPending != RowWidget->ActionPtr->TargetActor.IsPending())
 			{
 				// An action's target actor became loaded/unloaded, but the row hasn't picked up on the change yet.
 				// This most likely happened due to level streaming in editor (e.g. World Partition load regions changed by user).
@@ -622,7 +633,7 @@ void SActorIOActionListViewRow::OnTargetActorChanged(const FAssetData& InAssetDa
 		}
 	}
 
-	GetOwnerActionListView()->Refresh();
+	GetOwnerActionListView()->RebuildList();
 }
 
 void SActorIOActionListViewRow::OnTargetActorIsPending()
@@ -712,7 +723,7 @@ void SActorIOActionListViewRow::OnFunctionComboBoxSelectionChanged(FName InName,
 		ActionPtr->FunctionArguments = FString();
 
 		// Need to refresh to get function arguments widget to update.
-		GetOwnerActionListView()->Refresh();
+		GetOwnerActionListView()->RebuildList();
 	}
 }
 
@@ -842,8 +853,7 @@ FReply SActorIOActionListViewRow::OnClick_RemoveOrViewAction()
 		ActionOwner->Modify();
 		ActionOwner->RemoveAction(ActionPtr.Get());
 
-		FActorIOEditor& ActorIOEditor = FActorIOEditor::Get();
-		ActorIOEditor.UpdateEditorWidget();
+		GetOwnerActionListView()->RequestEditorRefresh();
 	}
 	else
 	{
@@ -859,9 +869,7 @@ FReply SActorIOActionListViewRow::OnClick_RemoveOrViewAction()
 			GEditor->SelectNone(false, true);
 			GEditor->SelectActor(OwnerActor, true, true);
 
-			FActorIOEditor& ActorIOEditor = FActorIOEditor::Get();
-			SActorIOEditor* EditorWidget = ActorIOEditor.GetEditorWidget();
-			EditorWidget->SetViewInputActions(false);
+			GetOwnerActionListView()->RequestEditorViewInputActions(false);
 		}
 	}
 
@@ -1134,7 +1142,7 @@ FReply SActorIOActionListViewRow::HandleAcceptDrop(const FDragDropEvent& DragDro
 	IOComponent->MoveAction(FromIdx, ToIdx);
 
 	// Need to refresh since the order of actions changed.
-	GetOwnerActionListView()->Refresh();
+	GetOwnerActionListView()->RequestEditorRefresh();
 
 	return FReply::Handled();
 }

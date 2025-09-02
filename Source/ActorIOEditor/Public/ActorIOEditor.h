@@ -33,8 +33,8 @@ public:
 	/** @return The editor module of the Actor I/O plugin. */
 	static FActorIOEditor& Get();
 
-	/** Request an update with the editor widget. */
-	void UpdateEditorWidget();
+	/** Request a refresh with the editor widget. */
+	void RefreshEditorWidget(bool bImmediate = false);
 
 	/** @return The editor widget inside the Actor I/O tab. */
 	SActorIOEditor* GetEditorWidget() const;

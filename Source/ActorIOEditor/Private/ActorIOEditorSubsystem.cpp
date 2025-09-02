@@ -74,7 +74,7 @@ void UActorIOEditorSubsystem::OnObjectSelectionChanged(UObject* NewSelection)
 	SelectedActor = SelectedActors->GetBottom<AActor>();
 
 	FActorIOEditor& ActorIOEditor = FActorIOEditor::Get();
-	ActorIOEditor.UpdateEditorWidget();
+	ActorIOEditor.RefreshEditorWidget();
 }
 
 void UActorIOEditorSubsystem::OnDeleteOrCutActorsBegin()
@@ -125,5 +125,5 @@ void UActorIOEditorSubsystem::OnBlueprintCompiled()
 	// To make the changes appear immediately, we need to update the editor window.
 	// This also handles the case where no I/O stuff was being exposed due to an error in the blueprint which may have got fixed with this recompile.
 	FActorIOEditor& ActorIOEditor = FActorIOEditor::Get();
-	ActorIOEditor.UpdateEditorWidget();
+	ActorIOEditor.RefreshEditorWidget();
 }

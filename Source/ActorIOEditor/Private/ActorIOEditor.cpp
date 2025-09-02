@@ -108,11 +108,11 @@ TSharedRef<SDockTab> FActorIOEditor::CreateActorIOEditorTab(const FSpawnTabArgs&
 	return SpawnedTab;
 }
 
-void FActorIOEditor::UpdateEditorWidget()
+void FActorIOEditor::RefreshEditorWidget(bool bImmediate)
 {
 	if (EditorWidget.IsValid())
 	{
-		EditorWidget->Refresh();
+		EditorWidget->RequestRefresh(bImmediate);
 	}
 }
 

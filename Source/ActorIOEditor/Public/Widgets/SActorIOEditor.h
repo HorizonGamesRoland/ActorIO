@@ -33,10 +33,10 @@ public:
      * Updates the widget to reflect the current state.
      * Used when the widget structure doesn't need to change, just the displayed values.
      */
-    void Refresh();
+    void RequestRefresh(bool bImmediate = false);
 
     /** Set whether the editor should display input actions. If false, output actions are shown. */
-    void SetViewInputActions(bool bEnabled, bool bRefresh = true);
+    void SetViewInputActions(bool bEnabled);
 
 protected:
 
@@ -70,7 +70,10 @@ protected:
     /** Whether the editor is displaying input actions. If false, output actions are shown. */
     bool bViewInputActions;
 
-    /** Whether the action list should be refreshed with the next Refresh() call. */
+    /** Whether the widget has a pending refresh request. */
+    bool bRefreshPending;
+
+    /** Whether the action list should be rebuilt during the next Refresh() call. */
     bool bActionListNeedsRegenerate;
 
 public:
@@ -98,11 +101,16 @@ protected:
     /** Called when the new action button is clicked. */
     FReply OnClick_NewAction();
 
+protected:
+
     /**
-     * Detect if the editor should be refreshed (e.g. input actions changed because an actor was unloaded).
+     * Detect if the editor should auto refresh (e.g. input actions changed because an actor was unloaded).
      * Called every frame during widget tick.
      */
     bool TickAutoRefreshRequired() const;
+
+    /** Updates the widget to reflect the current state. */
+    void Refresh();
 
 public:
 
