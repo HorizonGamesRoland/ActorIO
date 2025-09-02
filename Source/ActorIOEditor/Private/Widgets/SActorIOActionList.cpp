@@ -39,14 +39,14 @@ void SActorIOActionListView::PrivateRegisterAttributes(FSlateAttributeInitialize
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SActorIOActionListView::Construct(const FArguments& InArgs)
 {
-	bViewInputActions = InArgs._ViewInputActions;
-	NumActionsWithPendingTarget = 0;
+	IOEditor = InArgs._IOEditor;
+	const TArray<TWeakObjectPtr<UActorIOAction>>* ActionListSource = IOEditor.Pin()->GetActionListSource();
 
     SListView::Construct
 	(
         SListView::FArguments()
 		.ListViewStyle(&FActorIOEditorStyle::Get().GetWidgetStyle<FTableViewStyle>("ActionListView"))
-        .ListItemsSource(&ActionListItems)
+        .ListItemsSource(ActionListSource)
 		.SelectionMode(ESelectionMode::Single)
         .OnGenerateRow(this, &SActorIOActionListView::OnGenerateRowItem)
         .HeaderRow
@@ -117,44 +117,31 @@ void SActorIOActionListView::Construct(const FArguments& InArgs)
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
-void SActorIOActionListView::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
-{
-	SListView<UActorIOAction*>::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
-
-	const int32 PendingTargetCountLastFrame = NumActionsWithPendingTarget;
-	UpdatePendingTargetCount();
-
-	// Detect pending target count difference compared to last frame.
-	// If this passes, one ore more actions' target actor was unloaded in the previous frame.
-	if (PendingTargetCountLastFrame != NumActionsWithPendingTarget)
-	{
-		Refresh();
-	}
-}
-
 void SActorIOActionListView::Refresh()
 {
-	ActionListItems.Reset();
-
-	UActorIOEditorSubsystem* ActorIOEditorSubsystem = UActorIOEditorSubsystem::Get();
-	AActor* SelectedActor = ActorIOEditorSubsystem->GetSelectedActor();
-	if (bViewInputActions)
-	{
-		for (const TWeakObjectPtr<UActorIOAction>& InputAction : IActorIO::GetInputActionsForObject(SelectedActor))
-		{
-			if (InputAction.IsValid())
-			{
-				ActionListItems.Add(InputAction.Get());
-			}
-		}
-	}
-	else
-	{
-		ActionListItems = IActorIO::GetOutputActionsForObject(SelectedActor);
-	}
-
-	UpdatePendingTargetCount();
 	RebuildList();
+}
+
+bool SActorIOActionListView::IsViewingInputActions() const
+{
+	if (IOEditor.IsValid())
+	{
+		TSharedPtr<SActorIOEditor> PinnedEditor = IOEditor.Pin();
+		return PinnedEditor->IsViewingInputActions();
+	}
+
+	return false;
+}
+
+bool SActorIOActionListView::IsViewingOutputActions() const
+{
+	if (IOEditor.IsValid())
+	{
+		TSharedPtr<SActorIOEditor> PinnedEditor = IOEditor.Pin();
+		return !PinnedEditor->IsViewingInputActions();
+	}
+
+	return false;
 }
 
 void SActorIOActionListView::ShowParamsViewer(UFunction* InFunction, const TSharedRef<SWidget>& InParentWidget)
@@ -214,25 +201,28 @@ void SActorIOActionListView::UpdateParamsViewer(int32 InHighlightedParamIdx)
 	}
 }
 
-TSharedRef<ITableRow> SActorIOActionListView::OnGenerateRowItem(UActorIOAction* Item, const TSharedRef<STableViewBase>& OwnerTable)
+TSharedRef<ITableRow> SActorIOActionListView::OnGenerateRowItem(TWeakObjectPtr<UActorIOAction> Item, const TSharedRef<STableViewBase>& OwnerTable)
 {
+	const TArray<TWeakObjectPtr<UActorIOAction>>* ActionListSource = IOEditor.Pin()->GetActionListSource();
+
 	// Figure out if this is the last row so that we can add extra padding at the bottom.
 	// I couldn't find a better solution for this.
 	bool bIsLastItem = false;
-	if (Item && ActionListItems.Num() > 0)
+	if (Item.IsValid() && ActionListSource->Num() > 0)
 	{
-		bIsLastItem = Item == ActionListItems.Last();
+		const TWeakObjectPtr<UActorIOAction>& LastItem = ActionListSource->Last();
+		bIsLastItem = Item == LastItem;
 	}
 
     return SNew(SActorIOActionListViewRow, OwnerTable, Item)
-		.IsInputAction(bViewInputActions)
+		.IsInputAction(IsViewingInputActions())
 		.IsLastItemInList(bIsLastItem);
 }
 
 float SActorIOActionListView::OnGetColumnWidth(const FName InColumnName) const
 {
 	FString PropertyName = TEXT("ActionListView");
-	PropertyName += bViewInputActions ? TEXT(".InputColumnWidth.") : TEXT(".OutputColumnWidth.");
+	PropertyName += IsViewingInputActions() ? TEXT(".InputColumnWidth.") : TEXT(".OutputColumnWidth.");
 	PropertyName += InColumnName.ToString();
 
 	return FActorIOEditorStyle::Get().GetFloat(FName(PropertyName));
@@ -241,22 +231,10 @@ float SActorIOActionListView::OnGetColumnWidth(const FName InColumnName) const
 void SActorIOActionListView::OnColumnWidthChanged(const float InSize, const FName InColumnName)
 {
 	FString PropertyName = TEXT("ActionListView");
-	PropertyName += bViewInputActions ? TEXT(".InputColumnWidth.") : TEXT(".OutputColumnWidth.");
+	PropertyName += IsViewingInputActions() ? TEXT(".InputColumnWidth.") : TEXT(".OutputColumnWidth.");
 	PropertyName += InColumnName.ToString();
 
 	FActorIOEditorStyle::GetMutableStyle()->Set(FName(PropertyName), InSize);
-}
-
-void SActorIOActionListView::UpdatePendingTargetCount()
-{
-	NumActionsWithPendingTarget = 0;
-	for (UActorIOAction* Action : ActionListItems)
-	{
-		if (Action->TargetActor.IsPending())
-		{
-			NumActionsWithPendingTarget++;
-		}
-	}
 }
 
 
@@ -271,7 +249,7 @@ void SActorIOActionListViewRow::PrivateRegisterAttributes(FSlateAttributeInitial
 {
 }
 
-void SActorIOActionListViewRow::Construct(const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTableView, UActorIOAction* InActionPtr)
+void SActorIOActionListViewRow::Construct(const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTableView, TWeakObjectPtr<UActorIOAction> InActionPtr)
 {
 	ActionPtr = InActionPtr;
 	bIsInputAction = InArgs._IsInputAction;
@@ -296,7 +274,7 @@ TSharedRef<SWidget> SActorIOActionListViewRow::GenerateWidgetForColumn(const FNa
 	TSharedRef<SBox> OutWidget = SNew(SBox)
 		.HeightOverride(FActorIOEditorStyle::Get().GetFloat("ActionListView.ActionHeight"));
 
-	if (!ActionPtr)
+	if (!ActionPtr.IsValid())
 	{
 		// Do nothing if the action is invalid somehow.
 		return OutWidget;
@@ -525,10 +503,13 @@ const FSlateBrush* SActorIOActionListViewRow::OnGetActionIcon() const
 
 FText SActorIOActionListViewRow::OnGetCallerNameText() const
 {
-	const AActor* ActionOwner = ActionPtr->GetOwnerActor();
-	if (IsValid(ActionOwner))
+	if (ActionPtr.IsValid())
 	{
-		return FText::FromString(ActionOwner->GetActorNameOrLabel());
+		const AActor* ActionOwner = ActionPtr->GetOwnerActor();
+		if (IsValid(ActionOwner))
+		{
+			return FText::FromString(ActionOwner->GetActorNameOrLabel());
+		}
 	}
 
 	return FText::FromString(TEXT("None"));
@@ -536,11 +517,14 @@ FText SActorIOActionListViewRow::OnGetCallerNameText() const
 
 FText SActorIOActionListViewRow::OnGetCallerTooltipText() const
 {
-	const AActor* ActionOwner = ActionPtr->GetOwnerActor();
-	if (IsValid(ActionOwner))
+	if (ActionPtr.IsValid())
 	{
-		const FString ActorPath = ActionOwner->GetPathName();
-		return FText::FormatOrdered(LOCTEXT("ActionListViewRow.CallerTooltip", "Reference to Actor ID '{0}'"), FText::FromString(ActorPath));
+		const AActor* ActionOwner = ActionPtr->GetOwnerActor();
+		if (IsValid(ActionOwner))
+		{
+			const FString ActorPath = ActionOwner->GetPathName();
+			return FText::FormatOrdered(LOCTEXT("ActionListViewRow.CallerTooltip", "Reference to Actor ID '{0}'"), FText::FromString(ActorPath));
+		}
 	}
 
 	return FText::GetEmpty();
@@ -561,6 +545,12 @@ void SActorIOActionListViewRow::OnEventComboBoxOpening()
 
 void SActorIOActionListViewRow::OnEventComboBoxSelectionChanged(FName InName, ESelectInfo::Type InSelectType)
 {
+	if (!ActionPtr.IsValid())
+	{
+		// Do nothing if action is invalid somehow.
+		return;
+	}
+
 	if (InName == NAME_ClearComboBox)
 	{
 		InName = NAME_None;
@@ -581,11 +571,17 @@ void SActorIOActionListViewRow::OnEventComboBoxSelectionChanged(FName InName, ES
 
 FString SActorIOActionListViewRow::OnGetTargetActorPath() const
 {
-	return ActionPtr->TargetActor.ToString();
+	return ActionPtr.IsValid() ? ActionPtr->TargetActor.ToString() : FString();
 }
 
 void SActorIOActionListViewRow::OnTargetActorChanged(const FAssetData& InAssetData)
 {
+	if (!ActionPtr.IsValid())
+	{
+		// Do nothing if action is invalid somehow.
+		return;
+	}
+
 	const FScopedTransaction Transaction(LOCTEXT("ModifyActorIOAction", "Modify ActorIO Action"));
 	ActionPtr->Modify();
 
@@ -670,6 +666,12 @@ void SActorIOActionListViewRow::OnFunctionComboBoxOpening()
 
 void SActorIOActionListViewRow::OnFunctionComboBoxSelectionChanged(FName InName, ESelectInfo::Type InSelectType)
 {
+	if (!ActionPtr.IsValid())
+	{
+		// Do nothing if action is invalid somehow.
+		return;
+	}
+
 	if (InName == NAME_ClearComboBox)
 	{
 		InName = NAME_None;
@@ -700,6 +702,12 @@ void SActorIOActionListViewRow::OnFunctionArgumentsChanged(const FText& InText)
 
 void SActorIOActionListViewRow::OnFunctionArgumentsCommitted(const FText& InText, ETextCommit::Type InCommitType)
 {
+	if (!ActionPtr.IsValid())
+	{
+		// Do nothing if action is invalid somehow.
+		return;
+	}
+
 	const FScopedTransaction Transaction(LOCTEXT("ModifyActorIOAction", "Modify ActorIO Action"));
 	ActionPtr->Modify();
 
@@ -740,11 +748,17 @@ void SActorIOActionListViewRow::OnFunctionArgumentsCursorMoved(const FTextLocati
 
 float SActorIOActionListViewRow::OnGetActionDelay() const
 {
-	return ActionPtr->Delay;
+	return ActionPtr.IsValid() ? ActionPtr->Delay : 0.0f;
 }
 
 void SActorIOActionListViewRow::OnActionDelayChanged(float InValue, ETextCommit::Type InCommitType)
 {
+	if (!ActionPtr.IsValid())
+	{
+		// Do nothing if action is invalid somehow.
+		return;
+	}
+
 	const FScopedTransaction Transaction(LOCTEXT("ModifyActorIOAction", "Modify ActorIO Action"));
 	ActionPtr->Modify();
 
@@ -753,11 +767,18 @@ void SActorIOActionListViewRow::OnActionDelayChanged(float InValue, ETextCommit:
 
 ECheckBoxState SActorIOActionListViewRow::IsExecuteOnlyOnceChecked() const
 {
-	return ActionPtr->bExecuteOnlyOnce ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	const bool bExecuteOnce = ActionPtr.IsValid() && ActionPtr->bExecuteOnlyOnce;
+	return bExecuteOnce ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 void SActorIOActionListViewRow::OnExecuteOnlyOnceChecked(ECheckBoxState InState)
 {
+	if (!ActionPtr.IsValid())
+	{
+		// Do nothing if action is invalid somehow.
+		return;
+	}
+
 	const FScopedTransaction Transaction(LOCTEXT("ModifyActorIOAction", "Modify ActorIO Action"));
 	ActionPtr->Modify();
 
@@ -784,6 +805,12 @@ FText SActorIOActionListViewRow::OnGetRemoveOrViewTooltip() const
 
 FReply SActorIOActionListViewRow::OnClick_RemoveOrViewAction()
 {
+	if (!ActionPtr.IsValid())
+	{
+		// Do nothing if action is invalid somehow.
+		return FReply::Handled();
+	}
+
 	if (!bIsInputAction)
 	{
 		const FScopedTransaction Transaction(LOCTEXT("RemoveActorIOAction", "Remove ActorIO Action"));
@@ -791,7 +818,7 @@ FReply SActorIOActionListViewRow::OnClick_RemoveOrViewAction()
 
 		UActorIOComponent* ActionOwner = ActionPtr->GetOwnerIOComponent();
 		ActionOwner->Modify();
-		ActionOwner->RemoveAction(ActionPtr);
+		ActionOwner->RemoveAction(ActionPtr.Get());
 
 		FActorIOEditor& ActorIOEditor = FActorIOEditor::Get();
 		ActorIOEditor.UpdateEditorWidget();
@@ -821,25 +848,37 @@ FReply SActorIOActionListViewRow::OnClick_RemoveOrViewAction()
 
 void SActorIOActionListViewRow::UpdateSelectableEvents()
 {
+	ValidEvents = FActorIOEventList();
 	SelectableEventIds.Reset();
+
+	// Add the clear action to the list.
 	SelectableEventIds.Add(NAME_ClearComboBox);
 
-	ValidEvents = IActorIO::GetEventsForObject(ActionPtr->GetOwnerActor());
-	for (const FActorIOEvent& IOEvent : ValidEvents.EventRegistry)
+	if (ActionPtr.IsValid())
 	{
-		SelectableEventIds.Emplace(IOEvent.EventId);
+		ValidEvents = IActorIO::GetEventsForObject(ActionPtr->GetOwnerActor());
+		for (const FActorIOEvent& IOEvent : ValidEvents.EventRegistry)
+		{
+			SelectableEventIds.Emplace(IOEvent.EventId);
+		}
 	}
 }
 
 void SActorIOActionListViewRow::UpdateSelectableFunctions()
 {
+	ValidFunctions = FActorIOFunctionList();
 	SelectableFunctionIds.Reset();
+
+	// Add the clear action to the list.
 	SelectableFunctionIds.Add(NAME_ClearComboBox);
 
-	ValidFunctions = IActorIO::GetFunctionsForObject(ActionPtr->TargetActor.Get());
-	for (const FActorIOFunction& IOFunction : ValidFunctions.FunctionRegistry)
+	if (ActionPtr.IsValid())
 	{
-		SelectableFunctionIds.Emplace(IOFunction.FunctionId);
+		ValidFunctions = IActorIO::GetFunctionsForObject(ActionPtr->TargetActor.Get());
+		for (const FActorIOFunction& IOFunction : ValidFunctions.FunctionRegistry)
+		{
+			SelectableFunctionIds.Emplace(IOFunction.FunctionId);
+		}
 	}
 }
 
@@ -905,7 +944,7 @@ FSlateColor SActorIOActionListViewRow::GetFunctionDisplayColor(FName InFunctionI
 		return FSlateColor::UseForeground();
 	}
 
-	if (ActionPtr->TargetActor.IsPending())
+	if (ActionPtr.IsValid() && ActionPtr->TargetActor.IsPending())
 	{
 		// Also accept case where the target actor is invalid but path info exists (actor most likely unloaded).
 		// Since the actor is currently invalid we cannot verify that the function is valid either,
@@ -924,7 +963,7 @@ TSharedPtr<SToolTip> SActorIOActionListViewRow::GetFunctionTooltip(FName InFunct
 		return nullptr;
 	}
 
-	if (ActionPtr->TargetActor.IsPending())
+	if (ActionPtr.IsValid() && ActionPtr->TargetActor.IsPending())
 	{
 		// Handle case where the target actor is invalid but path info exists (actor most likely unloaded).
 		// Since the actor is currently invalid we cannot verify that the function is valid either,
@@ -962,6 +1001,11 @@ void SActorIOActionListViewRow::UpdateFunctionArgumentsErrorText(const FText& In
 
 bool SActorIOActionListViewRow::ValidateFunctionArguments(const FText& InText, FText& OutError)
 {
+	if (!ActionPtr.IsValid())
+	{
+		return true; // do nothing if action is invalid somehow
+	}
+
 	const FActorIOFunction* TargetFunction = ValidFunctions.GetFunction(ActionPtr->FunctionId);
 	UFunction* FunctionPtr = ActionPtr->ResolveUFunction(TargetFunction);
 	if (!FunctionPtr)
@@ -974,7 +1018,7 @@ bool SActorIOActionListViewRow::ValidateFunctionArguments(const FText& InText, F
 
 void SActorIOActionListViewRow::OnFocusChanging(const FWeakWidgetPath& PreviousFocusPath, const FWidgetPath& NewWidgetPath, const FFocusEvent& InFocusEvent)
 {
-	if (NewWidgetPath.IsValid() && InFocusEvent.GetCause() != EFocusCause::Cleared)
+	if (ActionPtr.IsValid() && NewWidgetPath.IsValid() && InFocusEvent.GetCause() != EFocusCause::Cleared)
 	{
 		// Check if the focused widget is our function params edit box.
 		// Using ContainsWidget() because NewWidgetPath.GetLastWidget() points to SEditableText instead of our SEditableTextBox.
@@ -1031,7 +1075,7 @@ FReply SActorIOActionListViewRow::HandleDragDetected(const FGeometry& MyGeometry
 	return FReply::Unhandled();
 }
 
-TOptional<EItemDropZone> SActorIOActionListViewRow::HandleCanAcceptDrop(const FDragDropEvent& DragDropEvent, EItemDropZone DropZone, UActorIOAction* TargetItem)
+TOptional<EItemDropZone> SActorIOActionListViewRow::HandleCanAcceptDrop(const FDragDropEvent& DragDropEvent, EItemDropZone DropZone, TWeakObjectPtr<UActorIOAction> TargetItem)
 {
 	// Similar implementation to array properties in the editor.
 	// @see SDetailSingleItemRow::OnArrayCanAcceptDrop
@@ -1042,7 +1086,7 @@ TOptional<EItemDropZone> SActorIOActionListViewRow::HandleCanAcceptDrop(const FD
 	return OverrideDropZone;
 }
 
-FReply SActorIOActionListViewRow::HandleAcceptDrop(const FDragDropEvent& DragDropEvent, EItemDropZone DropZone, UActorIOAction* TargetItem)
+FReply SActorIOActionListViewRow::HandleAcceptDrop(const FDragDropEvent& DragDropEvent, EItemDropZone DropZone, TWeakObjectPtr<UActorIOAction> TargetItem)
 {
 	const TSharedPtr<FActorIOActionDragDropOp> DragDropOp = DragDropEvent.GetOperationAs<FActorIOActionDragDropOp>();
 	if (!DragDropOp.IsValid())
@@ -1050,14 +1094,14 @@ FReply SActorIOActionListViewRow::HandleAcceptDrop(const FDragDropEvent& DragDro
 		return FReply::Unhandled();
 	}
 
-	UActorIOComponent* IOComponent = TargetItem ? TargetItem->GetOwnerIOComponent() : nullptr;
+	UActorIOComponent* IOComponent = TargetItem.IsValid() ? TargetItem->GetOwnerIOComponent() : nullptr;
 	if (!IsValid(IOComponent))
 	{
 		return FReply::Unhandled();
 	}
 
 	int32 FromIdx = IOComponent->GetActions().IndexOfByKey(DragDropOp->Element);
-	int32 ToIdx = IOComponent->GetActions().IndexOfByKey(TargetItem);
+	int32 ToIdx = IOComponent->GetActions().IndexOfByKey(TargetItem.Get());
 	if (FromIdx == INDEX_NONE || ToIdx == INDEX_NONE)
 	{
 		return FReply::Unhandled();

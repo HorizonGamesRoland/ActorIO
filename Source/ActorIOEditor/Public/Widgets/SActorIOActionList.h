@@ -26,18 +26,17 @@ namespace ColumnId
 /**
  * Widget rendering a list of I/O actions found for an actor.
  */
-class ACTORIOEDITOR_API SActorIOActionListView : public SListView<UActorIOAction*>
+class ACTORIOEDITOR_API SActorIOActionListView : public SListView<TWeakObjectPtr<UActorIOAction>>
 {
-    SLATE_DECLARE_WIDGET(SActorIOActionListView, SListView<UActorIOAction*>)
+    SLATE_DECLARE_WIDGET(SActorIOActionListView, SListView<TWeakObjectPtr<UActorIOAction>>)
 
 public:
 
     SLATE_BEGIN_ARGS(SActorIOActionListView)
-        : _ViewInputActions(false)
     {}
 
-    /** Whether to show input actions. If false, output actions are shown. */
-    SLATE_ARGUMENT(bool, ViewInputActions)
+    /** Reference to the I/O editor widget that owns this action list. */
+    SLATE_ARGUMENT(TWeakPtr<class SActorIOEditor>, IOEditor);
 
     SLATE_END_ARGS()
 
@@ -51,10 +50,10 @@ public:
     void Refresh();
 
     /** @return Whether the list is currently displaying input actions. */
-    bool IsViewingInputActions() const { return bViewInputActions; }
+    bool IsViewingInputActions() const;
 
     /** @return Whether the list is currently displaying output actions. */
-    bool IsViewingOutputActions() const { return !bViewInputActions; }
+    bool IsViewingOutputActions() const;
 
     /**
      * Spawns the params viewer widget that list the parameters of the given UFunction.
@@ -71,17 +70,8 @@ public:
 
 protected:
 
-    /** List of I/O actions displayed in the action list. */
-    TArray<UActorIOAction*> ActionListItems;
-
-    /** Whether the list shows input actions. If false, output actions are shown. */
-    bool bViewInputActions;
-
-    /**
-     * Number of actions in 'ActionListItems' whose target actor is unloaded.
-     * Updated every frame, to catch case where one or more of the targets were unloaded and we need to update the list.
-     */
-    int32 NumActionsWithPendingTarget;
+    /** Reference to the I/O editor widget that owns this action list. */
+    TWeakPtr<class SActorIOEditor> IOEditor;
 
     /** Popup menu of the params viewer that is visible while editing action params. */
     TSharedPtr<class IMenu> ParamsViewerMenu;
@@ -92,22 +82,13 @@ protected:
 protected:
 
     /** Called when a new row is being added to the action list. */
-    TSharedRef<ITableRow> OnGenerateRowItem(UActorIOAction* Item, const TSharedRef<STableViewBase>& OwnerTable);
+    TSharedRef<ITableRow> OnGenerateRowItem(TWeakObjectPtr<UActorIOAction> Item, const TSharedRef<STableViewBase>& OwnerTable);
 
     /** @return Width of the given column. */
     float OnGetColumnWidth(const FName InColumnName) const;
 
     /** Called when a column is resized. */
     void OnColumnWidthChanged(const float InSize, const FName InColumnName);
-
-    /** Recount how many actions in 'ActionListItems' has a target actor that is unloaded. */
-    void UpdatePendingTargetCount();
-
-public:
-
-    //~ Begin SWidget Interface
-    virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
-    //~ End SWidget Interface
 };
 
 
@@ -115,9 +96,9 @@ public:
  * Widget of a single row in the action list.
  * This is basically the UI representation of an I/O action.
  */
-class ACTORIOEDITOR_API SActorIOActionListViewRow : public SMultiColumnTableRow<UActorIOAction*>
+class ACTORIOEDITOR_API SActorIOActionListViewRow : public SMultiColumnTableRow<TWeakObjectPtr<UActorIOAction>>
 {
-    SLATE_DECLARE_WIDGET(SActorIOActionListViewRow, SMultiColumnTableRow<UActorIOAction*>)
+    SLATE_DECLARE_WIDGET(SActorIOActionListViewRow, SMultiColumnTableRow<TWeakObjectPtr<UActorIOAction>>)
 
 public:
 
@@ -134,7 +115,7 @@ public:
     SLATE_END_ARGS()
 
     /** Widget constructor. */
-    void Construct(const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTableView, UActorIOAction* InActionPtr);
+    void Construct(const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTableView, TWeakObjectPtr<UActorIOAction> InActionPtr);
 
     /**
      * Generate the contents of the given column.
@@ -148,7 +129,7 @@ public:
 protected:
 
     /** The I/O action that this widget represents. */
-    UActorIOAction* ActionPtr;
+    TWeakObjectPtr<UActorIOAction> ActionPtr;
 
     /** Whether this is an input action on the actor. If false, it's an output action. */
     bool bIsInputAction;
@@ -300,8 +281,8 @@ public:
 
     //~ Begin Drag & Drop
     FReply HandleDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
-    TOptional<EItemDropZone> HandleCanAcceptDrop(const FDragDropEvent& DragDropEvent, EItemDropZone DropZone, UActorIOAction* TargetItem);
-    FReply HandleAcceptDrop(const FDragDropEvent& DragDropEvent, EItemDropZone DropZone, UActorIOAction* TargetItem);
+    TOptional<EItemDropZone> HandleCanAcceptDrop(const FDragDropEvent& DragDropEvent, EItemDropZone DropZone, TWeakObjectPtr<UActorIOAction> TargetItem);
+    FReply HandleAcceptDrop(const FDragDropEvent& DragDropEvent, EItemDropZone DropZone, TWeakObjectPtr<UActorIOAction> TargetItem);
     //~ End Drag & Drop
 };
 
@@ -316,7 +297,7 @@ public:
     DRAG_DROP_OPERATOR_TYPE(FActorIOActionDragDropOp, FDragDropOperation)
 
     /** The IO action that is being dragged. */
-    UActorIOAction* Element;
+    TWeakObjectPtr<UActorIOAction> Element;
 };
 
 

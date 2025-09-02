@@ -6,6 +6,7 @@
 #include "Widgets/SCompoundWidget.h"
 #include "EditorUndoClient.h"
 
+class UActorIOAction;
 class FReply;
 enum class ECheckBoxState : uint8;
 
@@ -57,6 +58,12 @@ protected:
     /** Border that the action list should be added to. */
     TSharedPtr<class SBorder> ActionListContainer;
 
+    /** List of I/O actions that are inputs of the selected actor. */
+    TArray<TWeakObjectPtr<UActorIOAction>> InputActions;
+
+    /** List of I/O actions that are outputs of the selected actor. */
+    TArray<TWeakObjectPtr<UActorIOAction>> OutputActions;
+
     /** The action list that is displaying I/O actions. */
     TSharedPtr<class SActorIOActionListView> ActionListView;
 
@@ -65,6 +72,14 @@ protected:
 
     /** Whether the action list should be refreshed with the next Refresh() call. */
     bool bActionListNeedsRegenerate;
+
+public:
+
+    /** @return Whether the editor is displaying input actions. If false, output actions are shown.  */
+    bool IsViewingInputActions() const { return bViewInputActions; }
+
+    /** @return List of I/O actions to be displayed in the action list. */
+    const TArray<TWeakObjectPtr<UActorIOAction>>* GetActionListSource() const;
 
 protected:
 
@@ -84,6 +99,10 @@ protected:
     FReply OnClick_NewAction();
 
 public:
+
+    //~ Begin SWidget Interface
+    virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
+    //~ End SWidget Interface
 
     //~ Begin FEditorUndoClient Interface
     virtual bool MatchesContext(const FTransactionContext& InContext, const TArray<TPair<UObject*, FTransactionObjectEvent>>& TransactionObjects) const override;

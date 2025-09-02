@@ -213,18 +213,21 @@ int32 IActorIO::GetNumInputActionsForObject(AActor* InObject)
     return InputActions.Num();
 }
 
-const TArray<UActorIOAction*> IActorIO::GetOutputActionsForObject(AActor* InObject)
+const TArray<TWeakObjectPtr<UActorIOAction>> IActorIO::GetOutputActionsForObject(AActor* InObject)
 {
     // Internally there is no such thing as an output action.
     // All actions are "outputs" as they always make things happen to other actors.
 
-    TArray<UActorIOAction*> OutActions = TArray<UActorIOAction*>();
+    TArray<TWeakObjectPtr<UActorIOAction>> OutActions = TArray<TWeakObjectPtr<UActorIOAction>>();
     if (IsValid(InObject))
     {
         UActorIOComponent* IOComponent = InObject->GetComponentByClass<UActorIOComponent>();
         if (IOComponent)
         {
-            return IOComponent->GetActions();
+            for (const TObjectPtr<UActorIOAction>& Action : IOComponent->GetActions())
+            {
+                OutActions.Emplace(Action);
+            }
         }
     }
 

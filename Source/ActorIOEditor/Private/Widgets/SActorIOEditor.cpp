@@ -164,6 +164,11 @@ SActorIOEditor::~SActorIOEditor()
     }
 }
 
+void SActorIOEditor::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
+{
+    // #TODO: Detect if an action becomes stale
+}
+
 void SActorIOEditor::Refresh()
 {
     UActorIOEditorSubsystem* ActorIOEditorSubsystem = UActorIOEditorSubsystem::Get();
@@ -181,11 +186,11 @@ void SActorIOEditor::Refresh()
     SelectedActorIcon->SetImage(ActorIcon);
     SelectedActorIcon->SetToolTipText(ActorTooltip);
 
-    const int32 NumOutputActions = ActorIOComponent ? ActorIOComponent->GetNumActions() : 0;
-    OutputsButtonText->SetText(FText::FormatOrdered(LOCTEXT("OutputsButton", "Outputs ({0})"), FText::AsNumber(NumOutputActions)));
+    InputActions = IActorIO::GetInputActionsForObject(SelectedActor);
+    OutputActions = IActorIO::GetOutputActionsForObject(SelectedActor);
 
-    const int32 NumInputActions = IActorIO::GetNumInputActionsForObject(SelectedActor);
-    InputsButtonText->SetText(FText::FormatOrdered(LOCTEXT("InputsButton", "Inputs ({0})"), FText::AsNumber(NumInputActions)));
+    InputsButtonText->SetText(FText::FormatOrdered(LOCTEXT("InputsButton", "Inputs ({0})"), FText::AsNumber(InputActions.Num())));
+    OutputsButtonText->SetText(FText::FormatOrdered(LOCTEXT("OutputsButton", "Outputs ({0})"), FText::AsNumber(OutputActions.Num())));
 
     const bool bCanAddAction = IsValid(SelectedActor) && !bViewInputActions;
     NewActionButton->SetEnabled(bCanAddAction);
@@ -196,7 +201,7 @@ void SActorIOEditor::Refresh()
         ActionListContainer->SetContent
         (
             SAssignNew(ActionListView, SActorIOActionListView)
-            .ViewInputActions(bViewInputActions)
+            .IOEditor(StaticCastWeakPtr<SActorIOEditor>(AsWeak()))
         );
     }
     else
@@ -213,6 +218,11 @@ void SActorIOEditor::SetViewInputActions(bool bEnabled, bool bRefresh)
         bActionListNeedsRegenerate = true;
         Refresh();
     }
+}
+
+const TArray<TWeakObjectPtr<UActorIOAction>>* SActorIOEditor::GetActionListSource() const
+{
+    return bViewInputActions ? &InputActions : &OutputActions;
 }
 
 ECheckBoxState SActorIOEditor::IsOutputsButtonChecked() const
