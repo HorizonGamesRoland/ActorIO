@@ -31,7 +31,7 @@ void ALogicGlobalEvent::RegisterIOEvents(FActorIOEventList& EventRegistry)
 	EventRegistry.RegisterEvent(FActorIOEvent()
 		.SetId(TEXT("ALogicGlobalEvent::OnBeginPlay"))
 		.SetDisplayName(LOCTEXT("ALogicGlobalEvent.OnBeginPlay", "OnBeginPlay"))
-		.SetTooltipText(LOCTEXT("ALogicGlobalEvent.OnBeginPlayTooltip", "Event when 'BeginPlay' is called for this actor, or when the owning streaming level is fully loaded."))
+		.SetTooltipText(LOCTEXT("ALogicGlobalEvent.OnBeginPlayTooltip", "Event when 'BeginPlay' is called for this actor."))
 		.SetMulticastDelegate(this, &OnActorBeginPlay));
 
 	EventRegistry.RegisterEvent(FActorIOEvent()
@@ -68,9 +68,9 @@ void ALogicGlobalEvent::PostInitializeComponents()
 	}
 }
 
-void ALogicGlobalEvent::ReadyForPlay()
+void ALogicGlobalEvent::BeginPlay()
 {
-	Super::ReadyForPlay();
+	Super::BeginPlay();
 
 	OnActorBeginPlay.Broadcast();
 }

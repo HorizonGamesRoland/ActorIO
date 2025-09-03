@@ -53,9 +53,9 @@ void ALogicTimer::RegisterIOFunctions(FActorIOFunctionList& FunctionRegistry)
 		.SetFunction(TEXT("StopTimer")));
 }
 
-void ALogicTimer::ReadyForPlay()
+void ALogicTimer::BeginPlay()
 {
-	Super::ReadyForPlay();
+	Super::BeginPlay();
 
 	if (bAutoStart)
 	{

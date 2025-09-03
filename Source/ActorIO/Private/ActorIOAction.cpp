@@ -232,9 +232,11 @@ void UActorIOAction::ReceiveExecuteAction()
 void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 {
 	AActor* ActionOwner = GetOwnerActor();
-	if (!IsValid(ActionOwner))
+
+	FString OwnerInvalidReason;
+	if (!IActorIO::ConfirmObjectIsAlive(ActionOwner, OwnerInvalidReason))
 	{
-		// Do not attempt to execute an action if we are about to be destroyed.
+		// Do nothing if the owning actor is invalid.
 		return;
 	}
 
@@ -253,12 +255,12 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 		return;
 	}
 
-	FString ErrorReason;
-	if (!IActorIO::ConfirmObjectIsAlive(TargetActor.Get(), ErrorReason))
+	FString TargetInvalidReason;
+	if (!IActorIO::ConfirmObjectIsAlive(TargetActor.Get(), TargetInvalidReason))
 	{
 		// Do nothing if the target actor is invalid.
 		// The actor was most likely unloaded or destroyed.
-		FActionExecutionContext::ExecutionError(DebugIOActions && WarnIOInvalidTarget, ELogVerbosity::Warning, FString::Printf(TEXT("Target actor is invalid. Reason: %s"), *ErrorReason));
+		FActionExecutionContext::ExecutionError(DebugIOActions && WarnIOInvalidTarget, ELogVerbosity::Warning, FString::Printf(TEXT("Target actor is invalid. Reason: %s"), *TargetInvalidReason));
 		return;
 	}
 

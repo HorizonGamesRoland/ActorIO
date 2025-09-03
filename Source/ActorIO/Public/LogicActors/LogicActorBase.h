@@ -39,60 +39,10 @@ protected:
 	TObjectPtr<UBillboardComponent> SpriteComponent;
 #endif
 
-	/** Handle for when a level is added to the world. */
-	FDelegateHandle DelegateHandle_OnLevelAddedToWorld;
-
-	/**
-	 * Whether the logic actor is post 'BeginPlay' and level activation.
-	 * If true, the actor is ready to execute I/O actions even from streaming levels.
-	 */
-	bool bLogicActorIsReady;
-
 protected:
 
-	//~ Begin AActor Interface
-	virtual void BeginPlay() override;
-	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
-	virtual void TickActor(float DeltaTime, enum ELevelTick TickType, FActorTickFunction& ThisTickFunction) override;
-	//~ End AActor Interface
-
-	//~ Begin IActorIOInterface
+	//~ Begin IActorIOInterface Implementation
 	virtual void RegisterIOEvents(FActorIOEventList& EventRegistry) override {}
 	virtual void RegisterIOFunctions(FActorIOFunctionList& FunctionRegistry) override {}
-	//~ End IActorIOInterface
-
-public:
-
-	/**
-	 * Whether the actor is post 'BeginPlay' and level activation.
-	 * If true, the actor is ready to execute I/O actions even from streaming levels.
-	 * For actors in the persistent level this is true immediately after 'BeginPlay'.
-	 * For actors in streaming levels, this is true after the level was made visible (active).
-	 * 
-	 * @see ALogicActorBase::ReadyForPlay
-	 */
-	UFUNCTION(BlueprintPure, Category = "LogicActors")
-	bool IsLogicActorReady() const { return bLogicActorIsReady; }
-
-protected:
-
-	/**
-	 * Called when the actor's level is activated, and ready to execute I/O actions.
-	 * For actors in the persistent level this is the same as 'BeginPlay'.
-	 * For actors in streaming levels, this is called after the level was made visible (active).
-	 */
-	virtual void ReadyForPlay();
-
-	/**
-	 * Event when the actor's level is activated, and ready to execute I/O actions.
-	 * For actors in the persistent level this is the same as 'BeginPlay'.
-	 * For actors in streaming levels, this is called after the level was made visible (active).
-	 */
-	UFUNCTION(BlueprintImplementableEvent, DisplayName = "ReadyForPlay", Category = "Events")
-	void K2_ReadyForPlay();
-
-private:
-
-	/** Called when a level is added to the world. */
-	void OnLevelAddedToWorldCallback(ULevel* InLevel, UWorld* InWorld);
+	//~ End IActorIOInterface Implementation
 };

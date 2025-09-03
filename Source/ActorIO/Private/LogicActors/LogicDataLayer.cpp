@@ -52,9 +52,9 @@ void ALogicDataLayer::RegisterIOFunctions(FActorIOFunctionList& FunctionRegistry
 		.SetFunction(TEXT("UnloadDataLayer")));
 }
 
-void ALogicDataLayer::ReadyForPlay()
+void ALogicDataLayer::BeginPlay()
 {
-	Super::ReadyForPlay();
+	Super::BeginPlay();
 
 	// World Partition blocks the world from beginning play until streaming is finished.
 	// @see UWorldPartition::OnWorldPreBeginPlay

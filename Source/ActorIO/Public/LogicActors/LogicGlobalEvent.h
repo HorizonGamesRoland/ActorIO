@@ -27,7 +27,7 @@ public:
     UPROPERTY(BlueprintAssignable, Category = "Events")
     FSimpleActionDelegate OnWorldInitialized;
 
-    /** Event when 'BeginPlay' is called for this actor, or when the owning streaming level is fully loaded. */
+    /** Event when 'BeginPlay' is called for this actor. */
     UPROPERTY(BlueprintAssignable, Category = "Events")
     FSimpleActionDelegate OnActorBeginPlay;
 
@@ -45,7 +45,7 @@ protected:
     virtual void RegisterIOEvents(FActorIOEventList& EventRegistry) override;
     virtual void RegisterIOFunctions(FActorIOFunctionList& FunctionRegistry) override;
     virtual void PostInitializeComponents() override;
-    virtual void ReadyForPlay() override;
+    virtual void BeginPlay() override;
     virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
     //~ End ALogicActorBase Interface
 

@@ -254,27 +254,35 @@ bool IActorIO::ConfirmObjectIsAlive(UObject* InObject, FString& OutError)
 {
     if (!IsValid(InObject))
     {
-        OutError = TEXT("Target object is null, or pending kill (unloaded or destroyed?).");
+        OutError = TEXT("Object is null, or pending kill (unloaded or destroyed?).");
         return false;
     }
 
-    UWorld* World = InObject->GetWorld();
-    if (!World)
-    {
-        OutError = TEXT("Target object does not have a valid world (streaming in progress?).");
-        return false;
-    }
-
-    // Due to level streaming, we also need to make sure that the owning level is "visible" (active).
+    // Due to level streaming, we also need to make sure that the actor has a valid world.
     // Objects that are being streamed out still appear to be valid, even though they are not properly part of a level/world anymore (until GC'ed).
     // I suspect this happens because of LevelStreaming.ShouldReuseUnloadedButStillAroundLevels.
     // @see https://forums.unrealengine.com/t/unloaded-actor-not-being-destroyed/2536205
+    UWorld* World = InObject->GetWorld();
+    if (!World)
+    {
+        OutError = TEXT("Object does not have a valid world (streaming in progress?).");
+        return false;
+    }
+
+    // In case we still encounter crashes or errors then we should probably check for level activation as well.
+    // However, if we do use this then we'll need to make sure that actions are not executing too early/late.
+    // For example, during 'BeginPlay' of streamed actors the level is not active.
+    // Same goes for 'EndPlay'. At that the time the level is no longer active.
+    // Also, we cannot simply check 'Level->IsPersistentLevel' because with World Partition all actors are on dynamic streaming levels.
+    // Let's try to avoid this requirement.
+#if 0
     ULevel* Level = InObject->GetTypedOuter<ULevel>(); // same as AActor::GetLevel
     if (!Level || !Level->bIsVisible)
     {
-        OutError = TEXT("Target object is not part of an active level (streaming in progress?).");
+        OutError = TEXT("Object is not part of an active level (streaming in progress?).");
         return false;
     }
+#endif
 
     return true;
 }
