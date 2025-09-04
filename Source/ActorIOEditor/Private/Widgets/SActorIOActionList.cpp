@@ -215,12 +215,20 @@ void SActorIOActionListView::UpdateParamsViewer(int32 InHighlightedParamIdx)
 
 bool SActorIOActionListView::TickAutoRefreshRequired() const
 {
-	for (int32 RowIdx = 0; RowIdx != GetNumGeneratedChildren(); ++RowIdx)
+	if (IsViewingInputActions())
 	{
-		TSharedPtr<SActorIOActionListViewRow> RowWidget = StaticCastSharedPtr<SActorIOActionListViewRow>(GetGeneratedChildAt(RowIdx));
-		if (RowWidget.IsValid() && RowWidget->ActionPtr.IsValid())
+		// Checking for pending target actor does not make sense for input actions.
+		// We are viewing actions who's target actor is the selected actor, so it cannot be pending.
+		return false;
+	}
+
+	for (const TWeakObjectPtr<UActorIOAction>& RowItem : GetItems())
+	{
+		TSharedPtr<ITableRow> RowWidget = WidgetFromItem(RowItem);
+		if (RowWidget.IsValid())
 		{
-			if (RowWidget->bIsTargetActorPending != RowWidget->ActionPtr->TargetActor.IsPending())
+			TSharedPtr<SActorIOActionListViewRow> ActionRowWidget = StaticCastSharedPtr<SActorIOActionListViewRow>(RowWidget);
+			if (ActionRowWidget->bIsTargetActorPending != ActionRowWidget->ActionPtr->TargetActor.IsPending())
 			{
 				// An action's target actor became loaded/unloaded, but the row hasn't picked up on the change yet.
 				// This most likely happened due to level streaming in editor (e.g. World Partition load regions changed by user).
