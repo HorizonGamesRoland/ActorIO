@@ -5,6 +5,7 @@
 #include "ActorIO.h"
 #include "ActorIOInterface.h"
 #include "GameFramework/Actor.h"
+#include "Components/SceneComponent.h"
 #include "Components/BillboardComponent.h"
 #include "Engine/Texture2D.h"
 #include "UObject/ConstructorHelpers.h"
@@ -28,20 +29,20 @@ public:
 
 protected:
 
+	/** The component that defines the transform (location, rotation, scale). */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<USceneComponent> SceneComponent;
+
 #if WITH_EDITORONLY_DATA
 	/** Billboard component displayed in the editor. */
-	UPROPERTY(EditDefaultsOnly, Category = "Components")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UBillboardComponent> SpriteComponent;
 #endif
 
-	/** Get the editor only billboard component of the actor. */
-	UFUNCTION(BlueprintPure, Category = "Components", meta = (DevelopmentOnly))
-	UBillboardComponent* GetEditorSpriteComponent() const;
-
 protected:
 
-	//~ Begin ALogicActorBase Interface
+	//~ Begin IActorIOInterface Implementation
 	virtual void RegisterIOEvents(FActorIOEventList& EventRegistry) override {}
 	virtual void RegisterIOFunctions(FActorIOFunctionList& FunctionRegistry) override {}
-	//~ End ALogicActorBase Interface
+	//~ End IActorIOInterface Implementation
 };

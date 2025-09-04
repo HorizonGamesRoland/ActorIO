@@ -31,7 +31,7 @@ public:
 
 	/** The execution target. The designated function will be called on this actor. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Action")
-	TObjectPtr<AActor> TargetActor;
+	TSoftObjectPtr<AActor> TargetActor;
 
 	/** Id of the I/O function to call on the target actor. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Action")
@@ -59,6 +59,7 @@ public:
 protected:
 
 	/** Whether the action was executed before. */
+	UPROPERTY()
 	bool bWasExecuted;
 
 	/** Whether the action is bound to the assigned I/O event. */
@@ -82,6 +83,10 @@ public:
 	/** Get the parent actor of the I/O component that owns this action. */
 	UFUNCTION(BlueprintPure, Category = "Action")
 	AActor* GetOwnerActor() const;
+
+	/** Check if the selected target actor is valid and loaded. */
+	UFUNCTION(BlueprintPure, Category = "Action")
+	bool IsTargetActorAlive() const;
 
 	/**
 	 * Get the object that the final command will be sent to by this action.

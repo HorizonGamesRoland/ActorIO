@@ -2,7 +2,7 @@
 
 #include "Widgets/SActorIOEditor.h"
 #include "Widgets/SActorIOActionList.h"
-#include "ActorIOEditor.h"
+#include "ActorIOEditorSubsystem.h"
 #include "ActorIOEditorStyle.h"
 #include "ActorIOComponent.h"
 #include "ActorIOAction.h"
@@ -13,7 +13,9 @@
 #include "SPositiveActionButton.h"
 #include "Styling/SlateIconFinder.h"
 #include "Styling/SlateTypes.h"
+#include "Editor.h"
 #include "ScopedTransaction.h"
+#include "Misc/ITransaction.h"
 #include "Misc/Optional.h"
 #include "SlateOptMacros.h"
 
@@ -27,6 +29,8 @@ void SActorIOEditor::PrivateRegisterAttributes(FSlateAttributeInitializer& Attri
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SActorIOEditor::Construct(const FArguments& InArgs)
 {
+    GEditor->RegisterForUndo(this);
+
     bViewInputActions = false;
     bActionListNeedsRegenerate = true;
 
@@ -147,59 +151,50 @@ void SActorIOEditor::Construct(const FArguments& InArgs)
         ]
     ];
 
-    Refresh();
+    // Update the editor window immediately.
+    RequestRefresh(true);
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
-void SActorIOEditor::Refresh()
+SActorIOEditor::~SActorIOEditor()
 {
-    FActorIOEditor& ActorIOEditor = FActorIOEditor::Get();
-    AActor* SelectedActor = ActorIOEditor.GetSelectedActor();
-    UActorIOComponent* ActorIOComponent = SelectedActor ? SelectedActor->GetComponentByClass<UActorIOComponent>() : nullptr;
-
-    const FString ActorName = SelectedActor ? SelectedActor->GetActorNameOrLabel() : TEXT("None");
-    const FString ActorPath = SelectedActor ? SelectedActor->GetPathName() : TEXT("None");
-    const FText ActorTooltip = FText::FormatOrdered(LOCTEXT("SelectedActorTooltip", "Reference to Actor ID '{0}'"), FText::FromString(ActorPath));
-    SelectedActorText->SetText(FText::FromString(ActorName));
-    SelectedActorText->SetToolTipText(ActorTooltip);
-
-    const UClass* ActorClass = SelectedActor ? SelectedActor->GetClass() : AActor::StaticClass();
-    const FSlateBrush* ActorIcon = FSlateIconFinder::FindIconBrushForClass(ActorClass, "ClassIcon.Actor");
-    SelectedActorIcon->SetImage(ActorIcon);
-    SelectedActorIcon->SetToolTipText(ActorTooltip);
-
-    const int32 NumOutputActions = ActorIOComponent ? ActorIOComponent->GetNumActions() : 0;
-    OutputsButtonText->SetText(FText::FormatOrdered(LOCTEXT("OutputsButton", "Outputs ({0})"), FText::AsNumber(NumOutputActions)));
-
-    const int32 NumInputActions = IActorIO::GetNumInputActionsForObject(SelectedActor);
-    InputsButtonText->SetText(FText::FormatOrdered(LOCTEXT("InputsButton", "Inputs ({0})"), FText::AsNumber(NumInputActions)));
-
-    const bool bCanAddAction = IsValid(SelectedActor) && !bViewInputActions;
-    NewActionButton->SetEnabled(bCanAddAction);
-
-    if (bActionListNeedsRegenerate)
+    if (GEditor)
     {
-        bActionListNeedsRegenerate = false;
-        ActionListContainer->SetContent
-        (
-            SAssignNew(ActionListView, SActorIOActionListView)
-            .ViewInputActions(bViewInputActions)
-        );
-    }
-    else
-    {
-        ActionListView->Refresh();
+        GEditor->UnregisterForUndo(this);
     }
 }
 
-void SActorIOEditor::SetViewInputActions(bool bEnabled, bool bRefresh)
+void SActorIOEditor::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
 {
-    bViewInputActions = bEnabled;
-    if (bRefresh)
+    if (!bRefreshPending && TickAutoRefreshRequired())
     {
-        bActionListNeedsRegenerate = true;
+        bRefreshPending = true;
+    }
+
+    if (bRefreshPending)
+    {
         Refresh();
     }
+}
+
+void SActorIOEditor::RequestRefresh(bool bImmediate)
+{
+    bRefreshPending = true;
+    if (bImmediate)
+    {
+        Refresh();
+    }
+}
+
+void SActorIOEditor::SetViewInputActions(bool bEnabled)
+{
+    bViewInputActions = bEnabled;
+    bActionListNeedsRegenerate = true;
+}
+
+const TArray<TWeakObjectPtr<UActorIOAction>>* SActorIOEditor::GetActionListSource() const
+{
+    return bViewInputActions ? &InputActions : &OutputActions;
 }
 
 ECheckBoxState SActorIOEditor::IsOutputsButtonChecked() const
@@ -213,7 +208,7 @@ void SActorIOEditor::OnOutputsButtonChecked(ECheckBoxState InState)
     {
         bViewInputActions = false;
         bActionListNeedsRegenerate = true;
-        Refresh();
+        RequestRefresh();
     }
 }
 
@@ -228,14 +223,14 @@ void SActorIOEditor::OnInputsButtonChecked(ECheckBoxState InState)
     {
         bViewInputActions = true;
         bActionListNeedsRegenerate = true;
-        Refresh();
+        RequestRefresh();
     }
 }
 
 FReply SActorIOEditor::OnClick_NewAction()
 {
-    FActorIOEditor& ActorIOEditor = FActorIOEditor::Get();
-    AActor* SelectedActor = ActorIOEditor.GetSelectedActor();
+    UActorIOEditorSubsystem* ActorIOEditorSubsystem = UActorIOEditorSubsystem::Get();
+    AActor* SelectedActor = ActorIOEditorSubsystem->GetSelectedActor();
     if (IsValid(SelectedActor))
     {
         const FScopedTransaction Transaction(LOCTEXT("AddActorIOAction", "Add ActorIO Action"));
@@ -243,7 +238,7 @@ FReply SActorIOEditor::OnClick_NewAction()
         UActorIOComponent* ActorIOComponent = SelectedActor->GetComponentByClass<UActorIOComponent>();
         if (!ActorIOComponent)
         {
-            ActorIOComponent = ActorIOEditor.AddIOComponentToActor(SelectedActor, true);
+            ActorIOComponent = ActorIOEditorSubsystem->AddIOComponentToActor(SelectedActor, true);
         }
 
         if (ActorIOComponent)
@@ -253,8 +248,111 @@ FReply SActorIOEditor::OnClick_NewAction()
         }
     }
 
-    Refresh();
+    RequestRefresh();
     return FReply::Handled();
+}
+
+bool SActorIOEditor::TickAutoRefreshRequired() const
+{
+    UActorIOEditorSubsystem* ActorIOEditorSubsystem = UActorIOEditorSubsystem::Get();
+    AActor* SelectedActor = ActorIOEditorSubsystem->GetSelectedActor();
+    if (!SelectedActor)
+    {
+        // Do nothing if no actor is selected.
+        // Selection change is handled so no auto refresh required.
+        return false;
+    }
+
+    if (ActionListView->TickAutoRefreshRequired())
+    {
+        // The action list wants a refresh.
+        // This is most likely happened due to an action's target actor becoming loaded/unloaded.
+        return true;
+    }
+
+    const int32 ExpectedNumInputActions = IActorIO::GetNumInputActionsForObject(SelectedActor);
+    if (InputActions.Num() != ExpectedNumInputActions)
+    {
+        // The number of cached input actions does not match the actual amount of input actions for the selected actor.
+        // An actor with actions was loaded or unloaded in the editor, so we need to refresh.
+        return true;
+    }
+
+    return false;
+}
+
+void SActorIOEditor::Refresh()
+{
+    bRefreshPending = false;
+
+    UActorIOEditorSubsystem* ActorIOEditorSubsystem = UActorIOEditorSubsystem::Get();
+    AActor* SelectedActor = ActorIOEditorSubsystem->GetSelectedActor();
+    UActorIOComponent* ActorIOComponent = SelectedActor ? SelectedActor->GetComponentByClass<UActorIOComponent>() : nullptr;
+
+    const FString ActorName = SelectedActor ? SelectedActor->GetActorNameOrLabel() : TEXT("None");
+    const FString ActorPath = SelectedActor ? SelectedActor->GetPathName() : TEXT("None");
+    const FText ActorTooltip = FText::FormatOrdered(LOCTEXT("SelectedActorTooltip", "Reference to Actor ID '{0}'"), FText::FromString(ActorPath));
+    SelectedActorText->SetText(FText::FromString(ActorName));
+    SelectedActorText->SetToolTipText(ActorTooltip);
+
+    const UClass* ActorClass = SelectedActor ? SelectedActor->GetClass() : AActor::StaticClass();
+    const FSlateBrush* ActorIcon = FSlateIconFinder::FindIconBrushForClass(ActorClass, "ClassIcon.Actor");
+    SelectedActorIcon->SetImage(ActorIcon);
+    SelectedActorIcon->SetToolTipText(ActorTooltip);
+
+    InputActions = IActorIO::GetInputActionsForObject(SelectedActor);
+    OutputActions = IActorIO::GetOutputActionsForObject(SelectedActor);
+
+    InputsButtonText->SetText(FText::FormatOrdered(LOCTEXT("InputsButton", "Inputs ({0})"), FText::AsNumber(InputActions.Num())));
+    OutputsButtonText->SetText(FText::FormatOrdered(LOCTEXT("OutputsButton", "Outputs ({0})"), FText::AsNumber(OutputActions.Num())));
+
+    const bool bCanAddAction = IsValid(SelectedActor) && !bViewInputActions;
+    NewActionButton->SetEnabled(bCanAddAction);
+
+    if (bActionListNeedsRegenerate)
+    {
+        bActionListNeedsRegenerate = false;
+        ActionListContainer->SetContent
+        (
+            SAssignNew(ActionListView, SActorIOActionListView)
+            .IOEditor(StaticCastWeakPtr<SActorIOEditor>(AsWeak()))
+        );
+    }
+    else
+    {
+        ActionListView->RebuildList();
+    }
+}
+
+bool SActorIOEditor::MatchesContext(const FTransactionContext& InContext, const TArray<TPair<UObject*, FTransactionObjectEvent>>& TransactionObjects) const
+{
+    // Ensure that we only react to a very specific transaction called 'ViewIOAction'.
+    // For more info see PostUndo below.
+    return InContext.Context == TEXT("ViewIOAction");
+}
+
+void SActorIOEditor::PostUndo(bool bSuccess)
+{
+    // We are undoing a 'ViewIOAction' transaction.
+    // This means the user was viewing input actions, and clicked on one an action's view button.
+    // This resulted in the actor being selected and the I/O editor switching to outputs tab.
+    // Since the 'bViewInputActions' param is not UPROPERTY we need to manually revert it.
+    if (bSuccess)
+    {
+        SetViewInputActions(true);
+        RequestRefresh();
+    }
+}
+
+void SActorIOEditor::PostRedo(bool bSuccess)
+{
+    // We are redoing a 'ViewIOAction' transaction.
+    // Do the opposite of PostUndo.
+    if (bSuccess)
+    {
+        SetViewInputActions(false);
+        RequestRefresh();
+    }
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -71,6 +71,7 @@ void FActorIOEditorStyle::Initialize()
 	StyleSet->Set("ActionListView.ActionSpacing", 2.0f);
 	StyleSet->Set("ActionListView.ActionArgumentsBoxDefaultPadding", FMargin(5.0f, 3.0f, 5.0f, 3.0f));
 	StyleSet->Set("ActionListView.ActionArgumentsBoxErrorPadding", FMargin(5.0f, 3.0f, 0.0f, 3.0f)); // no padding on right to fix big gap when error text is present
+	StyleSet->Set("ActionListView.UnverifiedReferenceColor", FStyleColors::AccentPurple);
 
 	SetupActionListColumnSizes();
 
@@ -94,6 +95,8 @@ void FActorIOEditorStyle::Initialize()
 	StyleSet->Set("ClassThumbnail.LogicCompare", new IMAGE_BRUSH("Icons/AssetIcons/LogicCompare_64", Icon64x64));
 	StyleSet->Set("ClassIcon.LogicCounter", new IMAGE_BRUSH("Icons/AssetIcons/LogicCounter_16", Icon16x16));
 	StyleSet->Set("ClassThumbnail.LogicCounter", new IMAGE_BRUSH("Icons/AssetIcons/LogicCounter_64", Icon64x64));
+	StyleSet->Set("ClassIcon.LogicDataLayer", new IMAGE_BRUSH("Icons/AssetIcons/LogicDataLayer_16", Icon16x16));
+	StyleSet->Set("ClassThumbnail.LogicDataLayer", new IMAGE_BRUSH("Icons/AssetIcons/LogicDataLayer_64", Icon64x64));
 	StyleSet->Set("ClassIcon.LogicGlobalEvent", new IMAGE_BRUSH("Icons/AssetIcons/LogicGlobalEvent_16", Icon16x16));
 	StyleSet->Set("ClassThumbnail.LogicGlobalEvent", new IMAGE_BRUSH("Icons/AssetIcons/LogicGlobalEvent_64", Icon64x64));
 	StyleSet->Set("ClassIcon.LogicRelay", new IMAGE_BRUSH("Icons/AssetIcons/LogicRelay_16", Icon16x16));

@@ -51,8 +51,7 @@ struct ACTORIO_API FActorIOEvent
 	FText TooltipText;
 
 	/** The owner of the assigned delegate. */
-	UPROPERTY()
-	TObjectPtr<UObject> DelegateOwner;
+	TWeakObjectPtr<UObject> DelegateOwner;
 
 	/** The type of the assigned delegate. */
 	Type DelegateType;
@@ -63,7 +62,7 @@ struct ACTORIO_API FActorIOEvent
 	/** Reference to a sparse delegate. */
 	FName SparseDelegateName;
 
-	/** Reference to an event dispatcher created in blueprints. */
+	/** Reference to a blueprint exposed dynamic delegate. */
 	FName BlueprintDelegateName;
 
 	/**
@@ -128,7 +127,7 @@ struct ACTORIO_API FActorIOEvent
 		return *this;
 	}
 
-	/** Set the assigned delegate to an event dispatcher that was created in blueprints. */
+	/** Set the assigned delegate to a blueprint exposed dynamic delegate. */
 	FActorIOEvent& SetBlueprintDelegate(UObject* InDelegateOwner, FName InBlueprintDelegateName)
 	{
 		DelegateOwner = InDelegateOwner;
@@ -174,6 +173,7 @@ struct ACTORIO_API FActorIOEventList
 	 * The internal list of I/O events.
 	 * Do not modify directly, use RegisterEvent() instead.
 	 */
+	UPROPERTY()
 	TArray<FActorIOEvent> EventRegistry;
 
 	/** Default constructor. */
@@ -323,6 +323,7 @@ struct ACTORIO_API FActorIOFunctionList
 	 * The internal list of I/O functions.
 	 * Do not modify directly, use RegisterFunction() instead.
 	 */
+	UPROPERTY()
 	TArray<FActorIOFunction> FunctionRegistry;
 
 	/** Default constructor. */
@@ -387,7 +388,7 @@ struct ACTORIO_API FActionExecutionContext
 
 	/**
 	 * List of named arguments and their corresponding values.
-	 * Elements should only be assigned from within an I/O event processor.
+	 * Elements should only be set from GetGlobalNamedArguments, GetLocalNamedArguments, or an I/O event processor!
 	 * Do not modify directly. Use SetNamedArgument() instead.
 	 */
 	TMap<FString, FString> NamedArguments;
@@ -414,9 +415,12 @@ struct ACTORIO_API FActionExecutionContext
 	/**
 	 * Add a named argument (parameter) to the current execution context.
 	 * If it already exists then the value is simply updated.
-	 * Should only be called from within an I/O event processor!
+	 * Should only be called from GetGlobalNamedArguments, GetLocalNamedArguments, or an I/O event processor!
 	 */
 	void SetNamedArgument(const FString& InName, const FString& InValue);
+
+	/** Log an execution failure message to the console and game screen. */
+	static void ExecutionError(bool bCondition, ELogVerbosity::Type InVerbosity, const FString& InMessage);
 };
 
 /**
@@ -433,16 +437,19 @@ public:
 	static FActorIOFunctionList GetFunctionsForObject(AActor* InObject);
 
 	/** @return List of I/O actions currently loaded in the world that are targeting the given actor. */
-	static const TArray<UActorIOAction*> GetInputActionsForObject(AActor* InObject);
+	static const TArray<TWeakObjectPtr<UActorIOAction>> GetInputActionsForObject(AActor* InObject);
 
 	/** @return Number of I/O actions currently loaded in the world that are targeting the given actor. */
 	static int32 GetNumInputActionsForObject(AActor* InObject);
 
 	/** @return List of I/O actions owned by the given actor. */
-	static const TArray<UActorIOAction*> GetOutputActionsForObject(AActor* InObject);
+	static const TArray<TWeakObjectPtr<UActorIOAction>> GetOutputActionsForObject(AActor* InObject);
 
 	/** @return Number of I/O actions owned by the given actor. */
 	static int32 GetNumOutputActionsForObject(AActor* InObject);
+
+	/** Check that given object is truly valid and loaded. */
+	static bool ConfirmObjectIsAlive(UObject* InObject, FString& OutError);
 
 	/** Perform basic checks to see if the given arguments can be imported into the function as parameters. */
 	static bool ValidateFunctionArguments(UFunction* FunctionPtr, const FString& InArguments, FText& OutError);

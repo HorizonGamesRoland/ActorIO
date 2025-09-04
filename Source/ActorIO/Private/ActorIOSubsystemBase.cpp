@@ -10,6 +10,7 @@
 #include "GameFramework/Pawn.h"
 #include "GameFramework/CameraBlockingVolume.h"
 #include "Engine/StaticMeshActor.h"
+#include "Engine/TextRenderActor.h"
 #include "Engine/BlockingVolume.h"
 #include "Engine/TriggerVolume.h"
 #include "Engine/TriggerBase.h"
@@ -31,7 +32,7 @@ UActorIOSubsystemBase::UActorIOSubsystemBase()
 
 UActorIOSubsystemBase* UActorIOSubsystemBase::Get(UObject* WorldContextObject)
 {
-    if (UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::Assert))
+    if (UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull))
     {
         UActorIOSubsystemBase* IOSubsystem = World->GetSubsystem<UActorIOSubsystemBase>();
         if (IOSubsystem)
@@ -60,10 +61,12 @@ bool UActorIOSubsystemBase::ExecuteCommand(UObject* Target, const TCHAR* Str, FO
      *
      * List of changes:
      *
+     *   - Skip importing value for 'out' properties that are not passed by 'ref'.
      *   - Skip CPP param default value initialization because it only works in editor and not packaged games.
      *   - FindFunction and ProcessEvent are called on Target.
      *   - Add IsValid check for Target before finding UFunction.
      *   - Use Ar.Logf instead of UE_LOG(LogScriptCore) because LogScriptCore is static and its verbosity cannot be changed.
+     *   - Return success/failure properly.
      */
 
 #if UE_VERSION_NEWER_THAN(5, 6, 999) // <- patch version doesn't matter so use 999 to pass the check
@@ -133,6 +136,26 @@ bool UActorIOSubsystemBase::ExecuteCommand(UObject* Target, const TCHAR* Str, FO
                 Op->SetObjectPropertyValue(Op->ContainerPtrToValuePtr<uint8>(Parms), Executor);
                 continue;
             }
+        }
+
+        /*
+         * SKIP IMPORTING VALUE FOR 'OUT' PROPERTIES THAT ARE NOT PASSED BY 'REF'
+         * 
+         * In Unreal's reflection system, out properties and reference properties are differentiated.
+         * Out params that are NOT passed by ref only appear on return nodes.
+         * They do not have an input value, instead they are initialized to zero/null and the function itself will give it a value when returning it.
+         * However, if the property is passed by ref then it will also appear as an input, and we will have to initialize it ourselves.
+         * 
+         * In C++ this differentiation translates to:
+         *  - "FString& OutString" <- an out param that is not passed by ref and will only appear on return nodes (even though the value is passed by ref in C++).
+         *  - "UPARAM(Ref) FString& OutString" <- an out param that is passed by ref, and will behave the same as regular C++ code.
+         * 
+         * So to properly support out params, we need to skip importing values for these params if they are NOT passed by ref.
+         * At this point we've already initialized a value for these params above.
+         */
+        if (PropertyParam->HasAnyPropertyFlags(CPF_OutParm) && !PropertyParam->HasAnyPropertyFlags(CPF_ReferenceParm))
+        {
+            continue;
         }
 
         // Keep old string around in case we need to pass the whole remaining string
@@ -208,8 +231,7 @@ bool UActorIOSubsystemBase::ExecuteCommand(UObject* Target, const TCHAR* Str, FO
         It->DestroyValue_InContainer(Parms);
     }
 
-    // Success.
-    return true;
+    return !bFailed;
 }
 
 void UActorIOSubsystemBase::RegisterNativeEventsForObject(AActor* InObject, FActorIOEventList& EventRegistry)
@@ -242,7 +264,7 @@ void UActorIOSubsystemBase::RegisterNativeEventsForObject(AActor* InObject, FAct
     // In the case of ALevelSequenceActor, we are comparing the class name directly to avoid dependency to LevelSequence module.
     // Note that this does not support class inheritance, so it only works for exact classes.
     // Since LevelSequenceActor is just a component wrapper, I do not think anyone will ever subclass it anyways.
-    if (InObject->GetClass()->GetFName() == TEXT("LevelSequenceActor"))
+    if (InObject->GetClass()->GetFName() == TEXT("LevelSequenceActor") || InObject->GetClass()->GetFName() == TEXT("ReplicatedLevelSequenceActor"))
     {
         // The callback events are in the ULevelSequencePlayer subobject of the ALevelSequenceActor.
         // We can simply get it as a UObject and use reflection data to bind to it (via SetBlueprintDelegate).
@@ -461,6 +483,27 @@ void UActorIOSubsystemBase::RegisterNativeFunctionsForObject(AActor* InObject, F
             .SetDisplayName(LOCTEXT("StaticMeshActor.SetHiddenInGame", "SetHiddenInGame"))
             .SetTooltipText(LOCTEXT("StaticMeshActor.SetHiddenInGameTooltip", "Set whether the actor is hidden or not."))
             .SetFunction(TEXT("SetActorHiddenInGame")));
+    }
+
+    //==================================
+    // Text Render Actors
+    //==================================
+
+    if (InObject->IsA<ATextRenderActor>())
+    {
+        FunctionRegistry.RegisterFunction(FActorIOFunction()
+            .SetId(TEXT("ATextRenderActor::SetText"))
+            .SetDisplayName(LOCTEXT("TextRenderActor.SetText", "SetText"))
+            .SetTooltipText(LOCTEXT("TextRenderActor.SetTextTooltip", "Change the displayed text."))
+            .SetFunction(TEXT("K2_SetText"))
+            .SetSubobject(TEXT("NewTextRenderComponent")));
+
+        FunctionRegistry.RegisterFunction(FActorIOFunction()
+            .SetId(TEXT("ATextRenderActor::SetTextRenderColor"))
+            .SetDisplayName(LOCTEXT("TextRenderActor.SetTextRenderColor", "SetTextRenderColor"))
+            .SetTooltipText(LOCTEXT("TextRenderActor.SetTextRenderColorTooltip", "Set color of the text."))
+            .SetFunction(TEXT("SetTextRenderColor"))
+            .SetSubobject(TEXT("NewTextRenderComponent")));
     }
 
     //==================================

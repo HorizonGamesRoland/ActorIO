@@ -2,14 +2,23 @@
 
 #include "ActorIOLibrary.h"
 
-void UActorIOLibrary::K2_RegisterIOEvent(UObject* WorldContextObject, FActorIOEventList& Registry, FName EventId, const FText& DisplayNameText, const FText& TooltipText, FName EventDispatcherName, FName EventProcessorName)
+void UActorIOLibrary::K2_RegisterIOEvent(UObject* WorldContextObject, FActorIOEventList& Registry, FName EventId, const FText& DisplayNameText, const FText& TooltipText, FName EventDispatcherName, FName EventProcessorName, FName SubobjectName)
 {
+    // Temporary solution to support registering an I/O event for a subobject of the actor in blueprints too.
+    // From C++ you can already set the delegate owner directly.
+    // This will be reworked once the new registration methods are introduced.
+    UObject* DelegateOwner = WorldContextObject;
+    if (IsValid(WorldContextObject) && !SubobjectName.IsNone())
+    {
+        DelegateOwner = WorldContextObject->GetDefaultSubobjectByName(SubobjectName);
+    }
+
     Registry.RegisterEvent(FActorIOEvent()
         .SetId(EventId)
         .SetDisplayName(DisplayNameText)
         .SetTooltipText(TooltipText)
-        .SetBlueprintDelegate(WorldContextObject, EventDispatcherName)
-        .SetEventProcessor(WorldContextObject, EventProcessorName));
+        .SetBlueprintDelegate(DelegateOwner, EventDispatcherName)
+        .SetEventProcessor(DelegateOwner, EventProcessorName));
 }
 
 void UActorIOLibrary::K2_RegisterIOFunction(UObject* WorldContextObject, FActorIOFunctionList& Registry, FName FunctionId, const FText& DisplayNameText, const FText& TooltipText, FString FunctionToExec, FName SubobjectName)

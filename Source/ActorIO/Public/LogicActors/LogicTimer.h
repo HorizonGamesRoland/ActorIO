@@ -21,7 +21,10 @@ public:
 
 public:
 
-    /** Base timer duration. 'TimerRandomization' is added to this. */
+    /**
+     * Base timer duration. 'TimeRandomization' will be added to this.
+     * If 0.0, then the timer will delay for one frame.
+     */
     UPROPERTY(EditInstanceOnly, Category = "Timer")
     float Time;
 
@@ -36,8 +39,12 @@ public:
     UPROPERTY(EditInstanceOnly, Category = "Timer")
     bool bLoop;
 
+    /** Whether to start the timer automatically during 'BeginPlay'. */
+    UPROPERTY(EditInstanceOnly, Category = "Timer")
+    bool bAutoStart;
+
     /** Event when the timer expires. */
-    UPROPERTY(BlueprintAssignable, Category = "Timer")
+    UPROPERTY(BlueprintAssignable, Category = "Events")
     FSimpleActionDelegate OnTimer;
 
 protected:
@@ -50,24 +57,25 @@ protected:
     //~ Begin ALogicActorBase Interface
     virtual void RegisterIOEvents(FActorIOEventList& EventRegistry) override;
     virtual void RegisterIOFunctions(FActorIOFunctionList& FunctionRegistry) override;
+    virtual void BeginPlay() override;
     //~ End ALogicActorBase Interface
 
 public:
 
     /** Start the timer. If the timer is already active then it will be restarted. */
-    UFUNCTION(BlueprintCallable, Category = "Timer")
+    UFUNCTION(BlueprintCallable, Category = "LogicActors|LogicTimer")
     void StartTimer();
 
     /** Start the timer with custom params. If the timer is already active then it will be restarted. */
-    UFUNCTION(BlueprintCallable, Category = "Timer")
+    UFUNCTION(BlueprintCallable, Category = "LogicActors|LogicTimer")
     void StartTimerWithParams(float InTime, float InTimeRandomization, bool bInLoop);
 
     /** Stop the timer if it is active. */
-    UFUNCTION(BlueprintCallable, Category = "Timer")
+    UFUNCTION(BlueprintCallable, Category = "LogicActors|LogicTimer")
     void StopTimer();
 
     /** Get whether the timer is active or not. */
-    UFUNCTION(BlueprintPure, Category = "Timer")
+    UFUNCTION(BlueprintPure, Category = "LogicActors|LogicTimer")
     bool IsTimerActive() const;
 
 protected:

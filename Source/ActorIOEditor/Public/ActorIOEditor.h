@@ -5,41 +5,22 @@
 #include "CoreMinimal.h"
 #include "Modules/ModuleManager.h"
 #include "ActorIOPIEAuthorizer.h"
-#include "EditorUndoClient.h"
 #include "Misc/Optional.h"
-#include "UObject/WeakObjectPtr.h"
 
-class UActorIOComponent;
 class SActorIOEditor;
 class SDockTab;
 class FSpawnTabArgs;
-class AActor;
 class FPlacementModeID;
 
 /**
  * Editor module implementation of the Actor I/O plugin.
  */
-class FActorIOEditor : public IModuleInterface, public FEditorUndoClient
+class FActorIOEditor : public IModuleInterface
 {
 private:
 
 	/** The editor widget inside the Actor I/O tab. */
 	TSharedPtr<SActorIOEditor> EditorWidget;
-
-	/** The currently selected actor in the level editor. */
-	TWeakObjectPtr<AActor> SelectedActor;
-
-	/** Handle for when a new object is selected in the editor. */
-	FDelegateHandle DelegateHandle_SelectionChanged;
-
-	/** Handle for when an actor is deleted in the level editor. */
-	FDelegateHandle DelegateHandle_DeleteActorsBegin;
-
-	/** Handle for when an actor is replaced in the level editor. */
-	FDelegateHandle DelegateHandle_ActorReplaced;
-
-	/** Handle for when a blueprint is compiled in the editor. */
-	FDelegateHandle DelegateHandle_BlueprintCompiled;
 
 	/** PIE authorizer to abort PIE sessions if the plugin is configured incorrectly. */
 	FActorIOPIEAuthorizer PIEAuthorizer;
@@ -49,26 +30,14 @@ private:
 
 public:
 
-	/** Register the Actor I/O editor module with the engine. */
-	virtual void StartupModule() override;
-
-	/** Unregister the Actor I/O editor module. */
-	virtual void ShutdownModule() override;
-
 	/** @return The editor module of the Actor I/O plugin. */
 	static FActorIOEditor& Get();
 
-	/** Request an update with the editor widget. */
-	void UpdateEditorWidget();
+	/** Request a refresh with the editor widget. */
+	void RefreshEditorWidget(bool bImmediate = false);
 
 	/** @return The editor widget inside the Actor I/O tab. */
 	SActorIOEditor* GetEditorWidget() const;
-
-	/** @return The actor that is currently selected in the editor. */
-	AActor* GetSelectedActor() const;
-	
-	/** Add an actor I/O component to the given actor. */
-	UActorIOComponent* AddIOComponentToActor(AActor* TargetActor, bool bSelectActor);
 
 private:
 
@@ -78,26 +47,13 @@ private:
 	/** Called when the Actor I/O tab is closed. */
 	void OnActorIOEditorClosed(TSharedRef<SDockTab> DockTab);
 
-	/** Called when a new object is selected in the editor. */
-	void OnObjectSelectionChanged(UObject* NewSelection);
-
-	/** Called when an actor is deleted in the level editor. */
-	void OnDeleteActorsBegin();
-
-	/** Called when an actor is replaced in the level editor. */
-	void OnActorReplaced(AActor* OldActor, AActor* NewActor);
-
-	/** Called when a blueprint is compiled in the editor. */
-	void OnBlueprintCompiled();
-
 	/** Called when a placement category is refreshed in the editor. */
 	void OnPlacementModeCategoryRefreshed(FName CategoryName);
 
 public:
 
-	//~ Begin FEditorUndoClient Interface
-	virtual bool MatchesContext(const FTransactionContext& InContext, const TArray<TPair<UObject*, FTransactionObjectEvent>>& TransactionObjects) const override;
-	virtual void PostUndo(bool bSuccess) override;
-	virtual void PostRedo(bool bSuccess) override;
-	//~ End FEditorUndoClient Interface
+	//~ Begin IModuleInterface Interface
+	virtual void StartupModule() override;
+	virtual void ShutdownModule() override;
+	//~ End IModuleInterface Interface
 };

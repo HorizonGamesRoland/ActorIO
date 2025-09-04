@@ -6,12 +6,15 @@
 #include "ActorIOInterface.h"
 #include "ActorIOSubsystemBase.h"
 #include "GameFramework/Actor.h"
+#include "Engine/Level.h"
+#include "Engine/World.h"
+#include "Engine/Engine.h"
 #include "UObject/UObjectIterator.h"
 
 DEFINE_LOG_CATEGORY(LogActorIO);
 
 //==================================
-// Console Variables
+//~ Begin Console Variables
 //==================================
 
 TAutoConsoleVariable<bool> CVarDebugIOActions(
@@ -19,7 +22,7 @@ TAutoConsoleVariable<bool> CVarDebugIOActions(
     TEXT("<bool> Enable I/O action execution messages."), ECVF_Default);
 
 TAutoConsoleVariable<bool> CVarWarnAboutIOActionInvalidTarget(
-    TEXT("ActorIO.WarnAboutInvalidTarget"), false,
+    TEXT("ActorIO.WarnAboutInvalidTarget"), true,
     TEXT("<bool> Warn about missing or invalid target actor when executing I/O action."), ECVF_Default);
 
 TAutoConsoleVariable<bool> CVarLogIOActionNamedArgs(
@@ -31,7 +34,7 @@ TAutoConsoleVariable<bool> CVarLogIOActionFinalCommand(
     TEXT("<bool> Log the final command sent to the target actor after executing I/O action."), ECVF_Default);
 
 //==================================
-// FActionExecutionContext
+//~ Begin FActionExecutionContext
 //==================================
 
 FActionExecutionContext& FActionExecutionContext::Get(UObject* WorldContextObject)
@@ -89,8 +92,33 @@ void FActionExecutionContext::SetNamedArgument(const FString& InName, const FStr
     }
 }
 
+void FActionExecutionContext::ExecutionError(bool bCondition, ELogVerbosity::Type InVerbosity, const FString& InMessage)
+{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST) || USE_LOGGING_IN_SHIPPING // Do not Print in Shipping or Test unless explicitly enabled.
+    check(InVerbosity == ELogVerbosity::Warning || InVerbosity == ELogVerbosity::Error); // Only warnings and errors.
+    if (bCondition)
+    {
+        if (InVerbosity == ELogVerbosity::Warning)
+        {
+            UE_LOG(LogActorIO, Warning, TEXT("%s"), *InMessage);
+        }
+        else
+        {
+            UE_LOG(LogActorIO, Error, TEXT("%s"), *InMessage);
+        }
+
+        if (GEngine && GAreScreenMessagesEnabled)
+        {
+            const float DisplayTime = 3.0f;
+            const FColor DisplayColor = InVerbosity == ELogVerbosity::Warning ? FColor::Yellow : FColor::Red;
+            GEngine->AddOnScreenDebugMessage(INDEX_NONE, DisplayTime, DisplayColor, InMessage);
+        }
+    }
+#endif
+}
+
 //==================================
-// IActorIO
+//~ Begin IActorIO
 //==================================
 
 FActorIOEventList IActorIO::GetEventsForObject(AActor* InObject)
@@ -114,11 +142,8 @@ FActorIOEventList IActorIO::GetEventsForObject(AActor* InObject)
         }
 
         UActorIOSubsystemBase* IOSubsystem = UActorIOSubsystemBase::Get(InObject);
-        if (IOSubsystem)
-        {
-            IOSubsystem->RegisterNativeEventsForObject(InObject, OutEvents);
-            IOSubsystem->K2_RegisterNativeEventsForObject(InObject, OutEvents);
-        }
+        IOSubsystem->RegisterNativeEventsForObject(InObject, OutEvents);
+        IOSubsystem->K2_RegisterNativeEventsForObject(InObject, OutEvents);
     }
 
     return OutEvents;
@@ -145,31 +170,37 @@ FActorIOFunctionList IActorIO::GetFunctionsForObject(AActor* InObject)
         }
 
         UActorIOSubsystemBase* IOSubsystem = UActorIOSubsystemBase::Get(InObject);
-        if (IOSubsystem)
-        {
-            IOSubsystem->RegisterNativeFunctionsForObject(InObject, OutFunctions);
-            IOSubsystem->K2_RegisterNativeFunctionsForObject(InObject, OutFunctions);
-        }
+        IOSubsystem->RegisterNativeFunctionsForObject(InObject, OutFunctions);
+        IOSubsystem->K2_RegisterNativeFunctionsForObject(InObject, OutFunctions);
     }
 
     return OutFunctions;
 }
 
-const TArray<UActorIOAction*> IActorIO::GetInputActionsForObject(AActor* InObject)
+const TArray<TWeakObjectPtr<UActorIOAction>> IActorIO::GetInputActionsForObject(AActor* InObject)
 {
     // Internally there is no such thing as an input action.
     // Just actions pointing to actors.
     // Essentially this just gets all actions that point to the given actor.
 
-    TArray<UActorIOAction*> OutActions = TArray<UActorIOAction*>();
+    TArray<TWeakObjectPtr<UActorIOAction>> OutActions = TArray<TWeakObjectPtr<UActorIOAction>>();
     if (IsValid(InObject))
     {
         for (TObjectIterator<UActorIOAction> ActionItr; ActionItr; ++ActionItr)
         {
             UActorIOAction* Action = *ActionItr;
-            if (IsValid(Action) && IsValid(Action->GetOwnerActor()) && Action->TargetActor == InObject)
+            if (IsValid(Action) && IsValid(Action->GetOwnerActor()))
             {
-                OutActions.Add(Action);
+                // According to TObjectIterator description, we need to make sure that we
+                // don't include objects from different worlds (e.g. PIE sessions).
+                if (Action->GetWorld() == InObject->GetWorld())
+                {
+                    if (Action->TargetActor.Get() == InObject)
+                    {
+                        // Convert to weak ptr so that we cannot modify action's lifetime in editor.
+                        OutActions.Emplace(Action);
+                    }
+                }
             }
         }
     }
@@ -179,22 +210,26 @@ const TArray<UActorIOAction*> IActorIO::GetInputActionsForObject(AActor* InObjec
 
 int32 IActorIO::GetNumInputActionsForObject(AActor* InObject)
 {
-    const TArray<UActorIOAction*> InputActions = GetInputActionsForObject(InObject);
+    const TArray<TWeakObjectPtr<UActorIOAction>> InputActions = GetInputActionsForObject(InObject);
     return InputActions.Num();
 }
 
-const TArray<UActorIOAction*> IActorIO::GetOutputActionsForObject(AActor* InObject)
+const TArray<TWeakObjectPtr<UActorIOAction>> IActorIO::GetOutputActionsForObject(AActor* InObject)
 {
     // Internally there is no such thing as an output action.
     // All actions are "outputs" as they always make things happen to other actors.
 
-    TArray<UActorIOAction*> OutActions = TArray<UActorIOAction*>();
+    TArray<TWeakObjectPtr<UActorIOAction>> OutActions = TArray<TWeakObjectPtr<UActorIOAction>>();
     if (IsValid(InObject))
     {
         UActorIOComponent* IOComponent = InObject->GetComponentByClass<UActorIOComponent>();
         if (IOComponent)
         {
-            return IOComponent->GetActions();
+            for (const TObjectPtr<UActorIOAction>& Action : IOComponent->GetActions())
+            {
+                // Convert to weak ptr so that we cannot modify action's lifetime in editor.
+                OutActions.Emplace(Action);
+            }
         }
     }
 
@@ -213,6 +248,43 @@ int32 IActorIO::GetNumOutputActionsForObject(AActor* InObject)
     }
 
     return 0;
+}
+
+bool IActorIO::ConfirmObjectIsAlive(UObject* InObject, FString& OutError)
+{
+    if (!IsValid(InObject))
+    {
+        OutError = TEXT("Object is null, or pending kill (unloaded or destroyed?).");
+        return false;
+    }
+
+    // Due to level streaming, we also need to make sure that the actor has a valid world.
+    // Objects that are being streamed out still appear to be valid, even though they are not properly part of a level/world anymore (until GC'ed).
+    // I suspect this happens because of LevelStreaming.ShouldReuseUnloadedButStillAroundLevels.
+    // @see https://forums.unrealengine.com/t/unloaded-actor-not-being-destroyed/2536205
+    UWorld* World = InObject->GetWorld();
+    if (!World)
+    {
+        OutError = TEXT("Object does not have a valid world (streaming in progress?).");
+        return false;
+    }
+
+    // In case we still encounter crashes or errors then we should probably check for level activation as well.
+    // However, if we do use this then we'll need to make sure that actions are not executing too early/late.
+    // For example, during 'BeginPlay' of streamed actors the level is not active.
+    // Same goes for 'EndPlay'. At that the time the level is no longer active.
+    // Also, we cannot simply check 'Level->IsPersistentLevel' because with World Partition all actors are on dynamic streaming levels.
+    // Let's try to avoid this requirement.
+#if 0
+    ULevel* Level = InObject->GetTypedOuter<ULevel>(); // same as AActor::GetLevel
+    if (!Level || !Level->bIsVisible)
+    {
+        OutError = TEXT("Object is not part of an active level (streaming in progress?).");
+        return false;
+    }
+#endif
+
+    return true;
 }
 
 bool IActorIO::ValidateFunctionArguments(UFunction* FunctionPtr, const FString& InArguments, FText& OutError)

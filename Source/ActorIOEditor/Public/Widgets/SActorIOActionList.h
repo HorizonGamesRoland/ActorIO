@@ -7,6 +7,8 @@
 #include "Widgets/Views/SListView.h"
 #include "Widgets/Views/STableRow.h"
 
+class SActorIOEditor;
+
 /**
  * Columns used by the action list.
  * Each column must have a matching entry in FActorIOEditorStyle::SetupActionListColumnSizes!
@@ -26,35 +28,34 @@ namespace ColumnId
 /**
  * Widget rendering a list of I/O actions found for an actor.
  */
-class ACTORIOEDITOR_API SActorIOActionListView : public SListView<UActorIOAction*>
+class ACTORIOEDITOR_API SActorIOActionListView : public SListView<TWeakObjectPtr<UActorIOAction>>
 {
-    SLATE_DECLARE_WIDGET(SActorIOActionListView, SListView<UActorIOAction*>)
+    SLATE_DECLARE_WIDGET(SActorIOActionListView, SListView<TWeakObjectPtr<UActorIOAction>>)
 
 public:
 
     SLATE_BEGIN_ARGS(SActorIOActionListView)
-        : _ViewInputActions(false)
     {}
 
-    /** Whether to show input actions. If false, output actions are shown. */
-    SLATE_ARGUMENT(bool, ViewInputActions)
+    /** Reference to the I/O editor widget that owns this action list. */
+    SLATE_ARGUMENT(TWeakPtr<SActorIOEditor>, IOEditor);
 
     SLATE_END_ARGS()
 
     /** Widget constructor. */
     void Construct(const FArguments& InArgs);
 
-    /**
-     * Updates the widget to reflect the current state.
-     * Used when the widget structure doesn't need to change, just the displayed values.
-     */
-    void Refresh();
+    /** Request an editor widget refresh. */
+    void RequestEditorRefresh();
+
+    /** Request the editor to display input actions. If false, output actions are shown. */
+    void RequestEditorViewInputActions(bool bEnabled);
 
     /** @return Whether the list is currently displaying input actions. */
-    bool IsViewingInputActions() const { return bViewInputActions; }
+    bool IsViewingInputActions() const;
 
     /** @return Whether the list is currently displaying output actions. */
-    bool IsViewingOutputActions() const { return !bViewInputActions; }
+    bool IsViewingOutputActions() const;
 
     /**
      * Spawns the params viewer widget that list the parameters of the given UFunction.
@@ -69,13 +70,16 @@ public:
     /** Changes the highlighted param index in the params viewer widget if there is one. */
     void UpdateParamsViewer(int32 InHighlightedParamIdx);
 
+    /**
+     * Detect if the editor should auto refresh (e.g. an action's target actor became unloaded).
+     * Called every frame during owning I/O editor widget tick.
+     */
+    bool TickAutoRefreshRequired() const;
+
 protected:
 
-    /** List of I/O actions displayed in the action list. */
-    TArray<UActorIOAction*> ActionListItems;
-
-    /** Whether the list shows input actions. If false, output actions are shown. */
-    bool bViewInputActions;
+    /** Reference to the I/O editor widget that owns this action list. */
+    TWeakPtr<SActorIOEditor> IOEditor;
 
     /** Popup menu of the params viewer that is visible while editing action params. */
     TSharedPtr<class IMenu> ParamsViewerMenu;
@@ -86,7 +90,7 @@ protected:
 protected:
 
     /** Called when a new row is being added to the action list. */
-    TSharedRef<ITableRow> OnGenerateRowItem(UActorIOAction* Item, const TSharedRef<STableViewBase>& OwnerTable);
+    TSharedRef<ITableRow> OnGenerateRowItem(TWeakObjectPtr<UActorIOAction> Item, const TSharedRef<STableViewBase>& OwnerTable);
 
     /** @return Width of the given column. */
     float OnGetColumnWidth(const FName InColumnName) const;
@@ -100,9 +104,11 @@ protected:
  * Widget of a single row in the action list.
  * This is basically the UI representation of an I/O action.
  */
-class ACTORIOEDITOR_API SActorIOActionListViewRow : public SMultiColumnTableRow<UActorIOAction*>
+class ACTORIOEDITOR_API SActorIOActionListViewRow : public SMultiColumnTableRow<TWeakObjectPtr<UActorIOAction>>
 {
-    SLATE_DECLARE_WIDGET(SActorIOActionListViewRow, SMultiColumnTableRow<UActorIOAction*>)
+    SLATE_DECLARE_WIDGET(SActorIOActionListViewRow, SMultiColumnTableRow<TWeakObjectPtr<UActorIOAction>>)
+
+    friend class SActorIOActionListView;
 
 public:
 
@@ -119,7 +125,7 @@ public:
     SLATE_END_ARGS()
 
     /** Widget constructor. */
-    void Construct(const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTableView, UActorIOAction* InActionPtr);
+    void Construct(const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTableView, TWeakObjectPtr<UActorIOAction> InActionPtr);
 
     /**
      * Generate the contents of the given column.
@@ -133,10 +139,17 @@ public:
 protected:
 
     /** The I/O action that this widget represents. */
-    UActorIOAction* ActionPtr;
+    TWeakObjectPtr<UActorIOAction> ActionPtr;
 
     /** Whether this is an input action on the actor. If false, it's an output action. */
     bool bIsInputAction;
+
+    /**
+     * Whether the action's target actor is pending or not.
+     * Only set during construction, so it can become out of date.
+     * If out of date, the action list forces a refresh during SActorIOActionListView::TickAutoRefreshRequired.
+     */
+    bool bIsTargetActorPending;
 
     /** Cached list of registered I/O events found on the action's owning actor. */
     FActorIOEventList ValidEvents;
@@ -167,6 +180,9 @@ protected:
 
     /** Text block of the function combo box. */
     TSharedPtr<class STextBlock> FunctionText;
+
+    /** Actor picker widget. */
+    TSharedPtr<class SObjectPropertyEntryBox> ActorPicker;
 
     /** Editable text box where function arguments are inputted. */
     TSharedPtr<class SMultiLineEditableTextBox> ArgumentsBox;
@@ -199,6 +215,9 @@ protected:
 
     /** Called when the selected target actor is changed. */
     void OnTargetActorChanged(const FAssetData& InAssetData);
+
+    /** Called when the selected target actor is invalid, but path info exists so the actor is most likely unloaded. */
+    void OnTargetActorIsPending();
 
     /** Called when generating an entry for the function combo box. */
     TSharedRef<SWidget> OnGenerateFunctionComboBoxWidget(FName InName);
@@ -279,10 +298,11 @@ public:
 
     //~ Begin Drag & Drop
     FReply HandleDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
-    TOptional<EItemDropZone> HandleCanAcceptDrop(const FDragDropEvent& DragDropEvent, EItemDropZone DropZone, UActorIOAction* TargetItem);
-    FReply HandleAcceptDrop(const FDragDropEvent& DragDropEvent, EItemDropZone DropZone, UActorIOAction* TargetItem);
+    TOptional<EItemDropZone> HandleCanAcceptDrop(const FDragDropEvent& DragDropEvent, EItemDropZone DropZone, TWeakObjectPtr<UActorIOAction> TargetItem);
+    FReply HandleAcceptDrop(const FDragDropEvent& DragDropEvent, EItemDropZone DropZone, TWeakObjectPtr<UActorIOAction> TargetItem);
     //~ End Drag & Drop
 };
+
 
 /**
  * Drag & Drop operation for SActorIOActionListViewRow.
@@ -294,5 +314,33 @@ public:
     DRAG_DROP_OPERATOR_TYPE(FActorIOActionDragDropOp, FDragDropOperation)
 
     /** The IO action that is being dragged. */
-    UActorIOAction* Element;
+    TWeakObjectPtr<UActorIOAction> Element;
+};
+
+
+/**
+ * Class for iterating through all childs of a widget, including childrens of child widgets.
+ * Iteration continues until the iterator func returns false, or we run out of widgets.
+ */
+class ACTORIOEDITOR_API FActorIOChildWidgetIterator
+{
+public:
+
+    /**
+     * Callback function when iterating over a widget.
+     * Return false to stop the iterator.
+     */
+    typedef TFunction<bool(SWidget&)> TWidgetIterationFunc;
+
+    /** Constructor. */
+    FActorIOChildWidgetIterator(SWidget& InParent, TWidgetIterationFunc InIterationFunc);
+    FActorIOChildWidgetIterator() = delete;
+
+private:
+
+    /** Recursively iterate over all child widgets of the given widget. */
+    bool Advance(SWidget& InWidget);
+
+    /** Function to call whenever we iterate over a widget. */
+    TWidgetIterationFunc IterationFunc;
 };

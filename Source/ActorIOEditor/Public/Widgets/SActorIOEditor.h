@@ -4,14 +4,16 @@
 
 #include "CoreMinimal.h"
 #include "Widgets/SCompoundWidget.h"
+#include "EditorUndoClient.h"
 
+class UActorIOAction;
 class FReply;
 enum class ECheckBoxState : uint8;
 
 /**
  * Widget inside the I/O editor tab.
  */
-class ACTORIOEDITOR_API SActorIOEditor : public SCompoundWidget
+class ACTORIOEDITOR_API SActorIOEditor : public SCompoundWidget, public FEditorUndoClient
 {
     SLATE_DECLARE_WIDGET(SActorIOEditor, SCompoundWidget)
 
@@ -24,14 +26,17 @@ public:
     /** Widget constructor. */
     void Construct(const FArguments& InArgs);
 
+    /** Widget destructor. */
+    ~SActorIOEditor();
+
     /**
      * Updates the widget to reflect the current state.
      * Used when the widget structure doesn't need to change, just the displayed values.
      */
-    void Refresh();
+    void RequestRefresh(bool bImmediate = false);
 
     /** Set whether the editor should display input actions. If false, output actions are shown. */
-    void SetViewInputActions(bool bEnabled, bool bRefresh = true);
+    void SetViewInputActions(bool bEnabled);
 
 protected:
 
@@ -56,11 +61,28 @@ protected:
     /** The action list that is displaying I/O actions. */
     TSharedPtr<class SActorIOActionListView> ActionListView;
 
+    /** List of I/O actions that are inputs of the selected actor. */
+    TArray<TWeakObjectPtr<UActorIOAction>> InputActions;
+
+    /** List of I/O actions that are outputs of the selected actor. */
+    TArray<TWeakObjectPtr<UActorIOAction>> OutputActions;
+
     /** Whether the editor is displaying input actions. If false, output actions are shown. */
     bool bViewInputActions;
 
-    /** Whether the action list should be refreshed with the next Refresh() call. */
+    /** Whether the widget has a pending refresh request. */
+    bool bRefreshPending;
+
+    /** Whether the action list should be rebuilt during the next Refresh() call. */
     bool bActionListNeedsRegenerate;
+
+public:
+
+    /** @return Whether the editor is displaying input actions. If false, output actions are shown.  */
+    bool IsViewingInputActions() const { return bViewInputActions; }
+
+    /** @return List of I/O actions to be displayed in the action list. */
+    const TArray<TWeakObjectPtr<UActorIOAction>>* GetActionListSource() const;
 
 protected:
 
@@ -78,4 +100,27 @@ protected:
 
     /** Called when the new action button is clicked. */
     FReply OnClick_NewAction();
+
+protected:
+
+    /**
+     * Detect if the editor should auto refresh (e.g. input actions changed because an actor was unloaded).
+     * Called every frame during widget tick.
+     */
+    bool TickAutoRefreshRequired() const;
+
+    /** Updates the widget to reflect the current state. */
+    void Refresh();
+
+public:
+
+    //~ Begin SWidget Interface
+    virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
+    //~ End SWidget Interface
+
+    //~ Begin FEditorUndoClient Interface
+    virtual bool MatchesContext(const FTransactionContext& InContext, const TArray<TPair<UObject*, FTransactionObjectEvent>>& TransactionObjects) const override;
+    virtual void PostUndo(bool bSuccess) override;
+    virtual void PostRedo(bool bSuccess) override;
+    //~ End FEditorUndoClient Interface
 };

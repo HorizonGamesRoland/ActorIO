@@ -44,16 +44,17 @@ public:
     bool bIgnoreTimeDilation;
 
     /** Event when the timeline's value is changed. */
-    UPROPERTY(BlueprintAssignable, Category = "Timeline")
+    UPROPERTY(BlueprintAssignable, Category = "Events")
     FOnTimelineValueChanged OnTimelineValueChanged;
 
     /** Event when the timeline is finished. */
-    UPROPERTY(BlueprintAssignable, Category = "Timeline")
+    UPROPERTY(BlueprintAssignable, Category = "Events")
     FSimpleActionDelegate OnTimelineFinished;
 
 protected:
 
     /** The actual timeline that is responsible for evaluating the curve. */
+    UPROPERTY()
     FTimeline Timeline;
 
     /** The curve asset that the timeline is evaluating. */
@@ -72,23 +73,23 @@ protected:
 public:
 
     /** Start the timeline. */
-    UFUNCTION(BlueprintCallable, Category = "Timeline")
+    UFUNCTION(BlueprintCallable, Category = "LogicActors|LogicTimeline")
     void Play();
 
     /** Start the timeline from the start. */
-    UFUNCTION(BlueprintCallable, Category = "Timeline")
+    UFUNCTION(BlueprintCallable, Category = "LogicActors|LogicTimeline")
     void PlayFromStart();
 
     /** Reverse the timeline. */
-    UFUNCTION(BlueprintCallable, Category = "Timeline")
+    UFUNCTION(BlueprintCallable, Category = "LogicActors|LogicTimeline")
     void Reverse();
 
     /** Reverse the timeline from the end. */
-    UFUNCTION(BlueprintCallable, Category = "Timeline")
+    UFUNCTION(BlueprintCallable, Category = "LogicActors|LogicTimeline")
     void ReverseFromEnd();
 
     /** Stop the timeline. */
-    UFUNCTION(BlueprintCallable, Category = "Timeline")
+    UFUNCTION(BlueprintCallable, Category = "LogicActors|LogicTimeline")
     void Stop();
 
 protected:
@@ -98,8 +99,6 @@ protected:
 
     /** Called when the timeline is finished. */
     void OnTimelineFinishedCallback();
-
-protected:
 
     /** Event processor for the 'OnTimelineValueChanged' event. */
     UFUNCTION()

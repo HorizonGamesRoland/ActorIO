@@ -43,9 +43,10 @@ void UActorIOAction::BindAction()
 		return;
 	}
 
-	if (!IsValid(TargetEvent->DelegateOwner))
+	UObject* DelegateOwner = TargetEvent->DelegateOwner.Get();
+	if (!IsValid(DelegateOwner))
 	{
-		UE_CLOG(DebugIOActions, LogActorIO, Error, TEXT("Actor '%s' could not bind action to '%s' - Delegate owner was invalid (destroyed?)."), *ActionOwner->GetActorNameOrLabel(), *EventId.ToString());
+		UE_CLOG(DebugIOActions, LogActorIO, Error, TEXT("Actor '%s' could not bind action to '%s' - Delegate owner was invalid."), *ActionOwner->GetActorNameOrLabel(), *EventId.ToString());
 		return;
 	}
 
@@ -74,10 +75,10 @@ void UActorIOAction::BindAction()
 		// If the bIsBound param is not set, the delegate will not execute.
 		case FActorIOEvent::Type::SparseDelegate:
 		{
-			FSparseDelegate* SparseDelegate = FSparseDelegateStorage::ResolveSparseDelegate(TargetEvent->DelegateOwner, TargetEvent->SparseDelegateName);
+			FSparseDelegate* SparseDelegate = FSparseDelegateStorage::ResolveSparseDelegate(DelegateOwner, TargetEvent->SparseDelegateName);
 			if (SparseDelegate)
 			{
-				SparseDelegate->__Internal_AddUnique(TargetEvent->DelegateOwner, TargetEvent->SparseDelegateName, ActionDelegate);
+				SparseDelegate->__Internal_AddUnique(DelegateOwner, TargetEvent->SparseDelegateName, ActionDelegate);
 				bIsBound = true;
 			}
 
@@ -85,16 +86,16 @@ void UActorIOAction::BindAction()
 			break;
 		}
 		
-		// Binding to blueprint delegate.
-		// These are the event dispatchers created in blueprints.
+		// Binding to a blueprint exposed dynamic delegate.
+		// These include event dispatchers created in blueprints.
 		// Each event dispatcher is basically just an FMulticastDelegateProperty that we can add to.
 		case FActorIOEvent::Type::BlueprintDelegate:
 		{
-			UClass* DelegateOwnerClass = TargetEvent->DelegateOwner->GetClass();
+			UClass* DelegateOwnerClass = DelegateOwner->GetClass();
 			FMulticastDelegateProperty* DelegateProp = CastField<FMulticastDelegateProperty>(DelegateOwnerClass->FindPropertyByName(TargetEvent->BlueprintDelegateName));
 			if (DelegateProp)
 			{
-				DelegateProp->AddDelegate(ActionDelegate, TargetEvent->DelegateOwner);
+				DelegateProp->AddDelegate(ActionDelegate, DelegateOwner);
 				bIsBound = true;
 			}
 
@@ -136,7 +137,8 @@ void UActorIOAction::UnbindAction()
 		checkf(false, TEXT("Could not unbind action because the I/O event that we were bound to was not found?!"));
 	}
 
-	if (!TargetEvent->DelegateOwner)
+	UObject* DelegateOwner = TargetEvent->DelegateOwner.Get(true);
+	if (!DelegateOwner)
 	{
 		UE_CLOG(DebugIOActions, LogActorIO, Error, TEXT("Actor '%s' could not unbind action from '%s' - Delegate owner was nullptr."), *ActionOwner->GetActorNameOrLabel(), *EventId.ToString());
 		return;
@@ -159,10 +161,10 @@ void UActorIOAction::UnbindAction()
 
 		case FActorIOEvent::Type::SparseDelegate:
 		{
-			FSparseDelegate* SparseDelegate = FSparseDelegateStorage::ResolveSparseDelegate(TargetEvent->DelegateOwner, TargetEvent->SparseDelegateName);
+			FSparseDelegate* SparseDelegate = FSparseDelegateStorage::ResolveSparseDelegate(DelegateOwner, TargetEvent->SparseDelegateName);
 			if (SparseDelegate)
 			{
-				SparseDelegate->__Internal_Remove(TargetEvent->DelegateOwner, TargetEvent->SparseDelegateName, ActionDelegate);
+				SparseDelegate->__Internal_Remove(DelegateOwner, TargetEvent->SparseDelegateName, ActionDelegate);
 				bIsBound = false;
 			}
 
@@ -172,11 +174,11 @@ void UActorIOAction::UnbindAction()
 
 		case FActorIOEvent::Type::BlueprintDelegate:
 		{
-			UClass* DelegateOwnerClass = TargetEvent->DelegateOwner->GetClass();
+			UClass* DelegateOwnerClass = DelegateOwner->GetClass();
 			FMulticastDelegateProperty* DelegateProp = CastField<FMulticastDelegateProperty>(DelegateOwnerClass->FindPropertyByName(TargetEvent->BlueprintDelegateName));
 			if (DelegateProp)
 			{
-				DelegateProp->RemoveDelegate(ActionDelegate, TargetEvent->DelegateOwner);
+				DelegateProp->RemoveDelegate(ActionDelegate, DelegateOwner);
 				bIsBound = false;
 			}
 
@@ -196,7 +198,7 @@ void UActorIOAction::UnbindAction()
 void UActorIOAction::ProcessEvent(UFunction* Function, void* Parms)
 {
 	// This function is called whenever Unreal Script is executing a function on the object.
-	// We are going to use this to catch when 'execute action' was called by the I/O event delegate that we are bound to.
+	// We are going to use this to catch when 'execute action' is called by the I/O event delegate that we are bound to.
 	// The actual function bound to the delegate is empty as it's just used as an event signal here.
 	// Since we cannot know what parameters the I/O event delegate has, we will preserve the params memory here.
 	// Then we are going to execute the action manually so that we can have full control.
@@ -230,9 +232,11 @@ void UActorIOAction::ReceiveExecuteAction()
 void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 {
 	AActor* ActionOwner = GetOwnerActor();
-	if (!IsValid(ActionOwner))
+
+	FString OwnerInvalidReason;
+	if (!IActorIO::ConfirmObjectIsAlive(ActionOwner, OwnerInvalidReason))
 	{
-		// Do not attempt to execute an action if we are about to be destroyed.
+		// Do nothing if the owning actor is invalid.
 		return;
 	}
 
@@ -244,25 +248,35 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 
 	UE_CLOG(DebugIOActions, LogActorIO, Log, TEXT("Executing action: %s -> %s (Caller: '%s')"), *EventId.ToString(), *FunctionId.ToString(), *ActionOwner->GetActorNameOrLabel());
 
-	if (!IsValid(TargetActor))
+	if (TargetActor.IsNull())
 	{
-		// Do nothing if the target actor is invalid.
-		// The actor was most likely destroyed at runtime.
-		UE_CLOG(DebugIOActions && WarnIOInvalidTarget, LogActorIO, Warning, TEXT("Could not find target actor. Actor was destroyed?"));
+		// Do nothing if no target actor is selected.
+		FActionExecutionContext::ExecutionError(DebugIOActions && WarnIOInvalidTarget, ELogVerbosity::Warning, TEXT("No target actor selected."));
 		return;
 	}
 
-	FActorIOFunctionList ValidFunctions = IActorIO::GetFunctionsForObject(TargetActor);
+	FString TargetInvalidReason;
+	if (!IActorIO::ConfirmObjectIsAlive(TargetActor.Get(), TargetInvalidReason))
+	{
+		// Do nothing if the target actor is invalid.
+		// The actor was most likely unloaded or destroyed.
+		FActionExecutionContext::ExecutionError(DebugIOActions && WarnIOInvalidTarget, ELogVerbosity::Warning, FString::Printf(TEXT("Target actor is invalid. Reason: %s"), *TargetInvalidReason));
+		return;
+	}
+
+	AActor* TargetActorPtr = TargetActor.Get();
+
+	FActorIOFunctionList ValidFunctions = IActorIO::GetFunctionsForObject(TargetActorPtr);
 	FActorIOFunction* TargetFunction = ValidFunctions.GetFunction(FunctionId);
 	if (!TargetFunction)
 	{
-		UE_CLOG(DebugIOActions, LogActorIO, Error, TEXT("Could not find function '%s' on target actor '%s'."), *FunctionId.ToString(), *TargetActor->GetActorNameOrLabel());
+		FActionExecutionContext::ExecutionError(DebugIOActions, ELogVerbosity::Error, FString::Printf(TEXT("Could not find function '%s' on target actor '%s'."), *FunctionId.ToString(), *TargetActorPtr->GetActorNameOrLabel()));
 		return;
 	}
 
 	if (TargetFunction->FunctionToExec.IsEmpty())
 	{
-		UE_CLOG(DebugIOActions, LogActorIO, Error, TEXT("Function '%s' points to an empty func name."), *FunctionId.ToString());
+		FActionExecutionContext::ExecutionError(DebugIOActions, ELogVerbosity::Error, FString::Printf(TEXT("Function '%s' points to an empty func name."), *FunctionId.ToString()));
 		return;
 	}
 
@@ -271,19 +285,32 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 	UObject* ObjectToSendCommandTo = ResolveTargetObject(TargetFunction);
 	if (!IsValid(ObjectToSendCommandTo))
 	{
-		UE_CLOG(DebugIOActions, LogActorIO, Error, TEXT("Could not find default subobject '%s' on target actor '%s'."), *TargetFunction->TargetSubobject.ToString(), *TargetActor->GetActorNameOrLabel());
+		FActionExecutionContext::ExecutionError(DebugIOActions, ELogVerbosity::Error, FString::Printf(TEXT("Could not find default subobject '%s' on target actor '%s'."), *TargetFunction->TargetSubobject.ToString(), *TargetActorPtr->GetActorNameOrLabel()));
 		return;
 	}
 
-	const bool bProcessNamedArgs = FunctionArguments.Contains(NAMEDARGUMENT_PREFIX);
-	if (bProcessNamedArgs)
+	IActorIOInterface* ActionOwnerIOInterface = nullptr;
+	if (ActionOwner->Implements<UActorIOInterface>())
 	{
-		// Let the I/O subsystem to add globally available named arguments to the current execution context.
+		ActionOwnerIOInterface = Cast<IActorIOInterface>(ActionOwner);
+	}
+
+	const bool bProcessNamedArgs = FunctionArguments.Contains(NAMEDARGUMENT_PREFIX);
+	if (bProcessNamedArgs || LogIONamedArgs)
+	{
+		// Let the I/O subsystem add globally available named arguments to the current execution context.
 		// Think stuff like reference to player character, or player controller.
 		UActorIOSubsystemBase* IOSubsystem = UActorIOSubsystemBase::Get(this);
 		IOSubsystem->GetGlobalNamedArguments(ExecutionContext);
 
-		// Let the event processor assign values to arbitrary named arguments.
+		// Let the owning actor add locally available named arguments to the current execution context.
+		if (ActionOwnerIOInterface)
+		{
+			ActionOwnerIOInterface->GetLocalNamedArguments(ExecutionContext);
+			IActorIOInterface::Execute_K2_GetLocalNamedArguments(ActionOwner);
+		}
+
+		// Let the event processor add extra named arguments to the current execution context.
 		// We are calling the event processor with the original params memory that we received from the delegate.
 		// This way the event processor will receive the proper values for its params given that its signature matches the delegate.
 		FActorIOEventList ValidEvents = IActorIO::GetEventsForObject(ActionOwner);
@@ -304,22 +331,15 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 	if (LogIONamedArgs)
 	{
 		UE_LOG(LogActorIO, Log, TEXT("  Named Arguments: (%d)"), ExecutionContext.NamedArguments.Num());
-		if (bProcessNamedArgs)
+		for (const TPair<FString, FString>& NamedArg : ExecutionContext.NamedArguments)
 		{
-			for (const TPair<FString, FString>& NamedArg : ExecutionContext.NamedArguments)
-			{
-				UE_LOG(LogActorIO, Log, TEXT("  - %s = %s"), *NamedArg.Key, *NamedArg.Value);
-			}
-		}
-		else
-		{
-			UE_LOG(LogActorIO, Log, TEXT("  - Skipped because parameters field didn't contain any named args."));
+			UE_LOG(LogActorIO, Log, TEXT("  - %s = %s"), *NamedArg.Key, *NamedArg.Value);
 		}
 	}
 
 	// Give the owning actor a chance to abort action execution.
 	// Deliberately doing this after collecting named arguments in case we want to access them.
-	if (ActionOwner->Implements<UActorIOInterface>())
+	if (ActionOwnerIOInterface)
 	{
 		if (IActorIOInterface::Execute_ConditionalAbortIOAction(ActionOwner, this))
 		{
@@ -388,7 +408,7 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 		Command.Append(Argument);
 	}
 
-	UE_CLOG(DebugIOActions && LogIOFinalCommand, LogActorIO, Log, TEXT("  Final command sent : %s"), *Command);
+	UE_CLOG(DebugIOActions && LogIOFinalCommand, LogActorIO, Log, TEXT("  Final command being sent : %s"), *Command);
 
 	ExecutionContext.ExitContext();
 	bWasExecuted = true;
@@ -408,19 +428,23 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 
 void UActorIOAction::SendCommand(UObject* Target, FString Command)
 {
-	if (IsValid(Target))
+	FString ErrorReason;
+	if (!IActorIO::ConfirmObjectIsAlive(Target, ErrorReason))
 	{
-		FStringOutputDevice Ar;
+		FActionExecutionContext::ExecutionError(DebugIOActions, ELogVerbosity::Warning, FString::Printf(TEXT("Target was invalid when sending command '%s'. Reason: %s"), *FunctionId.ToString(), *ErrorReason));
+		return;
+	}
 
-		// Invoke the function.
-		UActorIOSubsystemBase* IOSubsystem = UActorIOSubsystemBase::Get(this);
-		IOSubsystem->ExecuteCommand(Target, *Command, Ar, this);
+	FStringOutputDevice Ar;
 
-		// Log execution errors.
-		if (!Ar.IsEmpty())
-		{
-			UE_CLOG(DebugIOActions, LogActorIO, Error, TEXT("%s"), *Ar);
-		}
+	// Invoke the function.
+	UActorIOSubsystemBase* IOSubsystem = UActorIOSubsystemBase::Get(this);
+	IOSubsystem->ExecuteCommand(Target, *Command, Ar, this);
+
+	// Log execution errors.
+	if (!Ar.IsEmpty())
+	{
+		FActionExecutionContext::ExecutionError(DebugIOActions, ELogVerbosity::Error, Ar);
 	}
 }
 
@@ -436,26 +460,37 @@ AActor* UActorIOAction::GetOwnerActor() const
 	return OwnerComponent ? OwnerComponent->GetOwner() : nullptr;
 }
 
+bool UActorIOAction::IsTargetActorAlive() const
+{
+	if (TargetActor.IsNull())
+	{
+		return false;
+	}
+
+	FString ErrorReason;
+	return IActorIO::ConfirmObjectIsAlive(TargetActor.Get(), ErrorReason);
+}
+
 UObject* UActorIOAction::ResolveTargetObject(const FActorIOFunction* TargetFunction) const
 {
 	UObject* OutTarget = nullptr;
 
-	// Figure out which I/O function is called by this action if not provided already.
-	if (!TargetFunction)
+	AActor* TargetActorPtr = TargetActor.Get();
+	if (TargetActorPtr)
 	{
-		FActorIOFunctionList ValidFunctions = IActorIO::GetFunctionsForObject(TargetActor);
-		TargetFunction = ValidFunctions.GetFunction(FunctionId);
-	}
+		OutTarget = TargetActorPtr;
 
-	if (TargetFunction && IsValid(TargetActor))
-	{
-		// If a subobject is provided, find it on the target actor.
-		// Otherwise just return the target actor.
-
-		OutTarget = TargetActor.Get();
-		if (!TargetFunction->TargetSubobject.IsNone())
+		// Figure out which I/O function is called by this action if not provided already.
+		if (!TargetFunction)
 		{
-			OutTarget = TargetActor->GetDefaultSubobjectByName(TargetFunction->TargetSubobject);
+			FActorIOFunctionList ValidFunctions = IActorIO::GetFunctionsForObject(TargetActorPtr);
+			TargetFunction = ValidFunctions.GetFunction(FunctionId);
+		}
+
+		// Check if the I/O function wants to be executed on a subobject instead of the target actor.
+		if (TargetFunction && !TargetFunction->TargetSubobject.IsNone())
+		{
+			OutTarget = TargetActorPtr->GetDefaultSubobjectByName(TargetFunction->TargetSubobject);
 		}
 	}
 
@@ -466,25 +501,28 @@ UFunction* UActorIOAction::ResolveUFunction(const FActorIOFunction* TargetFuncti
 {
 	UFunction* OutFunctionPtr = nullptr;
 
-	// Figure out which I/O function is called by this action if not provided already.
-	if (!TargetFunction)
-	{
-		FActorIOFunctionList ValidFunctions = IActorIO::GetFunctionsForObject(TargetActor);
-		TargetFunction = ValidFunctions.GetFunction(FunctionId);
-	}
-
 	// Figure out which object the action is targeting if not provided already.
 	if (!TargetObject)
 	{
 		TargetObject = ResolveTargetObject(TargetFunction);
 	}
 
-	if (IsValid(TargetObject))
+	if (TargetObject)
 	{
-		const FName FuncName = FName(*TargetFunction->FunctionToExec, FNAME_Find);
-		if (FuncName != NAME_None)
+		// Figure out which I/O function is called by this action if not provided already.
+		if (!TargetFunction)
 		{
-			OutFunctionPtr = TargetObject->GetClass()->FindFunctionByName(FuncName);
+			FActorIOFunctionList ValidFunctions = IActorIO::GetFunctionsForObject(TargetActor.Get());
+			TargetFunction = ValidFunctions.GetFunction(FunctionId);
+		}
+
+		if (TargetFunction)
+		{
+			const FName FuncName = FName(*TargetFunction->FunctionToExec, FNAME_Find);
+			if (FuncName != NAME_None)
+			{
+				OutFunctionPtr = TargetObject->GetClass()->FindFunctionByName(FuncName);
+			}
 		}
 	}
 

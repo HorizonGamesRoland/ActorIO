@@ -28,8 +28,7 @@ void ALogicCounter::RegisterIOEvents(FActorIOEventList& EventRegistry)
 		.SetId(TEXT("ALogicCounter::OnValueChanged"))
 		.SetDisplayName(LOCTEXT("ALogicCounter.OnValueChanged", "OnValueChanged"))
 		.SetTooltipText(LOCTEXT("ALogicCounter.OnValueChangedTooltip", "Event when the current value is changed."))
-		.SetMulticastDelegate(this, &OnValueChanged)
-		.SetEventProcessor(this, TEXT("ProcessEvent_OnValueChanged")));
+		.SetMulticastDelegate(this, &OnValueChanged));
 
 	EventRegistry.RegisterEvent(FActorIOEvent()
 		.SetId(TEXT("ALogicCounter::OnTargetValueReached"))
@@ -41,15 +40,13 @@ void ALogicCounter::RegisterIOEvents(FActorIOEventList& EventRegistry)
 		.SetId(TEXT("ALogicCounter::OnTargetValueChanged"))
 		.SetDisplayName(LOCTEXT("ALogicCounter.OnTargetValueChanged", "OnTargetValueChanged"))
 		.SetTooltipText(LOCTEXT("ALogicCounter.OnTargetValueChangedTooltip", "Event when the target value is changed."))
-		.SetMulticastDelegate(this, &OnTargetValueChanged)
-		.SetEventProcessor(this, TEXT("ProcessEvent_OnValueChanged")));
+		.SetMulticastDelegate(this, &OnTargetValueChanged));
 
 	EventRegistry.RegisterEvent(FActorIOEvent()
 		.SetId(TEXT("ALogicCounter::OnGetValue"))
 		.SetDisplayName(LOCTEXT("ALogicCounter.OnGetValue", "OnGetValue"))
 		.SetTooltipText(LOCTEXT("ALogicCounter.OnGetValueTooltip", "Event when the current value is read using the 'GetValue' function."))
-		.SetMulticastDelegate(this, &OnGetValue)
-		.SetEventProcessor(this, TEXT("ProcessEvent_OnGetValue")));
+		.SetMulticastDelegate(this, &OnGetValue));
 }
 
 void ALogicCounter::RegisterIOFunctions(FActorIOFunctionList& FunctionRegistry)
@@ -83,6 +80,12 @@ void ALogicCounter::RegisterIOFunctions(FActorIOFunctionList& FunctionRegistry)
 		.SetDisplayName(LOCTEXT("ALogicCounter.GetValue", "GetValue"))
 		.SetTooltipText(LOCTEXT("ALogicCounter.GetValueTooltip", "Fire the 'OnGetValue' event with the current value."))
 		.SetFunction(TEXT("GetValue")));
+}
+
+void ALogicCounter::GetLocalNamedArguments(FActionExecutionContext& ExecutionContext)
+{
+	ExecutionContext.SetNamedArgument(TEXT("$Value"), FString::FromInt(CurrentValue));
+	ExecutionContext.SetNamedArgument(TEXT("$TargetValue"), FString::FromInt(TargetValue));
 }
 
 void ALogicCounter::PostInitializeComponents()
@@ -204,18 +207,6 @@ int32 ALogicCounter::GetValue() const
 {
 	OnGetValue.Broadcast(CurrentValue);
 	return CurrentValue;
-}
-
-void ALogicCounter::ProcessEvent_OnValueChanged(int32 Value)
-{
-	FActionExecutionContext& ExecContext = FActionExecutionContext::Get(this);
-	ExecContext.SetNamedArgument(TEXT("$Value"), FString::FromInt(Value));
-}
-
-void ALogicCounter::ProcessEvent_OnGetValue(int32 Value)
-{
-	FActionExecutionContext& ExecContext = FActionExecutionContext::Get(this);
-	ExecContext.SetNamedArgument(TEXT("$Value"), FString::FromInt(Value));
 }
 
 #undef LOCTEXT_NAMESPACE

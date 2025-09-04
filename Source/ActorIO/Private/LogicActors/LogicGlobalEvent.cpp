@@ -3,6 +3,7 @@
 #include "LogicActors/LogicGlobalEvent.h"
 #include "ActorIOSubsystemBase.h"
 #include "Engine/World.h"
+#include "Engine/Level.h"
 #include "Engine/LevelScriptActor.h"
 
 #define LOCTEXT_NAMESPACE "ActorIO"
@@ -24,19 +25,25 @@ void ALogicGlobalEvent::RegisterIOEvents(FActorIOEventList& EventRegistry)
 	EventRegistry.RegisterEvent(FActorIOEvent()
 		.SetId(TEXT("ALogicGlobalEvent::OnWorldInitialized"))
 		.SetDisplayName(LOCTEXT("ALogicGlobalEvent.OnWorldInitialized", "OnWorldInitialized"))
-		.SetTooltipText(LOCTEXT("ALogicGlobalEvent.OnWorldInitializedTooltip", "Event when the world is initialized. Called after all actors have been initialized, but before 'BeginPlay'."))
+		.SetTooltipText(LOCTEXT("ALogicGlobalEvent.OnWorldInitializedTooltip", "Event when the game world is initialized. Only called once, after loading the persistent level, before 'BeginPlay' is dispatched."))
 		.SetMulticastDelegate(this, &OnWorldInitialized));
 
 	EventRegistry.RegisterEvent(FActorIOEvent()
 		.SetId(TEXT("ALogicGlobalEvent::OnBeginPlay"))
 		.SetDisplayName(LOCTEXT("ALogicGlobalEvent.OnBeginPlay", "OnBeginPlay"))
 		.SetTooltipText(LOCTEXT("ALogicGlobalEvent.OnBeginPlayTooltip", "Event when 'BeginPlay' is called for this actor."))
-		.SetMulticastDelegate(this, &OnBeginPlay));
+		.SetMulticastDelegate(this, &OnActorBeginPlay));
+
+	EventRegistry.RegisterEvent(FActorIOEvent()
+		.SetId(TEXT("ALogicGlobalEvent::OnEndPlay"))
+		.SetDisplayName(LOCTEXT("ALogicGlobalEvent.OnEndPlay", "OnEndPlay"))
+		.SetTooltipText(LOCTEXT("ALogicGlobalEvent.OnEndPlayTooltip", "Event when 'EndPlay' is called for this actor."))
+		.SetMulticastDelegate(this, &OnActorEndPlay));
 
 	EventRegistry.RegisterEvent(FActorIOEvent()
 		.SetId(TEXT("ALogicGlobalEvent::OnWorldTeardown"))
 		.SetDisplayName(LOCTEXT("ALogicGlobalEvent.OnWorldTeardown", "OnWorldTeardown"))
-		.SetTooltipText(LOCTEXT("ALogicGlobalEvent.OnWorldTeardownTooltip", "Event when the world is being torn down. This means we are leaving the map. Called before 'EndPlay' is dispatched to all actors."))
+		.SetTooltipText(LOCTEXT("ALogicGlobalEvent.OnWorldTeardownTooltip", "Event when the game world is being torn down. This means we are leaving the map. Called before 'EndPlay' is dispatched to all actors."))
 		.SetMulticastDelegate(this, &OnWorldTeardown));
 }
 
@@ -65,7 +72,7 @@ void ALogicGlobalEvent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	OnBeginPlay.Broadcast();
+	OnActorBeginPlay.Broadcast();
 }
 
 void ALogicGlobalEvent::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -73,12 +80,32 @@ void ALogicGlobalEvent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	FWorldDelegates::OnWorldInitializedActors.RemoveAll(this);
 	FWorldDelegates::OnWorldBeginTearDown.RemoveAll(this);
 
+	OnActorEndPlay.Broadcast();
+
 	Super::EndPlay(EndPlayReason);
+}
+
+void ALogicGlobalEvent::OnWorldInitializedCallback(const FActorsInitializedParams& ActorInitParams)
+{
+	UWorld* MyWorld = GetWorld();
+	if (MyWorld && MyWorld == ActorInitParams.World)
+	{
+		OnWorldInitialized.Broadcast();
+	}
+}
+
+void ALogicGlobalEvent::OnWorldTeardownCallback(UWorld* World)
+{
+	UWorld* MyWorld = GetWorld();
+	if (MyWorld && MyWorld == World)
+	{
+		OnWorldTeardown.Broadcast();
+	}
 }
 
 void ALogicGlobalEvent::CallLevelBlueprintFunction(FString Command)
 {
-	ALevelScriptActor* LevelScriptActor = GetWorld()->GetLevelScriptActor();
+	ALevelScriptActor* LevelScriptActor = GetLevel()->GetLevelScriptActor();
 	if (IsValid(LevelScriptActor))
 	{
 		FStringOutputDevice Ar;
@@ -93,16 +120,6 @@ void ALogicGlobalEvent::CallLevelBlueprintFunction(FString Command)
 			UE_LOG(LogActorIO, Error, TEXT("%s"), *Ar);
 		}
 	}
-}
-
-void ALogicGlobalEvent::OnWorldInitializedCallback(const FActorsInitializedParams& ActorInitParams)
-{
-	OnWorldInitialized.Broadcast();
-}
-
-void ALogicGlobalEvent::OnWorldTeardownCallback(UWorld* World)
-{
-	OnWorldTeardown.Broadcast();
 }
 
 #undef LOCTEXT_NAMESPACE

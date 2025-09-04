@@ -11,6 +11,8 @@ ALogicSpawner::ALogicSpawner()
 	ActorsToSpawn = TArray<FLogicSpawnerEntry>();
 	bSpawnActorsOnStart = true;
 
+	SpawnedActors = TArray<TObjectPtr<AActor>>();
+
 #if WITH_EDITORONLY_DATA
 	ConstructorHelpers::FObjectFinderOptional<UTexture2D> SpriteTexture(TEXT("/ActorIO/AssetIcons/S_Spawner"));
 	if (SpriteComponent && SpriteTexture.Succeeded())

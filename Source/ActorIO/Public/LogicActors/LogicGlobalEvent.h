@@ -23,16 +23,20 @@ public:
 
 public:
 
-    /** Event when the world is initialized. Called after all actors have been initialized, but before 'BeginPlay'. */
-    UPROPERTY(BlueprintAssignable, Category = "Global Event")
+    /** Event when the game world is initialized. Called after all actors in the persistent level have been initialized, but before 'BeginPlay'. */
+    UPROPERTY(BlueprintAssignable, Category = "Events")
     FSimpleActionDelegate OnWorldInitialized;
 
     /** Event when 'BeginPlay' is called for this actor. */
-    UPROPERTY(BlueprintAssignable, Category = "Global Event")
-    FSimpleActionDelegate OnBeginPlay;
+    UPROPERTY(BlueprintAssignable, Category = "Events")
+    FSimpleActionDelegate OnActorBeginPlay;
 
-    /** Event when the world is being torn down. This means we are leaving the map. Called before 'EndPlay' is dispatched to all actors. */
-    UPROPERTY(BlueprintAssignable, Category = "Global Event")
+    /** Event when 'EndPlay' is called for this actor. */
+    UPROPERTY(BlueprintAssignable, Category = "Events")
+    FSimpleActionDelegate OnActorEndPlay;
+
+    /** Event when the game world is being torn down. This means we are leaving the map. Called before 'EndPlay' is dispatched to all actors. */
+    UPROPERTY(BlueprintAssignable, Category = "Events")
     FSimpleActionDelegate OnWorldTeardown;
 
 protected:
@@ -51,7 +55,7 @@ public:
      * Call a function on the level blueprint actor of the level.
      * Can pass in function params in following format: "FuncName Param1 Param2 Param3 ..."
      */
-    UFUNCTION(BlueprintCallable, Category = "Global Event")
+    UFUNCTION(BlueprintCallable, Category = "LogicActors|LogicGlobalEvent")
     void CallLevelBlueprintFunction(FString Command);
 
 protected:
@@ -60,5 +64,5 @@ protected:
     void OnWorldInitializedCallback(const FActorsInitializedParams& ActorInitParams);
 
     /** Called when the world is being torn down (unloaded). */
-    void OnWorldTeardownCallback(UWorld* World);
+    void OnWorldTeardownCallback(UWorld* InWorld);
 };

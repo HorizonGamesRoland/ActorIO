@@ -29,25 +29,30 @@ public:
     UPROPERTY(EditInstanceOnly, Category = "Compare")
     FString CompareValue;
 
+    /** Maximum allowed difference before considering numeric values as equal. */
+    UPROPERTY(EditInstanceOnly, Category = "Compare", meta = (ClampMin = "0"))
+    float ErrorToleranceForNumericValues;
+
     /** Event when the current value equals the compare value. */
-    UPROPERTY(BlueprintAssignable, Category = "Compare")
+    UPROPERTY(BlueprintAssignable, Category = "Events")
     FSimpleActionDelegate OnEquals;
 
     /** Event when the current value does not equal the compare value */
-    UPROPERTY(BlueprintAssignable, Category = "Compare")
+    UPROPERTY(BlueprintAssignable, Category = "Events")
     FSimpleActionDelegate OnNotEquals;
 
     /** Event when the current value is less than the compare value. Only works with numeric values! */
-    UPROPERTY(BlueprintAssignable, Category = "Compare")
+    UPROPERTY(BlueprintAssignable, Category = "Events")
     FSimpleActionDelegate OnLessThen;
 
     /** Event when the current value is greater than the compare value. Only works with numeric values! */
-    UPROPERTY(BlueprintAssignable, Category = "Compare")
+    UPROPERTY(BlueprintAssignable, Category = "Events")
     FSimpleActionDelegate OnGreaterThen;
 
 protected:
 
     /** Current value to use for comparison. */
+    UPROPERTY()
     FString CurrentValue;
 
 protected:
@@ -55,26 +60,25 @@ protected:
     //~ Begin ALogicActorBase Interface
     virtual void RegisterIOEvents(FActorIOEventList& EventRegistry) override;
     virtual void RegisterIOFunctions(FActorIOFunctionList& FunctionRegistry) override;
+    virtual void GetLocalNamedArguments(FActionExecutionContext& ExecutionContext) override;
     virtual void PostInitializeComponents() override;
     //~ End ALogicActorBase Interface
 
 public:
 
     /** Set the current value without performing the comparison. */
+    UFUNCTION(BlueprintCallable, Category = "LogicActors|LogicCompare")
     void SetValue(FString InValue);
 
     /** Set the current value and compare it against the compare value. */
+    UFUNCTION(BlueprintCallable, Category = "LogicActors|LogicCompare")
     void SetValueAndCompare(FString InValue);
 
     /** Set the compare value. */
+    UFUNCTION(BlueprintCallable, Category = "LogicActors|LogicCompare")
     void SetCompareValue(FString InValue);
 
     /** Compare the current value with the compare value. */
+    UFUNCTION(BlueprintCallable, Category = "LogicActors|LogicCompare")
     void Compare();
-
-protected:
-
-    /** Event processor for the comparison events. */
-    UFUNCTION()
-    void ProcessEvent_OnCompare();
 };
