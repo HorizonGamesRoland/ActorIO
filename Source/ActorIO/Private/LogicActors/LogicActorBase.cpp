@@ -25,9 +25,6 @@ ALogicActorBase::ALogicActorBase()
 
 #if WITH_EDITORONLY_DATA
 	SpriteComponent = CreateEditorOnlyDefaultSubobject<UBillboardComponent>(TEXT("Sprite"));
-	SpriteComponent->Mobility = EComponentMobility::Static;
-	SpriteComponent->SetupAttachment(RootComponent);
-
 	if (!IsRunningCommandlet() && (SpriteComponent != nullptr))
 	{
 		// Structure to hold one-time initialization.
@@ -44,10 +41,12 @@ ALogicActorBase::ALogicActorBase()
 		};
 		static FConstructorStatics ConstructorStatics;
 
+		SpriteComponent->Mobility = EComponentMobility::Static;
 		SpriteComponent->Sprite = ConstructorStatics.SpriteTexture.Get();
 		SpriteComponent->SpriteInfo.Category = ConstructorStatics.ID_LogicActor;
 		SpriteComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_LogicActor;
 		SpriteComponent->bIsScreenSizeScaled = true;
+		SpriteComponent->SetupAttachment(RootComponent);
 	}
 #endif
 
