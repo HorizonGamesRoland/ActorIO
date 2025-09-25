@@ -142,8 +142,11 @@ FActorIOEventList IActorIO::GetEventsForObject(AActor* InObject)
         }
 
         UActorIOSubsystemBase* IOSubsystem = UActorIOSubsystemBase::Get(InObject);
-        IOSubsystem->RegisterNativeEventsForObject(InObject, OutEvents);
-        IOSubsystem->K2_RegisterNativeEventsForObject(InObject, OutEvents);
+        if (IOSubsystem)
+        {
+            IOSubsystem->RegisterNativeEventsForObject(InObject, OutEvents);
+            IOSubsystem->K2_RegisterNativeEventsForObject(InObject, OutEvents);
+        }
     }
 
     return OutEvents;
@@ -170,8 +173,11 @@ FActorIOFunctionList IActorIO::GetFunctionsForObject(AActor* InObject)
         }
 
         UActorIOSubsystemBase* IOSubsystem = UActorIOSubsystemBase::Get(InObject);
-        IOSubsystem->RegisterNativeFunctionsForObject(InObject, OutFunctions);
-        IOSubsystem->K2_RegisterNativeFunctionsForObject(InObject, OutFunctions);
+        if (IOSubsystem)
+        {
+            IOSubsystem->RegisterNativeFunctionsForObject(InObject, OutFunctions);
+            IOSubsystem->K2_RegisterNativeFunctionsForObject(InObject, OutFunctions);
+        }
     }
 
     return OutFunctions;
