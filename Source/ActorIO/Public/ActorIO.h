@@ -393,11 +393,19 @@ struct ACTORIO_API FActionExecutionContext
 	 */
 	TMap<FString, FString> NamedArguments;
 
+	/**
+	 * Whether action execution was aborted.
+	 * This can happen either by the event processor, or the owning actor.
+	 * Do not modify directly. Use AbortAction() instead.
+	 */
+	bool bAborted;
+
 	/** Default constructor. */
 	FActionExecutionContext() :
 		ActionPtr(nullptr),
 		ScriptParams(nullptr),
-		NamedArguments(TMap<FString, FString>())
+		NamedArguments(TMap<FString, FString>()),
+		bAborted(false)
 	{}
 
 	/** Get the current global execution context. */
@@ -418,6 +426,12 @@ struct ACTORIO_API FActionExecutionContext
 	 * Should only be called from GetGlobalNamedArguments, GetLocalNamedArguments, or an I/O event processor!
 	 */
 	void SetNamedArgument(const FString& InName, const FString& InValue);
+
+	/**
+	 * Aborts action execution.
+	 * Intended to be used from an I/O event processor.
+	 */
+	void AbortAction();
 
 	/** Log an execution failure message to the console and game screen. */
 	static void ExecutionError(bool bCondition, ELogVerbosity::Type InVerbosity, const FString& InMessage);

@@ -92,6 +92,14 @@ void FActionExecutionContext::SetNamedArgument(const FString& InName, const FStr
     }
 }
 
+void FActionExecutionContext::AbortAction()
+{
+    if (HasContext())
+    {
+        bAborted = true;
+    }
+}
+
 void FActionExecutionContext::ExecutionError(bool bCondition, ELogVerbosity::Type InVerbosity, const FString& InMessage)
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST) || USE_LOGGING_IN_SHIPPING // Do not Print in Shipping or Test unless explicitly enabled.
