@@ -299,7 +299,7 @@ void UActorIOSubsystemBase::RegisterNativeEventsForObject(AActor* InObject, FAct
             .SetId(TEXT("AActor::OnDestroyed"))
             .SetDisplayName(LOCTEXT("Actor.OnDestroyed", "OnDestroyed"))
             .SetTooltipText(LOCTEXT("Actor.OnDestroyedTooltip", "Event when the actor is getting destroyed."))
-            .SetSparseDelegate(InObject, TEXT("OnDestroyed"))
+            .SetSparseDelegate(InObject, TEXT("OnEndPlay"))
             .SetEventProcessor(this, TEXT("ProcessEvent_OnActorDestroyed")));
     }
 }
@@ -559,9 +559,14 @@ void UActorIOSubsystemBase::ProcessEvent_OnActorOverlap(AActor* OverlappedActor,
     ActionExecContext.SetNamedArgument(TEXT("$Actor"), IsValid(OtherActor) ? OtherActor->GetPathName() : FString());
 }
 
-void UActorIOSubsystemBase::ProcessEvent_OnActorDestroyed(AActor* DestroyedActor)
+void UActorIOSubsystemBase::ProcessEvent_OnActorDestroyed(AActor* Actor, EEndPlayReason::Type EndPlayReason)
 {
-    ActionExecContext.SetNamedArgument(TEXT("$Actor"), IsValid(DestroyedActor) ? DestroyedActor->GetPathName() : FString());
+    ActionExecContext.SetNamedArgument(TEXT("$Actor"), IsValid(Actor) ? Actor->GetPathName() : FString());
+    if (EndPlayReason != EEndPlayReason::Destroyed)
+    {
+        // Abort the action if end play was not caused by destroying the actor.
+        ActionExecContext.AbortAction();
+    }
 }
 
 bool UActorIOSubsystemBase::ShouldCreateSubsystem(UObject* Outer) const

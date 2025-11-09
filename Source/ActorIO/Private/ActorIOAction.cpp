@@ -309,21 +309,22 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 			ActionOwnerIOInterface->GetLocalNamedArguments(ExecutionContext);
 			IActorIOInterface::Execute_K2_GetLocalNamedArguments(ActionOwner);
 		}
+	}
 
-		// Let the event processor add extra named arguments to the current execution context.
-		// We are calling the event processor with the original params memory that we received from the delegate.
-		// This way the event processor will receive the proper values for its params given that its signature matches the delegate.
-		FActorIOEventList ValidEvents = IActorIO::GetEventsForObject(ActionOwner);
-		FActorIOEvent* BoundEvent = ValidEvents.GetEvent(EventId);
-		check(BoundEvent);
-		if (BoundEvent->EventProcessor.IsBound())
+	// Run the event processor.
+	// We are calling the event processor with the original params memory that we received from the delegate.
+	// This way the event processor will receive the proper values for its params given that its signature matches the delegate.
+	FActorIOEventList ValidEvents = IActorIO::GetEventsForObject(ActionOwner);
+	FActorIOEvent* BoundEvent = ValidEvents.GetEvent(EventId);
+	check(BoundEvent);
+	if (BoundEvent->EventProcessor.IsBound())
+	{
+		FName EventProcessorName = BoundEvent->EventProcessor.GetFunctionName();
+		UObject* EventProcessorObject = BoundEvent->EventProcessor.GetUObject();
+		if (EventProcessorObject)
 		{
-			UObject* EventProcessorObject = BoundEvent->EventProcessor.GetUObject();
-			if (IsValid(EventProcessorObject))
-			{
-				UFunction* Func_EventProcessor = EventProcessorObject->GetClass()->FindFunctionByName(BoundEvent->EventProcessor.GetFunctionName());
-				EventProcessorObject->ProcessEvent(Func_EventProcessor, ExecutionContext.ScriptParams);
-			}
+			UFunction* Func_EventProcessor = EventProcessorObject->GetClass()->FindFunctionByName(EventProcessorName);
+			EventProcessorObject->ProcessEvent(Func_EventProcessor, ExecutionContext.ScriptParams);
 		}
 	}
 
@@ -339,13 +340,19 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 
 	// Give the owning actor a chance to abort action execution.
 	// Deliberately doing this after collecting named arguments in case we want to access them.
-	if (ActionOwnerIOInterface)
+	if (ActionOwnerIOInterface && !ExecutionContext.bAborted)
 	{
 		if (IActorIOInterface::Execute_ConditionalAbortIOAction(ActionOwner, this))
 		{
-			UE_CLOG(DebugIOActions, LogActorIO, Log, TEXT("Action aborted by actor."));
-			return;
+			ExecutionContext.AbortAction();
 		}
+	}
+
+	// Do not continue if action was aborted by either the event processor or the owning actor.
+	if (ExecutionContext.bAborted)
+	{
+		UE_CLOG(DebugIOActions, LogActorIO, Log, TEXT("Action was aborted."));
+		return;
 	}
 
 	// Break up the user defined arguments string from a single line into multiple elements.
