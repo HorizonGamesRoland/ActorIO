@@ -7,6 +7,7 @@
 #include "GameFramework/Actor.h"
 #include "Engine/World.h"
 #include "TimerManager.h"
+#include "Misc/StringOutputDevice.h"
 
 FName UActorIOAction::ExecuteActionSignalName(TEXT("ReceiveExecuteAction"));
 

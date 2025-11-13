@@ -5,6 +5,7 @@
 #include "Engine/World.h"
 #include "Engine/Level.h"
 #include "Engine/LevelScriptActor.h"
+#include "Misc/StringOutputDevice.h"
 
 #define LOCTEXT_NAMESPACE "ActorIO"
 

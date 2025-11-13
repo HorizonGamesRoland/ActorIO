@@ -69,11 +69,11 @@ bool UActorIOSubsystemBase::ExecuteCommand(UObject* Target, const TCHAR* Str, FO
      *   - Return success/failure properly.
      */
 
-#if UE_VERSION_NEWER_THAN(5, 6, 999) // <- patch version doesn't matter so use 999 to pass the check
+#if UE_VERSION_NEWER_THAN(5, 7, 999) // <- patch version doesn't matter so use 999 to pass the check
 #error "Review latest implementation of UObject::CallFunctionByNameWithString then update UE version comparison."
 #endif
 
-     // Find an exec function.
+    // Find an exec function.
     FString MsgStr;
     if (!FParse::Token(Str, MsgStr, true))
     {
