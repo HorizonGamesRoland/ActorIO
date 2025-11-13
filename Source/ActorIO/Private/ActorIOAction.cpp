@@ -7,7 +7,11 @@
 #include "GameFramework/Actor.h"
 #include "Engine/World.h"
 #include "TimerManager.h"
+#include "Misc/EngineVersionComparison.h"
+
+#if UE_VERSION_NEWER_THAN(5, 7, 0)
 #include "Misc/StringOutputDevice.h"
+#endif
 
 FName UActorIOAction::ExecuteActionSignalName(TEXT("ReceiveExecuteAction"));
 

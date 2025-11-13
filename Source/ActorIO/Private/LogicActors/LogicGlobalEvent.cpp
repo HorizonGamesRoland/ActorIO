@@ -5,7 +5,11 @@
 #include "Engine/World.h"
 #include "Engine/Level.h"
 #include "Engine/LevelScriptActor.h"
+#include "Misc/EngineVersionComparison.h"
+
+#if UE_VERSION_NEWER_THAN(5, 7, 0)
 #include "Misc/StringOutputDevice.h"
+#endif
 
 #define LOCTEXT_NAMESPACE "ActorIO"
 
