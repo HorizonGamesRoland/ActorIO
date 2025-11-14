@@ -69,11 +69,11 @@ bool UActorIOSubsystemBase::ExecuteCommand(UObject* Target, const TCHAR* Str, FO
      *   - Return success/failure properly.
      */
 
-#if UE_VERSION_NEWER_THAN(5, 6, 999) // <- patch version doesn't matter so use 999 to pass the check
+#if UE_VERSION_NEWER_THAN(5, 7, 999) // <- patch version doesn't matter so use 999 to pass the check
 #error "Review latest implementation of UObject::CallFunctionByNameWithString then update UE version comparison."
 #endif
 
-     // Find an exec function.
+    // Find an exec function.
     FString MsgStr;
     if (!FParse::Token(Str, MsgStr, true))
     {
@@ -299,7 +299,7 @@ void UActorIOSubsystemBase::RegisterNativeEventsForObject(AActor* InObject, FAct
             .SetId(TEXT("AActor::OnDestroyed"))
             .SetDisplayName(LOCTEXT("Actor.OnDestroyed", "OnDestroyed"))
             .SetTooltipText(LOCTEXT("Actor.OnDestroyedTooltip", "Event when the actor is getting destroyed."))
-            .SetSparseDelegate(InObject, TEXT("OnDestroyed"))
+            .SetSparseDelegate(InObject, TEXT("OnEndPlay"))
             .SetEventProcessor(this, TEXT("ProcessEvent_OnActorDestroyed")));
     }
 }
@@ -559,9 +559,14 @@ void UActorIOSubsystemBase::ProcessEvent_OnActorOverlap(AActor* OverlappedActor,
     ActionExecContext.SetNamedArgument(TEXT("$Actor"), IsValid(OtherActor) ? OtherActor->GetPathName() : FString());
 }
 
-void UActorIOSubsystemBase::ProcessEvent_OnActorDestroyed(AActor* DestroyedActor)
+void UActorIOSubsystemBase::ProcessEvent_OnActorDestroyed(AActor* Actor, EEndPlayReason::Type EndPlayReason)
 {
-    ActionExecContext.SetNamedArgument(TEXT("$Actor"), IsValid(DestroyedActor) ? DestroyedActor->GetPathName() : FString());
+    ActionExecContext.SetNamedArgument(TEXT("$Actor"), IsValid(Actor) ? Actor->GetPathName() : FString());
+    if (EndPlayReason != EEndPlayReason::Destroyed)
+    {
+        // Abort the action if end play was not caused by destroying the actor.
+        ActionExecContext.AbortAction();
+    }
 }
 
 bool UActorIOSubsystemBase::ShouldCreateSubsystem(UObject* Outer) const

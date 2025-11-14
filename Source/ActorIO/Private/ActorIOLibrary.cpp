@@ -36,3 +36,9 @@ void UActorIOLibrary::K2_SetNamedArgument(UObject* WorldContextObject, const FSt
     FActionExecutionContext& ExecContext = FActionExecutionContext::Get(WorldContextObject);
     ExecContext.SetNamedArgument(ArgumentName, ArgumentValue);
 }
+
+void UActorIOLibrary::K2_AbortAction(UObject* WorldContextObject)
+{
+    FActionExecutionContext& ExecContext = FActionExecutionContext::Get(WorldContextObject);
+    ExecContext.AbortAction();
+}

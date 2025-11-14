@@ -98,7 +98,7 @@ private:
 
 	/** Event processor for the 'OnDestroyed' event of actors. */
 	UFUNCTION()
-	void ProcessEvent_OnActorDestroyed(AActor* DestroyedActor);
+	void ProcessEvent_OnActorDestroyed(AActor* Actor, EEndPlayReason::Type EndPlayReason);
 
 public:
 

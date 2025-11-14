@@ -42,6 +42,12 @@ Here is a quick video showcasing the plugin in action.
 
 https://github.com/user-attachments/assets/02eb91c7-d2d8-4624-a207-c5be17bcff94
 
+# Sample Project
+
+A top-down shooter game is also available, showcasing how Actor I/O can be used for level scripting in Unreal Engine. See: [Actor I/O Shooter Sample](https://github.com/HorizonGamesRoland/ActorIOSample)
+
+<img width="378" height="241" alt="screenshot_1" src="https://github.com/user-attachments/assets/7e7a87dc-8909-449d-924c-7b21bfec1ec2" /> <img width="378" height="241" alt="screenshot_2" src="https://github.com/user-attachments/assets/9db8ce28-7099-4ad2-ad81-f65bc2a272f4" />
+
 # Why Use This?
 
 You may be wondering why use this over blueprint interfaces? Aren't these the same thing?

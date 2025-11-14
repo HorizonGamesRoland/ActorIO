@@ -60,4 +60,13 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "ActorIO", DisplayName = "Set Named Argument", meta = (WorldContext = "WorldContextObject", AutoCreateRefTerm = "ArgumentName,ArgumentValue", Keywords = "Param"))
 	static void K2_SetNamedArgument(UObject* WorldContextObject, const FString& ArgumentName, const FString& ArgumentValue);
+
+	/**
+	 * Aborts the execution of the current action.
+	 * Should only be called from within an I/O event processor!
+	 *
+	 * @param WorldContextObject Reference to the object where this function is being called.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "ActorIO", DisplayName = "Abort Action", meta = (WorldContext = "WorldContextObject", Keywords = "Abort,Stop"))
+	static void K2_AbortAction(UObject* WorldContextObject);
 };

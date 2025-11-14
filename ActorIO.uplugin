@@ -1,7 +1,7 @@
 {
 	"FileVersion": 3,
-	"Version": 7,
-	"VersionName": "1.4.1",
+	"Version": 8,
+	"VersionName": "1.5.0",
 	"FriendlyName": "Actor I/O",
 	"Description": "Source Engine style level scripting tool featuring an input/output system for actors in Unreal Engine.",
 	"Category": "Scripting",
