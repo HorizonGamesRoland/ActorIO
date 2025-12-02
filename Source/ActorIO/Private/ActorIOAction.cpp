@@ -9,7 +9,7 @@
 #include "TimerManager.h"
 #include "Misc/EngineVersionComparison.h"
 
-#if UE_VERSION_NEWER_THAN(5, 6, 0)
+#if UE_VERSION_NEWER_THAN_OR_EQUAL(5, 7, 0)
 #include "Misc/StringOutputDevice.h"
 #endif
 
