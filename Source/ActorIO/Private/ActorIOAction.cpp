@@ -9,10 +9,6 @@
 #include "TimerManager.h"
 #include "Misc/EngineVersionComparison.h"
 
-#if UE_VERSION_NEWER_THAN_OR_EQUAL(5, 7, 0)
-#include "Misc/StringOutputDevice.h"
-#endif
-
 FName UActorIOAction::ExecuteActionSignalName(TEXT("ReceiveExecuteAction"));
 
 UActorIOAction::UActorIOAction()
@@ -251,6 +247,14 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 		return;
 	}
 
+	UActorIOSubsystemBase* IOSubsystem = UActorIOSubsystemBase::Get(this);
+	if (!IOSubsystem)
+	{
+		// Do nothing if the I/O subsystem is invalid.
+		// This should be impossible to reach.
+		return;
+	}
+
 	UE_CLOG(DebugIOActions, LogActorIO, Log, TEXT("Executing action: %s -> %s (Caller: '%s')"), *EventId.ToString(), *FunctionId.ToString(), *ActionOwner->GetActorNameOrLabel());
 
 	if (TargetActor.IsNull())
@@ -305,7 +309,6 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 	{
 		// Let the I/O subsystem add globally available named arguments to the current execution context.
 		// Think stuff like reference to player character, or player controller.
-		UActorIOSubsystemBase* IOSubsystem = UActorIOSubsystemBase::Get(this);
 		IOSubsystem->GetGlobalNamedArguments(ExecutionContext);
 
 		// Let the owning actor add locally available named arguments to the current execution context.
@@ -425,39 +428,8 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 	ExecutionContext.ExitContext();
 	bWasExecuted = true;
 
-	// Send the final command to the target actor.
-	if (Delay > 0.0f)
-	{
-		FTimerHandle UniqueHandle;
-		FTimerDelegate SendCommandDelegate = FTimerDelegate::CreateUObject(this, &ThisClass::SendCommand, ObjectToSendCommandTo, Command);
-		GetWorld()->GetTimerManager().SetTimer(UniqueHandle, SendCommandDelegate, Delay, false);
-	}
-	else
-	{
-		SendCommand(ObjectToSendCommandTo, Command);
-	}
-}
-
-void UActorIOAction::SendCommand(UObject* Target, FString Command)
-{
-	FString ErrorReason;
-	if (!IActorIO::ConfirmObjectIsAlive(Target, ErrorReason))
-	{
-		FActionExecutionContext::ExecutionError(DebugIOActions, ELogVerbosity::Warning, FString::Printf(TEXT("Target was invalid when sending command '%s'. Reason: %s"), *FunctionId.ToString(), *ErrorReason));
-		return;
-	}
-
-	FStringOutputDevice Ar;
-
-	// Invoke the function.
-	UActorIOSubsystemBase* IOSubsystem = UActorIOSubsystemBase::Get(this);
-	IOSubsystem->ExecuteCommand(Target, *Command, Ar, this);
-
-	// Log execution errors.
-	if (!Ar.IsEmpty())
-	{
-		FActionExecutionContext::ExecutionError(DebugIOActions, ELogVerbosity::Error, Ar);
-	}
+	// Send the final command.
+	IOSubsystem->SendMessage(this, ObjectToSendCommandTo, Command, Delay);
 }
 
 UActorIOComponent* UActorIOAction::GetOwnerIOComponent() const

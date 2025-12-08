@@ -13,7 +13,7 @@ class UActorIOAction;
  * Stores the current action execution context, and exposes native I/O events and functions.
  */
 UCLASS(Blueprintable)
-class ACTORIO_API UActorIOSubsystemBase : public UWorldSubsystem
+class ACTORIO_API UActorIOSubsystemBase : public UTickableWorldSubsystem
 {
 	GENERATED_BODY()
 
@@ -24,6 +24,9 @@ public:
 
 public:
 
+	UPROPERTY(Transient)
+	TArray<FActorIOMessage> PendingMessages;
+
 	/**
 	 * The current I/O action execution context.
 	 * Only valid at runtime between an actor receiving the execute action signal, and sending the command to the target actor.
@@ -32,10 +35,14 @@ public:
 	UPROPERTY(Transient)
 	FActionExecutionContext ActionExecContext;
 
+public:
+
 	/** Get the I/O subsystem of the given world. */
 	static UActorIOSubsystemBase* Get(UObject* WorldContextObject);
 
-public:
+	virtual void SendMessage(UObject* Executor, UObject* Target, FString& Message, float Delay);
+
+	virtual void ProcessMessage(FActorIOMessage& InMessage);
 
 	/**
 	 * Invokes a function on the target object with parameters using the reflection system.
@@ -55,13 +62,6 @@ public:
 	virtual void RegisterNativeEventsForObject(AActor* InObject, FActorIOEventList& EventRegistry);
 
 	/**
-	 * Opportunity for blueprints to externally expose events of an actor to the I/O system.
-	 * Called in editor and at runtime, when registering I/O events.
-	 */
-	UFUNCTION(BlueprintImplementableEvent, CallInEditor, Category = "Actor IO", DisplayName = "Register Native Events For Object", meta = (ForceAsFunction, Keywords = "IO"))
-	void K2_RegisterNativeEventsForObject(AActor* InObject, UPARAM(Ref) FActorIOEventList& EventRegistry);
-
-	/**
 	 * Opportunity to externally expose functions of an actor to the I/O system.
 	 * Used to expose functionality from base Unreal Engine classes without the need to subclass them.
 	 * Called in editor and at runtime, when registering I/O events.
@@ -69,18 +69,25 @@ public:
 	virtual void RegisterNativeFunctionsForObject(AActor* InObject, FActorIOFunctionList& FunctionRegistry);
 
 	/**
-	 * Opportunity for blueprints to externally expose functions of an actor to the I/O system.
-	 * Called in editor and at runtime, when registering I/O events.
-	 */
-	UFUNCTION(BlueprintImplementableEvent, CallInEditor, Category = "Actor IO", DisplayName = "Register Native Functions For Object", meta = (ForceAsFunction, Keywords = "IO"))
-	void K2_RegisterNativeFunctionsForObject(AActor* InObject, UPARAM(Ref) FActorIOFunctionList& FunctionRegistry);
-
-	/**
 	 * Opportunity to add globally available named arguments to the current execution context.
 	 * These named arguments are available for all actors.
 	 * Called at runtime, when executing an I/O action.
 	 */
 	virtual void GetGlobalNamedArguments(FActionExecutionContext& ExecutionContext);
+
+	/**
+	 * Opportunity for blueprints to externally expose events of an actor to the I/O system.
+	 * Called in editor and at runtime, when registering I/O events.
+	 */
+	UFUNCTION(BlueprintImplementableEvent, CallInEditor, Category = "Actor IO", DisplayName = "Register Native Events For Object", meta = (ForceAsFunction, Keywords = "IO"))
+	void K2_RegisterNativeEventsForObject(AActor* InObject, UPARAM(Ref) FActorIOEventList& EventRegistry);
+
+	/**
+	 * Opportunity for blueprints to externally expose functions of an actor to the I/O system.
+	 * Called in editor and at runtime, when registering I/O events.
+	 */
+	UFUNCTION(BlueprintImplementableEvent, CallInEditor, Category = "Actor IO", DisplayName = "Register Native Functions For Object", meta = (ForceAsFunction, Keywords = "IO"))
+	void K2_RegisterNativeFunctionsForObject(AActor* InObject, UPARAM(Ref) FActorIOFunctionList& FunctionRegistry);
 
 	/**
 	 * Opportunity for blueprints to add globally available named arguments to the current execution context.
@@ -102,7 +109,11 @@ private:
 
 public:
 
-	//~ Begin UWorldSubsystem Interface
+	//~ Begin UTickableWorldSubsystem Interface
 	virtual bool ShouldCreateSubsystem(UObject* Outer) const override final;
-	//~ End UWorldSubsystem Interface
+	virtual void Tick(float DeltaTime) override;
+	virtual ETickableTickType GetTickableTickType() const override;
+	virtual bool IsTickable() const override;
+	virtual TStatId GetStatId() const override;
+	//~ End UTickableWorldSubsystem Interface
 };

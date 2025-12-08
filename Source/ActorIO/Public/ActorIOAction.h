@@ -126,12 +126,6 @@ protected:
 	/** Executes the action. */
 	void ExecuteAction(FActionExecutionContext& ExecutionContext);
 
-	/**
-	 * Sends the final command to the target actor.
-	 * The command contains the function name and parameters that will be processed by Unreal Script.
-	 */
-	void SendCommand(UObject* Target, FString Command);
-
 public:
 
 	//~ Begin UObject Interface

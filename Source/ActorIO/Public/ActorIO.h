@@ -437,6 +437,29 @@ struct ACTORIO_API FActionExecutionContext
 	static void ExecutionError(bool bCondition, ELogVerbosity::Type InVerbosity, const FString& InMessage);
 };
 
+USTRUCT()
+struct ACTORIO_API FActorIOMessage
+{
+	GENERATED_BODY()
+
+	TWeakObjectPtr<UObject> Executor;
+
+	TWeakObjectPtr<UObject> Target;
+
+	FString Message;
+
+	float Delay;
+
+	float RemainingTime;
+
+	FActorIOMessage() :
+		Executor(nullptr),
+		Target(nullptr),
+		Delay(0.0f),
+		RemainingTime(0.0f)
+	{}
+};
+
 /**
  * Interface to interact with the Actor I/O system.
  */

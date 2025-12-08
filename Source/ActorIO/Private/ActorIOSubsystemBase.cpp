@@ -23,10 +23,15 @@
 #include "Kismet/GameplayStatics.h"
 #include "Misc/EngineVersionComparison.h"
 
+#if UE_VERSION_NEWER_THAN_OR_EQUAL(5, 7, 0)
+#include "Misc/StringOutputDevice.h"
+#endif
+
 #define LOCTEXT_NAMESPACE "ActorIO"
 
 UActorIOSubsystemBase::UActorIOSubsystemBase()
 {
+    PendingMessages = TArray<FActorIOMessage>();
     ActionExecContext = FActionExecutionContext();
 }
 
@@ -49,6 +54,78 @@ UActorIOSubsystemBase* UActorIOSubsystemBase::Get(UObject* WorldContextObject)
     }
 
     return nullptr;
+}
+
+void UActorIOSubsystemBase::Tick(float DeltaTime)
+{
+    Super::Tick(DeltaTime);
+
+    for (int32 MessageIdx = PendingMessages.Num() - 1; MessageIdx >= 0; --MessageIdx)
+    {
+        FActorIOMessage& Message = PendingMessages[MessageIdx];
+        Message.RemainingTime -= DeltaTime;
+
+        if (Message.RemainingTime <= 0.0f)
+        {
+            ProcessMessage(Message);
+            PendingMessages.RemoveAt(MessageIdx);
+        }
+    }
+}
+
+ETickableTickType UActorIOSubsystemBase::GetTickableTickType() const
+{
+    return ETickableTickType::Conditional;
+}
+
+bool UActorIOSubsystemBase::IsTickable() const
+{
+    return PendingMessages.Num() > 0;
+}
+
+TStatId UActorIOSubsystemBase::GetStatId() const
+{
+    RETURN_QUICK_DECLARE_CYCLE_STAT(UActorIOSubsystemBase, STATGROUP_Tickables);
+}
+
+void UActorIOSubsystemBase::SendMessage(UObject* Executor, UObject* Target, FString& Message, float Delay)
+{
+    FActorIOMessage NewMessage;
+    NewMessage.Executor = Executor;
+    NewMessage.Target = Target;
+    NewMessage.Message = Message;
+    NewMessage.Delay = Delay;
+    NewMessage.RemainingTime = Delay;
+
+    if (Delay <= 0.0f)
+    {
+        ProcessMessage(NewMessage);
+    }
+    else
+    {
+        PendingMessages.Add(NewMessage);
+    }
+}
+
+void UActorIOSubsystemBase::ProcessMessage(FActorIOMessage& InMessage)
+{
+    // #TODO: Validate
+
+    FString ErrorReason;
+    if (!IActorIO::ConfirmObjectIsAlive(InMessage.Target.Get(), ErrorReason))
+    {
+        FActionExecutionContext::ExecutionError(DebugIOActions, ELogVerbosity::Warning, FString::Printf(TEXT("Target was invalid when sending command '%s'. Reason: %s"), *InMessage.Message, *ErrorReason));
+        return;
+    }
+
+    FStringOutputDevice Ar;
+    ExecuteCommand(InMessage.Target.Get(), *InMessage.Message, Ar, InMessage.Executor.Get());
+
+    // Log execution errors.
+    if (!Ar.IsEmpty())
+    {
+        FActionExecutionContext::ExecutionError(DebugIOActions, ELogVerbosity::Error, Ar);
+    }
 }
 
 bool UActorIOSubsystemBase::ExecuteCommand(UObject* Target, const TCHAR* Str, FOutputDevice& Ar, UObject* Executor)
