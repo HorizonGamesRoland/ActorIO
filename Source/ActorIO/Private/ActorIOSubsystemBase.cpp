@@ -63,9 +63,9 @@ void UActorIOSubsystemBase::Tick(float DeltaTime)
     for (int32 MessageIdx = PendingMessages.Num() - 1; MessageIdx >= 0; --MessageIdx)
     {
         FActorIOMessage& Message = PendingMessages[MessageIdx];
-        Message.RemainingTime -= DeltaTime;
+        Message.TimeRemaining -= DeltaTime;
 
-        if (Message.RemainingTime <= 0.0f)
+        if (Message.TimeRemaining <= 0.0f)
         {
             ProcessMessage(Message);
             PendingMessages.RemoveAt(MessageIdx);
@@ -88,14 +88,13 @@ TStatId UActorIOSubsystemBase::GetStatId() const
     RETURN_QUICK_DECLARE_CYCLE_STAT(UActorIOSubsystemBase, STATGROUP_Tickables);
 }
 
-void UActorIOSubsystemBase::SendMessage(UObject* Executor, UObject* Target, FString& Message, float Delay)
+void UActorIOSubsystemBase::SendMessage(UObject* Sender, UObject* Target, FString& Command, float Delay)
 {
     FActorIOMessage NewMessage;
-    NewMessage.Executor = Executor;
-    NewMessage.Target = Target;
-    NewMessage.Message = Message;
-    NewMessage.Delay = Delay;
-    NewMessage.RemainingTime = Delay;
+    NewMessage.SenderPtr = Sender;
+    NewMessage.TargetPtr = Target;
+    NewMessage.Command = Command;
+    NewMessage.TimeRemaining = Delay;
 
     if (Delay <= 0.0f)
     {
@@ -109,17 +108,15 @@ void UActorIOSubsystemBase::SendMessage(UObject* Executor, UObject* Target, FStr
 
 void UActorIOSubsystemBase::ProcessMessage(FActorIOMessage& InMessage)
 {
-    // #TODO: Validate
-
     FString ErrorReason;
-    if (!IActorIO::ConfirmObjectIsAlive(InMessage.Target.Get(), ErrorReason))
+    if (!IActorIO::ConfirmObjectIsAlive(InMessage.TargetPtr.Get(), ErrorReason))
     {
-        FActionExecutionContext::ExecutionError(DebugIOActions, ELogVerbosity::Warning, FString::Printf(TEXT("Target was invalid when sending command '%s'. Reason: %s"), *InMessage.Message, *ErrorReason));
+        FActionExecutionContext::ExecutionError(DebugIOActions, ELogVerbosity::Warning, FString::Printf(TEXT("Target was invalid when sending command '%s'. Reason: %s"), *InMessage.Command, *ErrorReason));
         return;
     }
 
     FStringOutputDevice Ar;
-    ExecuteCommand(InMessage.Target.Get(), *InMessage.Message, Ar, InMessage.Executor.Get());
+    ExecuteCommand(InMessage.TargetPtr.Get(), *InMessage.Command, Ar, this);
 
     // Log execution errors.
     if (!Ar.IsEmpty())

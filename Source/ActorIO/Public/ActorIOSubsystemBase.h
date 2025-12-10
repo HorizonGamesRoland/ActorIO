@@ -22,37 +22,27 @@ public:
 	/** Default constructor. */
 	UActorIOSubsystemBase();
 
-public:
-
-	UPROPERTY(Transient)
-	TArray<FActorIOMessage> PendingMessages;
+protected:
 
 	/**
 	 * The current I/O action execution context.
-	 * Only valid at runtime between an actor receiving the execute action signal, and sending the command to the target actor.
+	 * Only valid at runtime between an actor receiving the execute action signal, and queuing the I/O message.
 	 * Use FActionExecutionContext::Get() to access unless you have direct reference to the I/O system.
 	 */
 	UPROPERTY(Transient)
 	FActionExecutionContext ActionExecContext;
 
+	/**
+	 * List of I/O messages that are queued for delivery.
+	 * Each message contains a formatted UnrealScript command that will be sent to the message target.
+	 */
+	UPROPERTY(Transient)
+	TArray<FActorIOMessage> PendingMessages;
+
 public:
 
 	/** Get the I/O subsystem of the given world. */
 	static UActorIOSubsystemBase* Get(UObject* WorldContextObject);
-
-	virtual void SendMessage(UObject* Executor, UObject* Target, FString& Message, float Delay);
-
-	virtual void ProcessMessage(FActorIOMessage& InMessage);
-
-	/**
-	 * Invokes a function on the target object with parameters using the reflection system.
-	 * 
-	 * @param Target Object to call the function on.
-	 * @param Str The command to execute. Contains function name followed by the params, delimited by whitespaces.
-	 * @param Ar Output device to push error messages to. Use FOutputDeviceNull if not needed.
-	 * @param Executor Object that is executing the function.
-	 */
-	virtual bool ExecuteCommand(UObject* Target, const TCHAR* Str, FOutputDevice& Ar, UObject* Executor);
 
 	/**
 	 * Opportunity to externally expose events of an actor to the I/O system.
@@ -96,6 +86,36 @@ public:
 	 */
 	UFUNCTION(BlueprintImplementableEvent, Category = "Actor IO", DisplayName = "Get Global Named Arguments", meta = (ForceAsFunction, Keywords = "IO"))
 	void K2_GetGlobalNamedArguments();
+
+public:
+
+	/**
+	 * Queue an I/O message with a formatted UnrealScript command to be delivered to the target object.
+	 * Message delivery can be delayed.
+	 */
+	virtual void SendMessage(UObject* Sender, UObject* Target, FString& Command, float Delay = 0.0f);
+
+	/** @return List of I/O messages that are queued for delivery. */
+	const TArray<FActorIOMessage>& GetPendingMessages() const { return PendingMessages; }
+
+	/**
+	 * Executes an UnrealScript command on the target object.
+	 * The command will invoke a function (optionally with parameters) using the C++ reflection system.
+	 *
+	 * @param Target Object to execute the command on.
+	 * @param Str The command to execute. Contains function name followed by the params, delimited by whitespaces.
+	 * @param Ar Output device to push error messages to. Use FOutputDeviceNull if not needed.
+	 * @param Executor Object that is executing the function.
+	 */
+	virtual bool ExecuteCommand(UObject* Target, const TCHAR* Str, FOutputDevice& Ar, UObject* Executor);
+
+	/** @return Reference to the global execution context. */
+	FActionExecutionContext& GetExecutionContext() { return ActionExecContext; }
+
+protected:
+
+	/** Handles the delivery of an I/O message. */
+	virtual void ProcessMessage(FActorIOMessage& InMessage);
 
 private:
 

@@ -437,26 +437,36 @@ struct ACTORIO_API FActionExecutionContext
 	static void ExecutionError(bool bCondition, ELogVerbosity::Type InVerbosity, const FString& InMessage);
 };
 
+/**
+ * A message that contains an UnrealScript command formatted by an I/O action.
+ * Delivered and executed by the I/O subsystem.
+ */
 USTRUCT()
 struct ACTORIO_API FActorIOMessage
 {
 	GENERATED_BODY()
 
-	TWeakObjectPtr<UObject> Executor;
+	/** Object sending the message. */
+	TWeakObjectPtr<UObject> SenderPtr;
 
-	TWeakObjectPtr<UObject> Target;
+	/** Object to execute the command on. */
+	TWeakObjectPtr<UObject> TargetPtr;
 
-	FString Message;
+	/** The formatted command to execute on the target object. */
+	FString Command;
 
-	float Delay;
+	/**
+	 * Time in seconds before the command is executed.
+	 * Ticked down every frame by the I/O subsystem.
+	 */
+	float TimeRemaining;
 
-	float RemainingTime;
-
+	/** Default constructor. */
 	FActorIOMessage() :
-		Executor(nullptr),
-		Target(nullptr),
-		Delay(0.0f),
-		RemainingTime(0.0f)
+		SenderPtr(nullptr),
+		TargetPtr(nullptr),
+		Command(FString()),
+		TimeRemaining(0.0f)
 	{}
 };
 

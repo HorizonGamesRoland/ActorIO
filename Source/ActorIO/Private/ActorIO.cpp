@@ -40,7 +40,7 @@ TAutoConsoleVariable<bool> CVarLogIOActionFinalCommand(
 FActionExecutionContext& FActionExecutionContext::Get(UObject* WorldContextObject)
 {
     UActorIOSubsystemBase* IOSubsystem = UActorIOSubsystemBase::Get(WorldContextObject);
-    return IOSubsystem->ActionExecContext;
+    return IOSubsystem->GetExecutionContext();
 }
 
 void FActionExecutionContext::EnterContext(UActorIOAction* InAction, void* InScriptParams)
