@@ -4,7 +4,6 @@
 #include "ActorIOAction.h"
 #include "GameFramework/Actor.h"
 #include "Engine/World.h"
-#include "TimerManager.h"
 #include "Logging/MessageLog.h"
 #include "Misc/UObjectToken.h"
 
@@ -108,14 +107,12 @@ void UActorIOComponent::BindActions()
 
 void UActorIOComponent::UnbindActions()
 {
-	FTimerManager& TimerManager = GetWorld()->GetTimerManager();
 	for (int32 ActionIdx = 0; ActionIdx != Actions.Num(); ++ActionIdx)
 	{
 		UActorIOAction* Action = Actions[ActionIdx].Get();
 		if (IsValid(Action))
 		{
 			Action->UnbindAction();
-			TimerManager.ClearAllTimersForObject(Action);
 		}
 	}
 }
