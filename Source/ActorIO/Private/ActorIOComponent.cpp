@@ -78,21 +78,6 @@ void UActorIOComponent::MoveAction(int32 OriginalIndex, int32 NewIndex)
 	}
 }
 
-float UActorIOComponent::GetDurationOfLongestDelay() const
-{
-	float OutLongestDelay = 0.0f;
-	for (int32 ActionIdx = 0; ActionIdx != Actions.Num(); ++ActionIdx)
-	{
-		UActorIOAction* Action = Actions[ActionIdx].Get();
-		if (IsValid(Action) && Action->Delay > OutLongestDelay)
-		{
-			OutLongestDelay = Action->Delay;
-		}
-	}
-
-	return OutLongestDelay;
-}
-
 void UActorIOComponent::BindActions()
 {
 	for (int32 ActionIdx = 0; ActionIdx != Actions.Num(); ++ActionIdx)

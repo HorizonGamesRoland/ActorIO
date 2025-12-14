@@ -50,9 +50,6 @@ public:
 	/** @return Number of actions. */
 	int32 GetNumActions() const { return Actions.Num(); }
 
-	/** @return Delay of the longest delayed action. */
-	float GetDurationOfLongestDelay() const;
-
 protected:
 
 	/** Binds all actions to their assigned I/O events. */
