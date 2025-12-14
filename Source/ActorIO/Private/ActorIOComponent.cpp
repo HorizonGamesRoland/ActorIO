@@ -22,7 +22,7 @@ void UActorIOComponent::OnRegister()
 	Super::OnRegister();
 
 	// Clean up the action list whenever the component is (re)registered.
-	RemoveInvalidActions();
+	CompactActions();
 }
 
 void UActorIOComponent::InitializeComponent()
@@ -48,17 +48,6 @@ void UActorIOComponent::RemoveAction(UActorIOAction* InAction)
 	Actions.RemoveAt(ActionIdx);
 }
 
-void UActorIOComponent::RemoveInvalidActions()
-{
-	for (int32 ActionIdx = Actions.Num() - 1; ActionIdx >= 0; --ActionIdx)
-	{
-		if (!Actions[ActionIdx].Get())
-		{
-			Actions.RemoveAt(ActionIdx);
-		}
-	}
-}
-
 void UActorIOComponent::MoveAction(int32 OriginalIndex, int32 NewIndex)
 {
 	// Uses same move implementation as properties in the editor.
@@ -75,6 +64,17 @@ void UActorIOComponent::MoveAction(int32 OriginalIndex, int32 NewIndex)
 		Actions.InsertDefaulted(NewIndex);
 		Actions.Swap(OriginalIndex + 1, NewIndex);
 		Actions.RemoveAt(OriginalIndex + 1);
+	}
+}
+
+void UActorIOComponent::CompactActions()
+{
+	for (int32 ActionIdx = Actions.Num() - 1; ActionIdx >= 0; --ActionIdx)
+	{
+		if (!Actions[ActionIdx].Get())
+		{
+			Actions.RemoveAt(ActionIdx);
+		}
 	}
 }
 
