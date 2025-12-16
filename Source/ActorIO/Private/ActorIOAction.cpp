@@ -7,7 +7,7 @@
 #include "GameFramework/Actor.h"
 #include "Engine/World.h"
 
-FName UActorIOAction::ExecuteActionSignalName(TEXT("ReceiveExecuteAction"));
+FName UActorIOAction::NAME_ExecuteAction(TEXT("ExecuteAction"));
 
 UActorIOAction::UActorIOAction()
 {
@@ -50,7 +50,7 @@ void UActorIOAction::BindAction()
 	}
 
 	ActionDelegate = FScriptDelegate();
-	ActionDelegate.BindUFunction(this, ExecuteActionSignalName);
+	ActionDelegate.BindUFunction(this, NAME_ExecuteAction);
 
 	switch (TargetEvent->DelegateType)
 	{
@@ -196,39 +196,24 @@ void UActorIOAction::UnbindAction()
 
 void UActorIOAction::ProcessEvent(UFunction* Function, void* Parms)
 {
-	// This function is called whenever Unreal Script is executing a function on the object.
-	// We are going to use this to catch when 'execute action' is called by the I/O event delegate that we are bound to.
-	// The actual function bound to the delegate is empty as it's just used as an event signal here.
-	// Since we cannot know what parameters the I/O event delegate has, we will preserve the params memory here.
-	// Then we are going to execute the action manually so that we can have full control.
+	// This function is called whenever UnrealScript wants to execute a UFunction on this object.
+	// We are going to use this to catch when 'execute action' is being called by the I/O event that we are bound to.
+	// Since we have access to the original script VM memory here, we can process it ourselves.
+	// Afterwards we let the script VM call our 'execute action' function, where we dispatch the I/O message.
 
-	if (Function && Function->GetFName() == ExecuteActionSignalName)
+	if (Function && Function->GetFName() == NAME_ExecuteAction)
 	{
 		FActionExecutionContext& ExecContext = FActionExecutionContext::Get(this);
 		ExecContext.EnterContext(this, Parms);
 
-		// Start executing the action.
-		// Build the command and send it to the target actor.
-		ExecuteAction(ExecContext);
-
-		// Make sure to leave the context in case 'ExecuteAction' didn't leave already.
-		if (ExecContext.HasContext())
-		{
-			ExecContext.ExitContext();
-		}
+		// Process the execute action call.
+		ExecContext.bProcessResult = ProcessAction(ExecContext);
 	}
 	
 	Super::ProcessEvent(Function, Parms);
 }
 
-void UActorIOAction::ReceiveExecuteAction()
-{
-	// Empty on purpose.
-	// This function is only used as an event signal.
-	// For more information see 'ProcessEvent' above.
-}
-
-void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
+bool UActorIOAction::ProcessAction(FActionExecutionContext& ExecutionContext)
 {
 	AActor* ActionOwner = GetOwnerActor();
 
@@ -236,13 +221,13 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 	if (!IActorIO::ConfirmObjectIsAlive(ActionOwner, OwnerInvalidReason))
 	{
 		// Do nothing if the owning actor is invalid.
-		return;
+		return false;
 	}
 
 	if (bExecuteOnlyOnce && bWasExecuted)
 	{
 		// Do nothing if execute only once is enabled and the action was executed already.
-		return;
+		return false;
 	}
 
 	UActorIOSubsystemBase* IOSubsystem = UActorIOSubsystemBase::Get(this);
@@ -250,7 +235,7 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 	{
 		// Do nothing if the I/O subsystem is invalid.
 		// This should be impossible to reach.
-		return;
+		return false;
 	}
 
 	UE_CLOG(DebugIOActions, LogActorIO, Log, TEXT("Executing action: %s -> %s (Caller: '%s')"), *EventId.ToString(), *FunctionId.ToString(), *ActionOwner->GetActorNameOrLabel());
@@ -259,41 +244,7 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 	{
 		// Do nothing if no target actor is selected.
 		FActionExecutionContext::ExecutionError(DebugIOActions && WarnIOInvalidTarget, ELogVerbosity::Warning, TEXT("No target actor selected."));
-		return;
-	}
-
-	FString TargetInvalidReason;
-	if (!IActorIO::ConfirmObjectIsAlive(TargetActor.Get(), TargetInvalidReason))
-	{
-		// Do nothing if the target actor is invalid.
-		// The actor was most likely unloaded or destroyed.
-		FActionExecutionContext::ExecutionError(DebugIOActions && WarnIOInvalidTarget, ELogVerbosity::Warning, FString::Printf(TEXT("Target actor is invalid. Reason: %s"), *TargetInvalidReason));
-		return;
-	}
-
-	AActor* TargetActorPtr = TargetActor.Get();
-
-	FActorIOFunctionList ValidFunctions = IActorIO::GetFunctionsForObject(TargetActorPtr);
-	FActorIOFunction* TargetFunction = ValidFunctions.GetFunction(FunctionId);
-	if (!TargetFunction)
-	{
-		FActionExecutionContext::ExecutionError(DebugIOActions, ELogVerbosity::Error, FString::Printf(TEXT("Could not find function '%s' on target actor '%s'."), *FunctionId.ToString(), *TargetActorPtr->GetActorNameOrLabel()));
-		return;
-	}
-
-	if (TargetFunction->FunctionToExec.IsEmpty())
-	{
-		FActionExecutionContext::ExecutionError(DebugIOActions, ELogVerbosity::Error, FString::Printf(TEXT("Function '%s' points to an empty func name."), *FunctionId.ToString()));
-		return;
-	}
-
-	// Figure out which object the final command should be sent to.
-	// In most cases this will be the target actor, but the I/O function may want it to be executed on a subobject rather then the actor itself.
-	UObject* ObjectToSendCommandTo = ResolveTargetObject(TargetFunction);
-	if (!IsValid(ObjectToSendCommandTo))
-	{
-		FActionExecutionContext::ExecutionError(DebugIOActions, ELogVerbosity::Error, FString::Printf(TEXT("Could not find default subobject '%s' on target actor '%s'."), *TargetFunction->TargetSubobject.ToString(), *TargetActorPtr->GetActorNameOrLabel()));
-		return;
+		return false;
 	}
 
 	IActorIOInterface* ActionOwnerIOInterface = nullptr;
@@ -302,8 +253,8 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 		ActionOwnerIOInterface = Cast<IActorIOInterface>(ActionOwner);
 	}
 
-	const bool bProcessNamedArgs = FunctionArguments.Contains(NAMEDARGUMENT_PREFIX);
-	if (bProcessNamedArgs || LogIONamedArgs)
+	const bool bProcessNamedArgs = FunctionArguments.Contains(NAMEDARGUMENT_PREFIX) || LogIONamedArgs;
+	if (bProcessNamedArgs)
 	{
 		// Let the I/O subsystem add globally available named arguments to the current execution context.
 		// Think stuff like reference to player character, or player controller.
@@ -317,12 +268,13 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 		}
 	}
 
-	// Run the event processor.
-	// We are calling the event processor with the original params memory that we received from the delegate.
-	// This way the event processor will receive the proper values for its params given that its signature matches the delegate.
 	FActorIOEventList ValidEvents = IActorIO::GetEventsForObject(ActionOwner);
 	FActorIOEvent* BoundEvent = ValidEvents.GetEvent(EventId);
 	check(BoundEvent);
+
+	// Run the event processor.
+	// We are calling the event processor with the original params memory that we received from the delegate.
+	// This way the event processor will receive the proper values for its params given that its signature matches the delegate.
 	if (BoundEvent->EventProcessor.IsBound())
 	{
 		FName EventProcessorName = BoundEvent->EventProcessor.GetFunctionName();
@@ -344,7 +296,7 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 		}
 	}
 
-	// Give the owning actor a chance to abort action execution.
+	// Give the owning actor a chance to abort action execution (if it wasn't aborted already by the event processor).
 	// Deliberately doing this after collecting named arguments in case we want to access them.
 	if (ActionOwnerIOInterface && !ExecutionContext.bAborted)
 	{
@@ -354,10 +306,19 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 		}
 	}
 
-	// Do not continue if action was aborted by either the event processor or the owning actor.
-	if (ExecutionContext.bAborted)
+	return !ExecutionContext.bAborted;
+}
+
+void UActorIOAction::ExecuteAction()
+{
+	FActionExecutionContext& ExecutionContext = FActionExecutionContext::Get(this);
+	check(ExecutionContext.HasContext());
+
+	// Early out if action was stopped or aborted.
+	if (!ExecutionContext.bProcessResult)
 	{
-		UE_CLOG(DebugIOActions, LogActorIO, Log, TEXT("Action was aborted."));
+		UE_CLOG(DebugIOActions && ExecutionContext.bAborted, LogActorIO, Log, TEXT("Action was aborted."));
+		ExecutionContext.ExitContext();
 		return;
 	}
 
@@ -395,39 +356,27 @@ void UActorIOAction::ExecuteAction(FActionExecutionContext& ExecutionContext)
 		}
 	}
 
-	// Get the quoted name of the function to call on the target actor.
-	// Quotes are needed to support function names with whitespaces.
-	FString FunctionName = TargetFunction->FunctionToExec;
-	if (FunctionName.Len() > 0)
-	{
-		if (FunctionName[0] != '"')
-		{
-			FunctionName.InsertAt(0, '"');
-		}
-
-		const int32 LastCharIndex = FunctionName.Len() - 1;
-		if (FunctionName[LastCharIndex] != '"')
-		{
-			FunctionName.AppendChar('"');
-		}
-	}
-
-	// Build the final command that is sent to the target actor.
-	// Format is: FunctionName Arg1 Arg2 Arg3 (...)
-	FString Command = FunctionName;
+	// Merge the processed arguments back into a single string in UnrealScript command format.
+	FString ProcessedArgs;
 	for (const FString& Argument : Arguments)
 	{
-		Command.Append(TEXT(" "));
-		Command.Append(Argument);
+		ProcessedArgs.Append(TEXT(" "));
+		ProcessedArgs.Append(Argument);
 	}
 
-	UE_CLOG(DebugIOActions && LogIOFinalCommand, LogActorIO, Log, TEXT("  Final command being sent : %s"), *Command);
+	FActorIOMessage NewMessage;
+	NewMessage.SenderPtr = this;
+	NewMessage.TargetPtr = TargetActor;
+	NewMessage.FunctionId = FunctionId;
+	NewMessage.Arguments = ProcessedArgs;
+	NewMessage.TimeRemaining = Delay;
 
+	// Leave the context now because QueueMessage can immediately lead into another I/O execution.
 	ExecutionContext.ExitContext();
 	bWasExecuted = true;
 
-	// Send the final command.
-	IOSubsystem->SendMessage(this, ObjectToSendCommandTo, Command, Delay);
+	UActorIOSubsystemBase* IOSubsystem = UActorIOSubsystemBase::Get(this);
+	IOSubsystem->QueueMessage(NewMessage);
 }
 
 UActorIOComponent* UActorIOAction::GetOwnerIOComponent() const

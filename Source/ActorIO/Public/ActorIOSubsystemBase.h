@@ -93,7 +93,7 @@ public:
 	 * Queue an I/O message with a formatted UnrealScript command to be delivered to the target object.
 	 * Message delivery can be delayed.
 	 */
-	virtual void SendMessage(UObject* Sender, UObject* Target, FString& Command, float Delay = 0.0f);
+	virtual void QueueMessage(FActorIOMessage& InMessage);
 
 	/** @return List of I/O messages that are queued for delivery. */
 	const TArray<FActorIOMessage>& GetPendingMessages() const { return PendingMessages; }

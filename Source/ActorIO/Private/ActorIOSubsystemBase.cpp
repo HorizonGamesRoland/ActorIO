@@ -88,35 +88,80 @@ TStatId UActorIOSubsystemBase::GetStatId() const
     RETURN_QUICK_DECLARE_CYCLE_STAT(UActorIOSubsystemBase, STATGROUP_Tickables);
 }
 
-void UActorIOSubsystemBase::SendMessage(UObject* Sender, UObject* Target, FString& Command, float Delay)
+void UActorIOSubsystemBase::QueueMessage(FActorIOMessage& InMessage)
 {
-    FActorIOMessage NewMessage;
-    NewMessage.SenderPtr = Sender;
-    NewMessage.TargetPtr = Target;
-    NewMessage.Command = Command;
-    NewMessage.TimeRemaining = Delay;
-
-    if (Delay <= 0.0f)
+    if (InMessage.TimeRemaining <= 0.0f)
     {
-        ProcessMessage(NewMessage);
+        ProcessMessage(InMessage);
     }
     else
     {
-        PendingMessages.Add(NewMessage);
+        PendingMessages.Add(InMessage);
     }
 }
 
 void UActorIOSubsystemBase::ProcessMessage(FActorIOMessage& InMessage)
 {
+    AActor* ActorPtr = InMessage.TargetPtr.Get();
+
     FString ErrorReason;
-    if (!IActorIO::ConfirmObjectIsAlive(InMessage.TargetPtr.Get(), ErrorReason))
+    if (!IActorIO::ConfirmObjectIsAlive(ActorPtr, ErrorReason))
     {
-        FActionExecutionContext::ExecutionError(DebugIOActions, ELogVerbosity::Warning, FString::Printf(TEXT("Target was invalid when sending command '%s'. Reason: %s"), *InMessage.Command, *ErrorReason));
+        FActionExecutionContext::ExecutionError(DebugIOActions, ELogVerbosity::Warning, FString::Printf(TEXT("Target was invalid when executing I/O function '%s'. Reason: %s"), *InMessage.FunctionId.ToString(), *ErrorReason));
         return;
     }
 
+    FActorIOFunctionList ValidFunctions = IActorIO::GetFunctionsForObject(ActorPtr);
+    FActorIOFunction* TargetFunction = ValidFunctions.GetFunction(InMessage.FunctionId);
+    if (!TargetFunction)
+    {
+        FActionExecutionContext::ExecutionError(DebugIOActions, ELogVerbosity::Error, FString::Printf(TEXT("Could not find I/O function '%s' on target actor '%s'."), *InMessage.FunctionId.ToString(), *ActorPtr->GetActorNameOrLabel()));
+        return;
+    }
+
+    if (TargetFunction->FunctionToExec.IsEmpty())
+    {
+        FActionExecutionContext::ExecutionError(DebugIOActions, ELogVerbosity::Error, FString::Printf(TEXT("I/O function '%s' points to an empty func name."), *InMessage.FunctionId.ToString()));
+        return;
+    }
+
+    // Figure out which object the final command should be sent to.
+    // In most cases this will be the target actor itself.
+    // However, the I/O function may want it to be executed on a subobject of the actor instead.
+    UObject* TargetObject = ActorPtr;
+    if (!TargetFunction->TargetSubobject.IsNone())
+    {
+        TargetObject = ActorPtr->GetDefaultSubobjectByName(TargetFunction->TargetSubobject);
+        if (!TargetObject)
+        {
+            FActionExecutionContext::ExecutionError(DebugIOActions, ELogVerbosity::Error, FString::Printf(TEXT("I/O function '%s' target subobject '%s' not found on actor '%s'."), *InMessage.FunctionId.ToString(), *TargetFunction->TargetSubobject.ToString(), *ActorPtr->GetActorNameOrLabel()));
+            return;
+        }
+    }
+
+    // Get the quoted name of the function to call on the target actor.
+    // Quotes are needed to support function names with whitespaces.
+    FString FunctionName = TargetFunction->FunctionToExec;
+    if (FunctionName.Len() > 0)
+    {
+        if (FunctionName[0] != '"')
+        {
+            FunctionName.InsertAt(0, '"');
+        }
+
+        const int32 LastCharIndex = FunctionName.Len() - 1;
+        if (FunctionName[LastCharIndex] != '"')
+        {
+            FunctionName.AppendChar('"');
+        }
+    }
+
+    // Build the final command that is executed on the target actor.
+    // Format is: FunctionName Arg1 Arg2 Arg3 (...)
+    FString Command = FunctionName + InMessage.Arguments;
+
     FStringOutputDevice Ar;
-    ExecuteCommand(InMessage.TargetPtr.Get(), *InMessage.Command, Ar, this);
+    ExecuteCommand(TargetObject, *Command, Ar, this);
 
     // Log execution errors.
     if (!Ar.IsEmpty())

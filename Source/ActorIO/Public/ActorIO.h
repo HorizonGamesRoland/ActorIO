@@ -365,7 +365,7 @@ struct ACTORIO_API FActorIOFunctionList
 /**
  * Context of an I/O action that the reflection system is about to execute.
  * Stores the original memory of the execute action call in case it is needed for named arguments.
- * Only valid between the action receiving the ProcessEvent call and sending the command to the target actor.
+ * Only valid between the action receiving the ProcessEvent call and dispatching the I/O message.
  * Use FActionExecutionContext::Get() to get the current context.
  */
 USTRUCT()
@@ -373,7 +373,7 @@ struct ACTORIO_API FActionExecutionContext
 {
 	GENERATED_BODY()
 
-	/** Reference to the action that is about to be executed. */
+	/** Reference to the action that is being executed. */
 	UPROPERTY()
 	TObjectPtr<UActorIOAction> ActionPtr;
 
@@ -400,12 +400,16 @@ struct ACTORIO_API FActionExecutionContext
 	 */
 	bool bAborted;
 
+	/** Result of ProcessAction() on the I/O action. */
+	bool bProcessResult;
+
 	/** Default constructor. */
 	FActionExecutionContext() :
 		ActionPtr(nullptr),
 		ScriptParams(nullptr),
 		NamedArguments(TMap<FString, FString>()),
-		bAborted(false)
+		bAborted(false),
+		bProcessResult(false)
 	{}
 
 	/** Get the current global execution context. */
@@ -417,7 +421,7 @@ struct ACTORIO_API FActionExecutionContext
 	/** Leave the current execution context. */
 	void ExitContext();
 
-	/** @return Whether we are currently have an execution context. */
+	/** @return Whether we have a valid execution context. */
 	bool HasContext() const;
 
 	/**
@@ -446,14 +450,15 @@ struct ACTORIO_API FActorIOMessage
 {
 	GENERATED_BODY()
 
-	/** Object sending the message. */
-	TWeakObjectPtr<UObject> SenderPtr;
+	/** The action that is sending the message. */
+	TWeakObjectPtr<UActorIOAction> SenderPtr;
 
-	/** Object to execute the command on. */
-	TWeakObjectPtr<UObject> TargetPtr;
+	/** Actor to execute the message on. */
+	TSoftObjectPtr<AActor> TargetPtr;
 
-	/** The formatted command to execute on the target object. */
-	FString Command;
+	FName FunctionId;
+
+	FString Arguments;
 
 	/**
 	 * Time in seconds before the command is executed.
@@ -465,7 +470,8 @@ struct ACTORIO_API FActorIOMessage
 	FActorIOMessage() :
 		SenderPtr(nullptr),
 		TargetPtr(nullptr),
-		Command(FString()),
+		FunctionId(NAME_None),
+		Arguments(FString()),
 		TimeRemaining(0.0f)
 	{}
 };

@@ -48,6 +48,9 @@ void FActionExecutionContext::EnterContext(UActorIOAction* InAction, void* InScr
     check(!HasContext());
     ActionPtr = InAction;
     ScriptParams = InScriptParams;
+    NamedArguments.Reset();
+    bAborted = false;
+    bProcessResult = false;
 }
 
 void FActionExecutionContext::ExitContext()
@@ -55,7 +58,6 @@ void FActionExecutionContext::ExitContext()
     check(HasContext());
     ActionPtr = nullptr;
     ScriptParams = nullptr;
-    NamedArguments.Reset();
 }
 
 bool FActionExecutionContext::HasContext() const

@@ -109,22 +109,24 @@ public:
 protected:
 
 	/**
-	 * Name of the function that is bound to the assigned I/O event.
-	 * This function will be used as a notify so that we can keep track of the global action execution state.
-	 * By default this is assigned to the "ReceiveExecuteAction" function below.
+	 * Name of the UFunction to bind to I/O events.
+	 * By default this is assigned to the "ExecuteAction" function below.
 	 */
-	static FName ExecuteActionSignalName;
+	static FName NAME_ExecuteAction;
 
 	/**
-	 * Entry point when the assigned I/O event is triggered.
-	 * This function does not do anything on its own.
-	 * It is simply used as a notify so that we can keep track of the global action execution state.
+	 * Called before the action is executed by UnrealScript.
+	 * @see UActorIOAction::ProcessEvent
+	 */
+	bool ProcessAction(FActionExecutionContext& ExecutionContext);
+
+	/**
+	 * Executes the action by finalizing the processed data and dispatching the I/O message.
+	 * By the time this function is called, the action has already been processed.
+	 * @see UActorIOAction::ProcessAction
 	 */
 	UFUNCTION()
-	void ReceiveExecuteAction();
-
-	/** Executes the action. */
-	void ExecuteAction(FActionExecutionContext& ExecutionContext);
+	void ExecuteAction();
 
 public:
 
