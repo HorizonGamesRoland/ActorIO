@@ -160,6 +160,8 @@ void UActorIOSubsystemBase::ProcessMessage(FActorIOMessage& InMessage)
     // Format is: FunctionName Arg1 Arg2 Arg3 (...)
     FString Command = FunctionName + InMessage.Arguments;
 
+    UE_CLOG(LogIOFinalCommand, LogActorIO, Log, TEXT("Executing command: %s (Target: %s)"), *Command, *TargetObject->GetName());
+
     FStringOutputDevice Ar;
     ExecuteCommand(TargetObject, *Command, Ar, this);
 
