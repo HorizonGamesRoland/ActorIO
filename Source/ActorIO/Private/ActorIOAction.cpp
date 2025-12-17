@@ -277,13 +277,7 @@ bool UActorIOAction::ProcessAction(FActionExecutionContext& ExecutionContext)
 	// This way the event processor will receive the proper values for its params given that its signature matches the delegate.
 	if (BoundEvent->EventProcessor.IsBound())
 	{
-		FName EventProcessorName = BoundEvent->EventProcessor.GetFunctionName();
-		UObject* EventProcessorObject = BoundEvent->EventProcessor.GetUObject();
-		if (EventProcessorObject)
-		{
-			UFunction* Func_EventProcessor = EventProcessorObject->GetClass()->FindFunctionByName(EventProcessorName);
-			EventProcessorObject->ProcessEvent(Func_EventProcessor, ExecutionContext.ScriptParams);
-		}
+		BoundEvent->EventProcessor.ProcessDelegate<UObject>(ExecutionContext.ScriptParams);
 	}
 
 	// Log named arguments to console for debugging if needed.
