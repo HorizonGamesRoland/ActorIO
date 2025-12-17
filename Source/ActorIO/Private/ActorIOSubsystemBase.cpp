@@ -73,11 +73,6 @@ void UActorIOSubsystemBase::Tick(float DeltaTime)
     }
 }
 
-ETickableTickType UActorIOSubsystemBase::GetTickableTickType() const
-{
-    return ETickableTickType::Conditional;
-}
-
 bool UActorIOSubsystemBase::IsTickable() const
 {
     return PendingMessages.Num() > 0;

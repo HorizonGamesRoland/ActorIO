@@ -132,7 +132,6 @@ public:
 	//~ Begin UTickableWorldSubsystem Interface
 	virtual bool ShouldCreateSubsystem(UObject* Outer) const override final;
 	virtual void Tick(float DeltaTime) override;
-	virtual ETickableTickType GetTickableTickType() const override;
 	virtual bool IsTickable() const override;
 	virtual TStatId GetStatId() const override;
 	//~ End UTickableWorldSubsystem Interface
