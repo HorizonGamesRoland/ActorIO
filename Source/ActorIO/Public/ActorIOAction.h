@@ -84,6 +84,10 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Action")
 	AActor* GetOwnerActor() const;
 
+	/** Get whether the action was executed before. */
+	UFUNCTION(BlueprintPure, Category = "Action")
+	bool GetWasExecuted() const { return bWasExecuted; }
+
 	/** Check if the selected target actor is valid and loaded. */
 	UFUNCTION(BlueprintPure, Category = "Action")
 	bool IsTargetActorAlive() const;
