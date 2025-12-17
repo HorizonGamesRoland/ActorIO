@@ -107,7 +107,7 @@ void UActorIOSubsystemBase::ProcessMessage(FActorIOMessage& InMessage)
     FString ErrorReason;
     if (!IActorIO::ConfirmObjectIsAlive(ActorPtr, ErrorReason))
     {
-        FActionExecutionContext::ExecutionError(DebugIOActions, ELogVerbosity::Warning, FString::Printf(TEXT("Target was invalid when executing I/O function '%s'. Reason: %s"), *InMessage.FunctionId.ToString(), *ErrorReason));
+        IActorIO::ExecutionError(DebugIOActions, ELogVerbosity::Warning, FString::Printf(TEXT("Target was invalid when executing I/O function '%s'. Reason: %s"), *InMessage.FunctionId.ToString(), *ErrorReason));
         return;
     }
 
@@ -115,13 +115,13 @@ void UActorIOSubsystemBase::ProcessMessage(FActorIOMessage& InMessage)
     FActorIOFunction* TargetFunction = ValidFunctions.GetFunction(InMessage.FunctionId);
     if (!TargetFunction)
     {
-        FActionExecutionContext::ExecutionError(DebugIOActions, ELogVerbosity::Error, FString::Printf(TEXT("Could not find I/O function '%s' on target actor '%s'."), *InMessage.FunctionId.ToString(), *ActorPtr->GetActorNameOrLabel()));
+        IActorIO::ExecutionError(DebugIOActions, ELogVerbosity::Error, FString::Printf(TEXT("Could not find I/O function '%s' on target actor '%s'."), *InMessage.FunctionId.ToString(), *ActorPtr->GetActorNameOrLabel()));
         return;
     }
 
     if (TargetFunction->FunctionToExec.IsEmpty())
     {
-        FActionExecutionContext::ExecutionError(DebugIOActions, ELogVerbosity::Error, FString::Printf(TEXT("I/O function '%s' points to an empty func name."), *InMessage.FunctionId.ToString()));
+        IActorIO::ExecutionError(DebugIOActions, ELogVerbosity::Error, FString::Printf(TEXT("I/O function '%s' points to an empty func name."), *InMessage.FunctionId.ToString()));
         return;
     }
 
@@ -134,7 +134,7 @@ void UActorIOSubsystemBase::ProcessMessage(FActorIOMessage& InMessage)
         TargetObject = ActorPtr->GetDefaultSubobjectByName(TargetFunction->TargetSubobject);
         if (!TargetObject)
         {
-            FActionExecutionContext::ExecutionError(DebugIOActions, ELogVerbosity::Error, FString::Printf(TEXT("I/O function '%s' target subobject '%s' not found on actor '%s'."), *InMessage.FunctionId.ToString(), *TargetFunction->TargetSubobject.ToString(), *ActorPtr->GetActorNameOrLabel()));
+            IActorIO::ExecutionError(DebugIOActions, ELogVerbosity::Error, FString::Printf(TEXT("I/O function '%s' target subobject '%s' not found on actor '%s'."), *InMessage.FunctionId.ToString(), *TargetFunction->TargetSubobject.ToString(), *ActorPtr->GetActorNameOrLabel()));
             return;
         }
     }
@@ -166,7 +166,7 @@ void UActorIOSubsystemBase::ProcessMessage(FActorIOMessage& InMessage)
     // Log execution errors.
     if (!Ar.IsEmpty())
     {
-        FActionExecutionContext::ExecutionError(DebugIOActions, ELogVerbosity::Error, Ar);
+        IActorIO::ExecutionError(DebugIOActions, ELogVerbosity::Error, Ar);
     }
 }
 

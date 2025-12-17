@@ -243,7 +243,7 @@ bool UActorIOAction::ProcessAction(FActionExecutionContext& ExecutionContext)
 	if (TargetActor.IsNull())
 	{
 		// Do nothing if no target actor is selected.
-		FActionExecutionContext::ExecutionError(DebugIOActions && WarnIOInvalidTarget, ELogVerbosity::Warning, TEXT("No target actor selected."));
+		IActorIO::ExecutionError(DebugIOActions && WarnIOInvalidTarget, ELogVerbosity::Warning, TEXT("No target actor selected."));
 		return false;
 	}
 

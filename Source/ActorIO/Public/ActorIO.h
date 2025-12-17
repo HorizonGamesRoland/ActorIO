@@ -436,13 +436,10 @@ struct ACTORIO_API FActionExecutionContext
 	 * Intended to be used from an I/O event processor.
 	 */
 	void AbortAction();
-
-	/** Log an execution failure message to the console and game screen. */
-	static void ExecutionError(bool bCondition, ELogVerbosity::Type InVerbosity, const FString& InMessage);
 };
 
 /**
- * A message that contains an UnrealScript command formatted by an I/O action.
+ * A message is a pending execution request created by an I/O action.
  * Delivered and executed by the I/O subsystem.
  */
 USTRUCT()
@@ -456,8 +453,10 @@ struct ACTORIO_API FActorIOMessage
 	/** Actor to execute the message on. */
 	TSoftObjectPtr<AActor> TargetPtr;
 
+	/** Id of the I/O function to execute on the target. */
 	FName FunctionId;
 
+	/** Parameters to send to the function in UnrealScript format. */
 	FString Arguments;
 
 	/**
@@ -506,6 +505,9 @@ public:
 
 	/** Perform basic checks to see if the given arguments can be imported into the function as parameters. */
 	static bool ValidateFunctionArguments(UFunction* FunctionPtr, const FString& InArguments, FText& OutError);
+
+	/** Log an execution failure message to the console and game screen. */
+	static void ExecutionError(bool bCondition, ELogVerbosity::Type InVerbosity, const FString& InMessage);
 };
 
 /** [Console Variable] Whether to log I/O action execution messages. */

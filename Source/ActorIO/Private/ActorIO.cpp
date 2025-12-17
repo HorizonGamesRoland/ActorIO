@@ -102,31 +102,6 @@ void FActionExecutionContext::AbortAction()
     }
 }
 
-void FActionExecutionContext::ExecutionError(bool bCondition, ELogVerbosity::Type InVerbosity, const FString& InMessage)
-{
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST) || USE_LOGGING_IN_SHIPPING // Do not Print in Shipping or Test unless explicitly enabled.
-    check(InVerbosity == ELogVerbosity::Warning || InVerbosity == ELogVerbosity::Error); // Only warnings and errors.
-    if (bCondition)
-    {
-        if (InVerbosity == ELogVerbosity::Warning)
-        {
-            UE_LOG(LogActorIO, Warning, TEXT("%s"), *InMessage);
-        }
-        else
-        {
-            UE_LOG(LogActorIO, Error, TEXT("%s"), *InMessage);
-        }
-
-        if (GEngine && GAreScreenMessagesEnabled)
-        {
-            const float DisplayTime = 3.0f;
-            const FColor DisplayColor = InVerbosity == ELogVerbosity::Warning ? FColor::Yellow : FColor::Red;
-            GEngine->AddOnScreenDebugMessage(INDEX_NONE, DisplayTime, DisplayColor, InMessage);
-        }
-    }
-#endif
-}
-
 //==================================
 //~ Begin IActorIO
 //==================================
@@ -350,4 +325,29 @@ bool IActorIO::ValidateFunctionArguments(UFunction* FunctionPtr, const FString& 
     }
 
     return true;
+}
+
+void IActorIO::ExecutionError(bool bCondition, ELogVerbosity::Type InVerbosity, const FString& InMessage)
+{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST) || USE_LOGGING_IN_SHIPPING // Do not Print in Shipping or Test unless explicitly enabled.
+    check(InVerbosity == ELogVerbosity::Warning || InVerbosity == ELogVerbosity::Error); // Only warnings and errors.
+    if (bCondition)
+    {
+        if (InVerbosity == ELogVerbosity::Warning)
+        {
+            UE_LOG(LogActorIO, Warning, TEXT("%s"), *InMessage);
+        }
+        else
+        {
+            UE_LOG(LogActorIO, Error, TEXT("%s"), *InMessage);
+        }
+
+        if (GEngine && GAreScreenMessagesEnabled)
+        {
+            const float DisplayTime = 3.0f;
+            const FColor DisplayColor = InVerbosity == ELogVerbosity::Warning ? FColor::Yellow : FColor::Red;
+            GEngine->AddOnScreenDebugMessage(INDEX_NONE, DisplayTime, DisplayColor, InMessage);
+        }
+    }
+#endif
 }
