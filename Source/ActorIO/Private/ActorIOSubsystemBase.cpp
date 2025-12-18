@@ -23,10 +23,15 @@
 #include "Kismet/GameplayStatics.h"
 #include "Misc/EngineVersionComparison.h"
 
+#if UE_VERSION_NEWER_THAN(5, 6, ENGINE_PATCH_VERSION)
+#include "Misc/StringOutputDevice.h"
+#endif
+
 #define LOCTEXT_NAMESPACE "ActorIO"
 
 UActorIOSubsystemBase::UActorIOSubsystemBase()
 {
+    PendingMessages = TArray<FActorIOMessage>();
     ActionExecContext = FActionExecutionContext();
 }
 
@@ -51,6 +56,117 @@ UActorIOSubsystemBase* UActorIOSubsystemBase::Get(UObject* WorldContextObject)
     return nullptr;
 }
 
+void UActorIOSubsystemBase::Tick(float DeltaTime)
+{
+    Super::Tick(DeltaTime);
+
+    for (int32 MessageIdx = PendingMessages.Num() - 1; MessageIdx >= 0; --MessageIdx)
+    {
+        FActorIOMessage& Message = PendingMessages[MessageIdx];
+        Message.TimeRemaining -= DeltaTime;
+
+        if (Message.TimeRemaining <= 0.0f)
+        {
+            ProcessMessage(Message);
+            PendingMessages.RemoveAt(MessageIdx);
+        }
+    }
+}
+
+bool UActorIOSubsystemBase::IsTickable() const
+{
+    return PendingMessages.Num() > 0;
+}
+
+TStatId UActorIOSubsystemBase::GetStatId() const
+{
+    RETURN_QUICK_DECLARE_CYCLE_STAT(UActorIOSubsystemBase, STATGROUP_Tickables);
+}
+
+void UActorIOSubsystemBase::QueueMessage(FActorIOMessage& InMessage)
+{
+    if (InMessage.TimeRemaining <= 0.0f)
+    {
+        ProcessMessage(InMessage);
+    }
+    else
+    {
+        PendingMessages.Add(InMessage);
+    }
+}
+
+void UActorIOSubsystemBase::ProcessMessage(FActorIOMessage& InMessage)
+{
+    AActor* ActorPtr = InMessage.TargetPtr.Get();
+
+    FString ErrorReason;
+    if (!IActorIO::ConfirmObjectIsAlive(ActorPtr, ErrorReason))
+    {
+        IActorIO::ExecutionError(DebugIOActions, ELogVerbosity::Warning, FString::Printf(TEXT("Target was invalid when executing I/O function '%s'. Reason: %s"), *InMessage.FunctionId.ToString(), *ErrorReason));
+        return;
+    }
+
+    FActorIOFunctionList ValidFunctions = IActorIO::GetFunctionsForObject(ActorPtr);
+    FActorIOFunction* TargetFunction = ValidFunctions.GetFunction(InMessage.FunctionId);
+    if (!TargetFunction)
+    {
+        IActorIO::ExecutionError(DebugIOActions, ELogVerbosity::Error, FString::Printf(TEXT("Could not find I/O function '%s' on target actor '%s'."), *InMessage.FunctionId.ToString(), *ActorPtr->GetActorNameOrLabel()));
+        return;
+    }
+
+    if (TargetFunction->FunctionToExec.IsEmpty())
+    {
+        IActorIO::ExecutionError(DebugIOActions, ELogVerbosity::Error, FString::Printf(TEXT("I/O function '%s' points to an empty func name."), *InMessage.FunctionId.ToString()));
+        return;
+    }
+
+    // Figure out which object the final command should be sent to.
+    // In most cases this will be the target actor itself.
+    // However, the I/O function may want it to be executed on a subobject of the actor instead.
+    UObject* TargetObject = ActorPtr;
+    if (!TargetFunction->TargetSubobject.IsNone())
+    {
+        TargetObject = ActorPtr->GetDefaultSubobjectByName(TargetFunction->TargetSubobject);
+        if (!TargetObject)
+        {
+            IActorIO::ExecutionError(DebugIOActions, ELogVerbosity::Error, FString::Printf(TEXT("I/O function '%s' target subobject '%s' not found on actor '%s'."), *InMessage.FunctionId.ToString(), *TargetFunction->TargetSubobject.ToString(), *ActorPtr->GetActorNameOrLabel()));
+            return;
+        }
+    }
+
+    // Get the quoted name of the function to call on the target actor.
+    // Quotes are needed to support function names with whitespaces.
+    FString FunctionName = TargetFunction->FunctionToExec;
+    if (FunctionName.Len() > 0)
+    {
+        if (FunctionName[0] != '"')
+        {
+            FunctionName.InsertAt(0, '"');
+        }
+
+        const int32 LastCharIndex = FunctionName.Len() - 1;
+        if (FunctionName[LastCharIndex] != '"')
+        {
+            FunctionName.AppendChar('"');
+        }
+    }
+
+    // Build the final command that is executed on the target actor.
+    // Format is: FunctionName Arg1 Arg2 Arg3 (...)
+    FString Command = FunctionName + InMessage.Arguments;
+
+    UE_CLOG(LogIOFinalCommand, LogActorIO, Log, TEXT("Executing command: %s (Target: %s)"), *Command, *TargetObject->GetName());
+
+    FStringOutputDevice Ar;
+    ExecuteCommand(TargetObject, *Command, Ar, this);
+
+    // Log execution errors.
+    if (!Ar.IsEmpty())
+    {
+        IActorIO::ExecutionError(DebugIOActions, ELogVerbosity::Error, Ar);
+    }
+}
+
 bool UActorIOSubsystemBase::ExecuteCommand(UObject* Target, const TCHAR* Str, FOutputDevice& Ar, UObject* Executor)
 {
     /**
@@ -69,7 +185,7 @@ bool UActorIOSubsystemBase::ExecuteCommand(UObject* Target, const TCHAR* Str, FO
      *   - Return success/failure properly.
      */
 
-#if UE_VERSION_NEWER_THAN(5, 7, 999) // <- patch version doesn't matter so use 999 to pass the check
+#if UE_VERSION_NEWER_THAN(5, 7, ENGINE_PATCH_VERSION) // <- patch version doesn't matter
 #error "Review latest implementation of UObject::CallFunctionByNameWithString then update UE version comparison."
 #endif
 

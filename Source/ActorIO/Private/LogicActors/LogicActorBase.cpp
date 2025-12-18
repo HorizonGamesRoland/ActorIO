@@ -13,7 +13,7 @@ ALogicActorBase::ALogicActorBase()
 	bReplicates = false;
 	bNetLoadOnClient = true;
 
-#if UE_VERSION_NEWER_THAN(5, 5, 0)
+#if UE_VERSION_NEWER_THAN(5, 4, ENGINE_PATCH_VERSION)
 	SetNetUpdateFrequency(10.0f);
 #else
 	NetUpdateFrequency = 10.0f;

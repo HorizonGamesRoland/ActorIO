@@ -4,7 +4,6 @@
 #include "ActorIOAction.h"
 #include "GameFramework/Actor.h"
 #include "Engine/World.h"
-#include "TimerManager.h"
 #include "Logging/MessageLog.h"
 #include "Misc/UObjectToken.h"
 
@@ -23,7 +22,7 @@ void UActorIOComponent::OnRegister()
 	Super::OnRegister();
 
 	// Clean up the action list whenever the component is (re)registered.
-	RemoveInvalidActions();
+	CompactActions();
 }
 
 void UActorIOComponent::InitializeComponent()
@@ -49,17 +48,6 @@ void UActorIOComponent::RemoveAction(UActorIOAction* InAction)
 	Actions.RemoveAt(ActionIdx);
 }
 
-void UActorIOComponent::RemoveInvalidActions()
-{
-	for (int32 ActionIdx = Actions.Num() - 1; ActionIdx >= 0; --ActionIdx)
-	{
-		if (!Actions[ActionIdx].Get())
-		{
-			Actions.RemoveAt(ActionIdx);
-		}
-	}
-}
-
 void UActorIOComponent::MoveAction(int32 OriginalIndex, int32 NewIndex)
 {
 	// Uses same move implementation as properties in the editor.
@@ -79,19 +67,15 @@ void UActorIOComponent::MoveAction(int32 OriginalIndex, int32 NewIndex)
 	}
 }
 
-float UActorIOComponent::GetDurationOfLongestDelay() const
+void UActorIOComponent::CompactActions()
 {
-	float OutLongestDelay = 0.0f;
-	for (int32 ActionIdx = 0; ActionIdx != Actions.Num(); ++ActionIdx)
+	for (int32 ActionIdx = Actions.Num() - 1; ActionIdx >= 0; --ActionIdx)
 	{
-		UActorIOAction* Action = Actions[ActionIdx].Get();
-		if (IsValid(Action) && Action->Delay > OutLongestDelay)
+		if (!Actions[ActionIdx].Get())
 		{
-			OutLongestDelay = Action->Delay;
+			Actions.RemoveAt(ActionIdx);
 		}
 	}
-
-	return OutLongestDelay;
 }
 
 void UActorIOComponent::BindActions()
@@ -108,14 +92,12 @@ void UActorIOComponent::BindActions()
 
 void UActorIOComponent::UnbindActions()
 {
-	FTimerManager& TimerManager = GetWorld()->GetTimerManager();
 	for (int32 ActionIdx = 0; ActionIdx != Actions.Num(); ++ActionIdx)
 	{
 		UActorIOAction* Action = Actions[ActionIdx].Get();
 		if (IsValid(Action))
 		{
 			Action->UnbindAction();
-			TimerManager.ClearAllTimersForObject(Action);
 		}
 	}
 }

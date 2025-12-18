@@ -58,7 +58,7 @@ void FActorIOEditor::StartupModule()
 		FPlacementCategoryInfo Info(LOCTEXT("ActorIOPlaceCategoryName", "Logic Actors"),
 			FSlateIcon(FAppStyle::GetAppStyleSetName(), "Icons.Event"), TEXT("ActorIOPlaceCategory"), TEXT("PMActorIOPlaceCategory"), 25);
 
-#if UE_VERSION_NEWER_THAN(5, 5, 0)
+#if UE_VERSION_NEWER_THAN(5, 4, ENGINE_PATCH_VERSION)
 		Info.ShortDisplayName = LOCTEXT("ActorIOPlaceCategoryShortName", "Logic");
 #endif
 

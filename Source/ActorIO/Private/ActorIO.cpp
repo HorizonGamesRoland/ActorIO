@@ -40,7 +40,7 @@ TAutoConsoleVariable<bool> CVarLogIOActionFinalCommand(
 FActionExecutionContext& FActionExecutionContext::Get(UObject* WorldContextObject)
 {
     UActorIOSubsystemBase* IOSubsystem = UActorIOSubsystemBase::Get(WorldContextObject);
-    return IOSubsystem->ActionExecContext;
+    return IOSubsystem->GetExecutionContext();
 }
 
 void FActionExecutionContext::EnterContext(UActorIOAction* InAction, void* InScriptParams)
@@ -48,6 +48,9 @@ void FActionExecutionContext::EnterContext(UActorIOAction* InAction, void* InScr
     check(!HasContext());
     ActionPtr = InAction;
     ScriptParams = InScriptParams;
+    NamedArguments.Reset();
+    bAborted = false;
+    bProcessResult = false;
 }
 
 void FActionExecutionContext::ExitContext()
@@ -55,7 +58,6 @@ void FActionExecutionContext::ExitContext()
     check(HasContext());
     ActionPtr = nullptr;
     ScriptParams = nullptr;
-    NamedArguments.Reset();
 }
 
 bool FActionExecutionContext::HasContext() const
@@ -98,31 +100,6 @@ void FActionExecutionContext::AbortAction()
     {
         bAborted = true;
     }
-}
-
-void FActionExecutionContext::ExecutionError(bool bCondition, ELogVerbosity::Type InVerbosity, const FString& InMessage)
-{
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST) || USE_LOGGING_IN_SHIPPING // Do not Print in Shipping or Test unless explicitly enabled.
-    check(InVerbosity == ELogVerbosity::Warning || InVerbosity == ELogVerbosity::Error); // Only warnings and errors.
-    if (bCondition)
-    {
-        if (InVerbosity == ELogVerbosity::Warning)
-        {
-            UE_LOG(LogActorIO, Warning, TEXT("%s"), *InMessage);
-        }
-        else
-        {
-            UE_LOG(LogActorIO, Error, TEXT("%s"), *InMessage);
-        }
-
-        if (GEngine && GAreScreenMessagesEnabled)
-        {
-            const float DisplayTime = 3.0f;
-            const FColor DisplayColor = InVerbosity == ELogVerbosity::Warning ? FColor::Yellow : FColor::Red;
-            GEngine->AddOnScreenDebugMessage(INDEX_NONE, DisplayTime, DisplayColor, InMessage);
-        }
-    }
-#endif
 }
 
 //==================================
@@ -348,4 +325,29 @@ bool IActorIO::ValidateFunctionArguments(UFunction* FunctionPtr, const FString& 
     }
 
     return true;
+}
+
+void IActorIO::ExecutionError(bool bCondition, ELogVerbosity::Type InVerbosity, const FString& InMessage)
+{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST) || USE_LOGGING_IN_SHIPPING // Do not Print in Shipping or Test unless explicitly enabled.
+    check(InVerbosity == ELogVerbosity::Warning || InVerbosity == ELogVerbosity::Error); // Only warnings and errors.
+    if (bCondition)
+    {
+        if (InVerbosity == ELogVerbosity::Warning)
+        {
+            UE_LOG(LogActorIO, Warning, TEXT("%s"), *InMessage);
+        }
+        else
+        {
+            UE_LOG(LogActorIO, Error, TEXT("%s"), *InMessage);
+        }
+
+        if (GEngine && GAreScreenMessagesEnabled)
+        {
+            const float DisplayTime = 3.0f;
+            const FColor DisplayColor = InVerbosity == ELogVerbosity::Warning ? FColor::Yellow : FColor::Red;
+            GEngine->AddOnScreenDebugMessage(INDEX_NONE, DisplayTime, DisplayColor, InMessage);
+        }
+    }
+#endif
 }

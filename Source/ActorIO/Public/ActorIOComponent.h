@@ -35,23 +35,20 @@ public:
 	/** Removes the given action from the action list, and destroys it. */
 	void RemoveAction(UActorIOAction* InAction);
 
-	/** Removes all entries from the action list that are nullptr. */
-	void RemoveInvalidActions();
-
 	/**
 	 * Rearranges the action list by moving the action from original index to new index.
 	 * Used for drag & drop in the editor.
 	 */
 	void MoveAction(int32 OriginalIndex, int32 NewIndex);
 
+	/** Removes all entries from the action list that are nullptr. */
+	void CompactActions();
+
 	/** @return List I/O actions managed by the component. */
 	const TArray<TObjectPtr<UActorIOAction>>& GetActions() const { return Actions; }
 
 	/** @return Number of actions. */
 	int32 GetNumActions() const { return Actions.Num(); }
-
-	/** @return Delay of the longest delayed action. */
-	float GetDurationOfLongestDelay() const;
 
 protected:
 
