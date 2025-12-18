@@ -23,7 +23,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Misc/EngineVersionComparison.h"
 
-#if UE_VERSION_NEWER_THAN_OR_EQUAL(5, 7, 0)
+#if UE_VERSION_NEWER_THAN(5, 6, ENGINE_PATCH_VERSION)
 #include "Misc/StringOutputDevice.h"
 #endif
 
@@ -185,7 +185,7 @@ bool UActorIOSubsystemBase::ExecuteCommand(UObject* Target, const TCHAR* Str, FO
      *   - Return success/failure properly.
      */
 
-#if UE_VERSION_NEWER_THAN(5, 7, 999) // <- patch version doesn't matter so use 999 to pass the check
+#if UE_VERSION_NEWER_THAN(5, 7, ENGINE_PATCH_VERSION) // <- patch version doesn't matter
 #error "Review latest implementation of UObject::CallFunctionByNameWithString then update UE version comparison."
 #endif
 
