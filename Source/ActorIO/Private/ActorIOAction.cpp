@@ -453,3 +453,29 @@ UFunction* UActorIOAction::ResolveUFunction(const FActorIOFunction* TargetFuncti
 
 	return OutFunctionPtr;
 }
+
+void UActorIOAction::Serialize(FStructuredArchive::FRecord Record)
+{
+	FArchive& UnderlyingArchive = Record.GetUnderlyingArchive();
+	if (UnderlyingArchive.IsSaveGame())
+	{
+		bool bExecuted;
+
+		if (UnderlyingArchive.IsSaving())
+		{
+			bExecuted = bWasExecuted;
+		}
+
+		// #TODO: Only serialize if value changed?
+		Record << SA_VALUE(TEXT("WasExecuted"), bExecuted);
+
+		if (UnderlyingArchive.IsLoading())
+		{
+			bWasExecuted = bExecuted;
+		}
+	}
+	else
+	{
+		Super::Serialize(Record);
+	}
+}

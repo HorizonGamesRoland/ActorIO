@@ -102,6 +102,50 @@ void UActorIOComponent::UnbindActions()
 	}
 }
 
+void UActorIOComponent::SerializeActions(FStructuredArchive::FSlot Slot)
+{
+	FArchive& UnderlyingArchive = Slot.GetUnderlyingArchive();
+	check(UnderlyingArchive.IsSaveGame());
+
+	FStructuredArchive::FRecord Record = Slot.EnterRecord();
+
+	int32 NumActions;
+
+	if (UnderlyingArchive.IsSaving())
+	{
+		NumActions = Actions.Num();
+	}
+
+	FStructuredArchive::FMap ActionsMap = Record.EnterMap(TEXT("Actions"), NumActions);
+
+	for (int32 ActionIdx = 0; ActionIdx != NumActions; ++ActionIdx)
+	{
+		UActorIOAction* ActionPtr = nullptr;
+		FString ActionName; // #TODO: Use guid instead?
+
+		if (UnderlyingArchive.IsSaving())
+		{
+			ActionPtr = Actions[ActionIdx].Get();
+			ActionName = ActionPtr->GetName();
+		}
+
+		FStructuredArchive::FSlot ActionSlot = ActionsMap.EnterElement(ActionName);
+
+		if (UnderlyingArchive.IsLoading())
+		{
+			ActionPtr = FindObjectFast<UActorIOAction>(this, *ActionName);
+		}
+
+		if (!ActionPtr)
+		{
+			UE_LOG(LogActorIO, Warning, TEXT("%s - No action found with name '%s'."), *GetPathName(), *ActionName);
+			continue; // #TODO: Is this enough or do we need to seek forward to the next action?
+		}
+
+		ActionPtr->Serialize(ActionSlot.EnterRecord());
+	}
+}
+
 void UActorIOComponent::UninitializeComponent()
 {
 	UnbindActions();

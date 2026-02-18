@@ -50,6 +50,10 @@ public:
 	/** @return Number of actions. */
 	int32 GetNumActions() const { return Actions.Num(); }
 
+public:
+
+	void SerializeActions(FStructuredArchive::FSlot Slot);
+
 protected:
 
 	/** Binds all actions to their assigned I/O events. */

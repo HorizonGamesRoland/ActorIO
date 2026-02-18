@@ -59,7 +59,7 @@ public:
 protected:
 
 	/** Whether the action was executed before. */
-	UPROPERTY()
+	UPROPERTY(SaveGame)
 	bool bWasExecuted;
 
 	/** Whether the action is bound to the assigned I/O event. */
@@ -136,5 +136,6 @@ public:
 
 	//~ Begin UObject Interface
 	virtual void ProcessEvent(UFunction* Function, void* Parms) override;
+	virtual void Serialize(FStructuredArchive::FRecord Record);
 	//~ End UObject Interface
 };
