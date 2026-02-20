@@ -109,7 +109,7 @@ void UActorIOComponent::SerializeActions(FStructuredArchive::FSlot Slot)
 
 	FStructuredArchive::FRecord Record = Slot.EnterRecord();
 
-	int32 NumActions;
+	int32 NumActions = 0;
 
 	if (UnderlyingArchive.IsSaving())
 	{
@@ -136,13 +136,45 @@ void UActorIOComponent::SerializeActions(FStructuredArchive::FSlot Slot)
 			ActionPtr = FindObjectFast<UActorIOAction>(this, *ActionName);
 		}
 
+		FStructuredArchive::FRecord ActionRecord = ActionSlot.EnterRecord();
+
+		const int64 DataSizePosition = UnderlyingArchive.Tell();
+		uint64 DataSize = 0;
+
+		// Pre-serialize the data size. We'll rewrite this after serializing the action.
+		if (!UnderlyingArchive.IsTextFormat())
+		{
+			ActionRecord << SA_VALUE(TEXT("DataSize"), DataSize);
+		}
+
+		const int64 BeginDataPosition = UnderlyingArchive.Tell();
+
 		if (!ActionPtr)
 		{
 			UE_LOG(LogActorIO, Warning, TEXT("%s - No action found with name '%s'."), *GetPathName(), *ActionName);
-			continue; // #TODO: Is this enough or do we need to seek forward to the next action?
+			UnderlyingArchive.Seek(BeginDataPosition + DataSize);
+			continue;
 		}
 
-		ActionPtr->Serialize(ActionSlot.EnterRecord());
+		ActionPtr->Serialize(ActionRecord);
+
+		// Seek back and re-write the data size with the actual size.
+		if (!UnderlyingArchive.IsTextFormat())
+		{
+			if (UnderlyingArchive.IsLoading())
+			{
+				UnderlyingArchive.Seek(BeginDataPosition + DataSize);
+			}
+			else
+			{
+				const int64 EndDataPosition = UnderlyingArchive.Tell();
+				DataSize = EndDataPosition - BeginDataPosition;
+		
+				UnderlyingArchive.Seek(DataSizePosition);
+				UnderlyingArchive << DataSize;
+				UnderlyingArchive.Seek(EndDataPosition);
+			}
+		}
 	}
 }
 
