@@ -46,7 +46,7 @@ public:
 protected:
 
     /** Current value of the branch. */
-    UPROPERTY()
+    UPROPERTY(SaveGame)
     bool bCurrentValue;
 
 public:

@@ -24,7 +24,7 @@ public:
 public:
 
     /** Whether the relay is enabled or not. */
-    UPROPERTY(EditInstanceOnly, Category = "Relay")
+    UPROPERTY(EditInstanceOnly, SaveGame, Category = "Relay")
     bool bIsEnabled;
 
     /** Event when the relay is triggered */

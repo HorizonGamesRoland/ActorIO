@@ -26,7 +26,7 @@ public:
     FString InitialValue;
 
     /** The value to compare against. */
-    UPROPERTY(EditInstanceOnly, Category = "Compare")
+    UPROPERTY(EditInstanceOnly, SaveGame, Category = "Compare")
     FString CompareValue;
 
     /** Maximum allowed difference before considering numeric values as equal. */
@@ -52,7 +52,7 @@ public:
 protected:
 
     /** Current value to use for comparison. */
-    UPROPERTY()
+    UPROPERTY(SaveGame)
     FString CurrentValue;
 
 protected:

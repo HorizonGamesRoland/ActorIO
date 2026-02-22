@@ -130,16 +130,10 @@ void UActorIOComponent::SerializeActions(FStructuredArchive::FSlot Slot)
 		}
 
 		FStructuredArchive::FSlot ActionSlot = ActionsMap.EnterElement(ActionName);
-
-		if (UnderlyingArchive.IsLoading())
-		{
-			ActionPtr = FindObjectFast<UActorIOAction>(this, *ActionName);
-		}
-
 		FStructuredArchive::FRecord ActionRecord = ActionSlot.EnterRecord();
 
 		const int64 DataSizePosition = UnderlyingArchive.Tell();
-		uint64 DataSize = 0;
+		int64 DataSize = 0;
 
 		// Pre-serialize the data size. We'll rewrite this after serializing the action.
 		if (!UnderlyingArchive.IsTextFormat())
@@ -149,27 +143,38 @@ void UActorIOComponent::SerializeActions(FStructuredArchive::FSlot Slot)
 
 		const int64 BeginDataPosition = UnderlyingArchive.Tell();
 
-		if (!ActionPtr)
+		if (UnderlyingArchive.IsLoading())
 		{
-			UE_LOG(LogActorIO, Warning, TEXT("%s - No action found with name '%s'."), *GetPathName(), *ActionName);
-			UnderlyingArchive.Seek(BeginDataPosition + DataSize);
-			continue;
-		}
+			ActionPtr = FindObjectFast<UActorIOAction>(this, *ActionName);
+			UE_CLOG(!ActionPtr, LogActorIO, Warning, TEXT("%s - No action found with name '%s'."), *GetPathName(), *ActionName);
 
-		ActionPtr->Serialize(ActionRecord);
-
-		// Seek back and re-write the data size with the actual size.
-		if (!UnderlyingArchive.IsTextFormat())
-		{
-			if (UnderlyingArchive.IsLoading())
+			if (ActionPtr)
 			{
+				ActionPtr->Serialize(ActionRecord);
+			}
+
+			if (!UnderlyingArchive.IsTextFormat())
+			{
+				if (ensureMsgf(UnderlyingArchive.Tell() <= BeginDataPosition + DataSize, TEXT("Serialized more data then expected when loading %s!"), *ActionName))
+				{
+					UnderlyingArchive.SetError();
+					return;
+				}
+
 				UnderlyingArchive.Seek(BeginDataPosition + DataSize);
 			}
-			else
+		}
+		else
+		{
+			check(ActionPtr);
+			ActionPtr->Serialize(ActionRecord);
+
+			// Seek back and re-write the data size with the actual size.
+			if (!UnderlyingArchive.IsTextFormat())
 			{
 				const int64 EndDataPosition = UnderlyingArchive.Tell();
 				DataSize = EndDataPosition - BeginDataPosition;
-		
+
 				UnderlyingArchive.Seek(DataSizePosition);
 				UnderlyingArchive << DataSize;
 				UnderlyingArchive.Seek(EndDataPosition);

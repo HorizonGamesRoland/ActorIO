@@ -34,7 +34,7 @@ public:
      * When counter reaches this value, the 'OnTargetValueReached' output event is fired.
      * The counter continues to work after the target value is reached.
      */
-    UPROPERTY(EditInstanceOnly, Category = "Counter")
+    UPROPERTY(EditInstanceOnly, SaveGame, Category = "Counter")
     int32 TargetValue;
 
     /** Whether to clamp the counter current value between 0 and the target value. */
@@ -60,7 +60,7 @@ public:
 protected:
 
     /** Current value of the counter. */
-    UPROPERTY()
+    UPROPERTY(SaveGame)
     int32 CurrentValue;
 
 protected:

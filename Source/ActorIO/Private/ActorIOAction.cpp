@@ -459,7 +459,7 @@ void UActorIOAction::Serialize(FStructuredArchive::FRecord Record)
 	FArchive& UnderlyingArchive = Record.GetUnderlyingArchive();
 	if (UnderlyingArchive.IsSaveGame())
 	{
-		bool bExecuted;
+		bool bExecuted = false;
 
 		if (UnderlyingArchive.IsSaving())
 		{
