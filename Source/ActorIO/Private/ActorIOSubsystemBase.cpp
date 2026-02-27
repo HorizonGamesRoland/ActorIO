@@ -350,6 +350,79 @@ bool UActorIOSubsystemBase::ExecuteCommand(UObject* Target, const TCHAR* Str, FO
     return !bFailed;
 }
 
+void UActorIOSubsystemBase::SerializePendingMessages(FStructuredArchive::FRecord Record)
+{
+    FArchive& UnderlyingArchive = Record.GetUnderlyingArchive();
+    check(UnderlyingArchive.IsSaveGame());
+
+    if (UnderlyingArchive.IsLoading())
+    {
+        PendingMessages.Reset();
+    }
+
+    int32 NumMessages = 0;
+
+    if (UnderlyingArchive.IsSaving())
+    {
+        NumMessages = PendingMessages.Num();
+    }
+
+    FStructuredArchive::FArray MessageArray = Record.EnterArray(TEXT("PendingMessages"), NumMessages);
+
+    for (int32 MessageIdx = 0; MessageIdx != NumMessages; ++MessageIdx)
+    {
+        FStructuredArchive::FSlot MessageSlot = MessageArray.EnterElement();
+        FStructuredArchive::FRecord MessageRecord = MessageSlot.EnterRecord();
+
+        const int64 DataSizePosition = UnderlyingArchive.Tell();
+        int64 DataSize = 0;
+
+        // Pre-serialize the data size. We'll rewrite this after serializing the action.
+        if (!UnderlyingArchive.IsTextFormat())
+        {
+            MessageRecord << SA_VALUE(TEXT("DataSize"), DataSize);
+        }
+
+        const int64 BeginDataPosition = UnderlyingArchive.Tell();
+
+        if (UnderlyingArchive.IsLoading())
+        {
+            FActorIOMessage Message;
+            Message.SerializeMessage(MessageRecord);
+
+            // #TODO: delay message execution until everything is restored?
+            QueueMessage(Message);
+
+            if (!UnderlyingArchive.IsTextFormat())
+            {
+                if (!ensureMsgf(UnderlyingArchive.Tell() <= BeginDataPosition + DataSize, TEXT("Serialized more data then expected when loading PendingMessages of I/O subsystem!")))
+                {
+                    UnderlyingArchive.SetError();
+                    return;
+                }
+            
+                UnderlyingArchive.Seek(BeginDataPosition + DataSize);
+            }
+        }
+        else
+        {
+            FActorIOMessage& Message = PendingMessages[MessageIdx];
+            Message.SerializeMessage(MessageRecord);
+
+            // Seek back and re-write the data size with the actual size.
+            if (!UnderlyingArchive.IsTextFormat())
+            {
+                const int64 EndDataPosition = UnderlyingArchive.Tell();
+                DataSize = EndDataPosition - BeginDataPosition;
+            
+                UnderlyingArchive.Seek(DataSizePosition);
+                UnderlyingArchive << DataSize;
+                UnderlyingArchive.Seek(EndDataPosition);
+            }
+        }
+    }
+}
+
 void UActorIOSubsystemBase::RegisterNativeEventsForObject(AActor* InObject, FActorIOEventList& EventRegistry)
 {
     //==================================

@@ -103,6 +103,41 @@ void FActionExecutionContext::AbortAction()
 }
 
 //==================================
+//~ Begin FActorIOMessage
+//==================================
+
+void FActorIOMessage::SerializeMessage(FStructuredArchive::FRecord Record)
+{
+    FArchive& UnderlyingArchive = Record.GetUnderlyingArchive();
+
+    FSoftObjectPath SenderPath;
+    FSoftObjectPath TargetPath;
+
+    if (UnderlyingArchive.IsSaving())
+    {
+        // #TODO: Remove PIE prefix?
+        SenderPath = FSoftObjectPath(SenderPtr.Get());
+        TargetPath = TargetPtr.ToSoftObjectPath();
+    }
+
+    Record << SA_VALUE(TEXT("Sender"), SenderPath);
+    Record << SA_VALUE(TEXT("Target"), TargetPath);
+    Record << SA_VALUE(TEXT("FunctionId"), FunctionId);
+    Record << SA_VALUE(TEXT("Arguments"), Arguments);
+    Record << SA_VALUE(TEXT("TimeRemaining"), TimeRemaining);
+
+    if (UnderlyingArchive.IsLoading())
+    {
+        SenderPtr = Cast<UActorIOAction>(SenderPath.ResolveObject());
+        UE_CLOG(!SenderPtr.IsValid(), LogActorIO, Warning, TEXT("Could not find sender '%s' when loading PendingMessages of I/O subsystem."), *SenderPath.ToString());
+
+        TargetPtr = TargetPath;
+        UE_CLOG(!TargetPath.IsSubobject(), LogActorIO, Warning, TEXT("Could not find message target '%s' when loading PendingMessages of I/O subsystem."), *TargetPath.ToString());
+    }
+}
+
+
+//==================================
 //~ Begin IActorIO
 //==================================
 

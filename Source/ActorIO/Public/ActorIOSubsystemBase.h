@@ -27,7 +27,7 @@ protected:
 	/**
 	 * The current I/O action execution context.
 	 * Only valid at runtime between an actor receiving the execute action signal, and queuing the I/O message.
-	 * Use FActionExecutionContext::Get() to access unless you have direct reference to the I/O system.
+	 * Use FActionExecutionContext::Get() to access.
 	 */
 	UPROPERTY(Transient)
 	FActionExecutionContext ActionExecContext;
@@ -111,6 +111,10 @@ public:
 
 	/** @return Reference to the global execution context. */
 	FActionExecutionContext& GetExecutionContext() { return ActionExecContext; }
+
+public:
+
+	void SerializePendingMessages(FStructuredArchive::FRecord Record);
 
 protected:
 

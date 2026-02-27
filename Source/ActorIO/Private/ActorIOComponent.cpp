@@ -155,7 +155,7 @@ void UActorIOComponent::SerializeActions(FStructuredArchive::FSlot Slot)
 
 			if (!UnderlyingArchive.IsTextFormat())
 			{
-				if (ensureMsgf(UnderlyingArchive.Tell() <= BeginDataPosition + DataSize, TEXT("Serialized more data then expected when loading %s!"), *ActionName))
+				if (!ensureMsgf(UnderlyingArchive.Tell() <= BeginDataPosition + DataSize, TEXT("%s - Serialized more data then expected when loading %s!"), *GetPathName(), *ActionName))
 				{
 					UnderlyingArchive.SetError();
 					return;

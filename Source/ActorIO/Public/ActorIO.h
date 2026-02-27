@@ -473,7 +473,19 @@ struct ACTORIO_API FActorIOMessage
 		Arguments(FString()),
 		TimeRemaining(0.0f)
 	{}
+
+	void SerializeMessage(FStructuredArchive::FRecord Record);
+	//bool Serialize(FStructuredArchive::FSlot Slot);
 };
+
+//template<>
+//struct TStructOpsTypeTraits<FActorIOMessage> : public TStructOpsTypeTraitsBase2<FActorIOMessage>
+//{
+//	enum
+//	{
+//		WithStructuredSerializer = true
+//	};
+//};
 
 /**
  * Interface to interact with the Actor I/O system.
