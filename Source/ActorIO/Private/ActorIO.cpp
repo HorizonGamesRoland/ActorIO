@@ -115,9 +115,11 @@ void FActorIOMessage::SerializeMessage(FStructuredArchive::FRecord Record)
 
     if (UnderlyingArchive.IsSaving())
     {
-        // #TODO: Remove PIE prefix?
         SenderPath = FSoftObjectPath(SenderPtr.Get());
+        SenderPath.SetPath(UWorld::RemovePIEPrefix(SenderPath.ToString()));
+
         TargetPath = TargetPtr.ToSoftObjectPath();
+        TargetPath.SetPath(UWorld::RemovePIEPrefix(TargetPath.ToString()));
     }
 
     Record << SA_VALUE(TEXT("Sender"), SenderPath);
