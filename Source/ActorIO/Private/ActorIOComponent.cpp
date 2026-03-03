@@ -4,6 +4,10 @@
 #include "ActorIOAction.h"
 #include "GameFramework/Actor.h"
 #include "Engine/World.h"
+#include "Serialization/MemoryWriter.h"
+#include "Serialization/MemoryReader.h"
+#include "Serialization/ObjectAndNameAsStringProxyArchive.h"
+#include "Serialization/Formatters/BinaryArchiveFormatter.h"
 #include "Logging/MessageLog.h"
 #include "Misc/UObjectToken.h"
 
@@ -181,6 +185,32 @@ void UActorIOComponent::SerializeActions(FStructuredArchive::FSlot Slot)
 			}
 		}
 	}
+}
+
+void UActorIOComponent::SaveToRawData(TArray<uint8>& RawData)
+{
+	FMemoryWriter Archive = FMemoryWriter(RawData);
+	FObjectAndNameAsStringProxyArchive ProxyArchive = FObjectAndNameAsStringProxyArchive(Archive, false);
+	ProxyArchive.ArIsSaveGame = true;
+
+	FBinaryArchiveFormatter Formatter = FBinaryArchiveFormatter(ProxyArchive);
+	FStructuredArchive StructuredArchive = FStructuredArchive(Formatter);
+
+	FStructuredArchive::FSlot RootSlot = StructuredArchive.Open();
+	SerializeActions(RootSlot);
+}
+
+void UActorIOComponent::LoadFromRawData(TArray<uint8>& RawData)
+{
+	FMemoryReader Archive = FMemoryReader(RawData);
+	FObjectAndNameAsStringProxyArchive ProxyArchive = FObjectAndNameAsStringProxyArchive(Archive, false);
+	ProxyArchive.ArIsSaveGame = true;
+
+	FBinaryArchiveFormatter Formatter = FBinaryArchiveFormatter(ProxyArchive);
+	FStructuredArchive StructuredArchive = FStructuredArchive(Formatter);
+
+	FStructuredArchive::FSlot RootSlot = StructuredArchive.Open();
+	SerializeActions(RootSlot);
 }
 
 void UActorIOComponent::UninitializeComponent()

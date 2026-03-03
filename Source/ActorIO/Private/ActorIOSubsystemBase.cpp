@@ -21,6 +21,10 @@
 #include "Sound/AmbientSound.h"
 #include "Sound/AudioVolume.h"
 #include "Kismet/GameplayStatics.h"
+#include "Serialization/MemoryWriter.h"
+#include "Serialization/MemoryReader.h"
+#include "Serialization/ObjectAndNameAsStringProxyArchive.h"
+#include "Serialization/Formatters/BinaryArchiveFormatter.h"
 #include "Misc/EngineVersionComparison.h"
 
 #if UE_VERSION_NEWER_THAN(5, 6, ENGINE_PATCH_VERSION)
@@ -491,6 +495,32 @@ void UActorIOSubsystemBase::RegisterNativeEventsForObject(AActor* InObject, FAct
             .SetSparseDelegate(InObject, TEXT("OnEndPlay"))
             .SetEventProcessor(this, TEXT("ProcessEvent_OnActorDestroyed")));
     }
+}
+
+void UActorIOSubsystemBase::SaveToRawData(TArray<uint8>& RawData)
+{
+    FMemoryWriter Archive = FMemoryWriter(RawData);
+    FObjectAndNameAsStringProxyArchive ProxyArchive = FObjectAndNameAsStringProxyArchive(Archive, false);
+    ProxyArchive.ArIsSaveGame = true;
+
+    FBinaryArchiveFormatter Formatter = FBinaryArchiveFormatter(ProxyArchive);
+    FStructuredArchive StructuredArchive = FStructuredArchive(Formatter);
+
+    FStructuredArchive::FSlot RootSlot = StructuredArchive.Open();
+    SerializePendingMessages(RootSlot.EnterRecord());
+}
+
+void UActorIOSubsystemBase::LoadFromRawData(TArray<uint8>& RawData)
+{
+    FMemoryReader Archive = FMemoryReader(RawData);
+    FObjectAndNameAsStringProxyArchive ProxyArchive = FObjectAndNameAsStringProxyArchive(Archive, false);
+    ProxyArchive.ArIsSaveGame = true;
+
+    FBinaryArchiveFormatter Formatter = FBinaryArchiveFormatter(ProxyArchive);
+    FStructuredArchive StructuredArchive = FStructuredArchive(Formatter);
+
+    FStructuredArchive::FSlot RootSlot = StructuredArchive.Open();
+    SerializePendingMessages(RootSlot.EnterRecord());
 }
 
 void UActorIOSubsystemBase::RegisterNativeFunctionsForObject(AActor* InObject, FActorIOFunctionList& FunctionRegistry)

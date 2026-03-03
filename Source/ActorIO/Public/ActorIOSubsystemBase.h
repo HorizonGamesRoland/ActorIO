@@ -116,6 +116,12 @@ public:
 
 	void SerializePendingMessages(FStructuredArchive::FRecord Record);
 
+	UFUNCTION(BlueprintCallable, Category = "ActorIO")
+	void SaveToRawData(TArray<uint8>& RawData);
+
+	UFUNCTION(BlueprintCallable, Category = "ActorIO")
+	void LoadFromRawData(UPARAM(Ref) TArray<uint8>& RawData);
+
 protected:
 
 	/** Handles the delivery of an I/O message. */

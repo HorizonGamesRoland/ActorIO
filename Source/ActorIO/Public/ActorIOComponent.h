@@ -54,6 +54,12 @@ public:
 
 	void SerializeActions(FStructuredArchive::FSlot Slot);
 
+	UFUNCTION(BlueprintCallable, Category = "ActorIO")
+	void SaveToRawData(TArray<uint8>& RawData);
+
+	UFUNCTION(BlueprintCallable, Category = "ActorIO")
+	void LoadFromRawData(UPARAM(Ref) TArray<uint8>& RawData);
+
 protected:
 
 	/** Binds all actions to their assigned I/O events. */
