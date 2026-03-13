@@ -115,7 +115,7 @@ void FActorIOMessage::SerializeMessage(FStructuredArchive::FRecord Record)
 
     if (UnderlyingArchive.IsSaving())
     {
-        SenderPath = FSoftObjectPath(SenderPtr.Get());
+        SenderPath = SenderPtr.ToSoftObjectPath();
         SenderPath.SetPath(UWorld::RemovePIEPrefix(SenderPath.ToString()));
 
         TargetPath = TargetPtr.ToSoftObjectPath();
@@ -130,14 +130,13 @@ void FActorIOMessage::SerializeMessage(FStructuredArchive::FRecord Record)
 
     if (UnderlyingArchive.IsLoading())
     {
-        SenderPtr = Cast<UActorIOAction>(SenderPath.ResolveObject());
-        UE_CLOG(!SenderPtr.IsValid(), LogActorIO, Warning, TEXT("Could not find sender '%s' when loading PendingMessages of I/O subsystem."), *SenderPath.ToString());
+        SenderPtr = SenderPath; // #todo: resolve object?
+        UE_CLOG(!SenderPath.IsSubobject(), LogActorIO, Warning, TEXT("Could not find sender '%s' when loading PendingMessages of I/O subsystem."), *SenderPath.ToString());
 
         TargetPtr = TargetPath;
         UE_CLOG(!TargetPath.IsSubobject(), LogActorIO, Warning, TEXT("Could not find message target '%s' when loading PendingMessages of I/O subsystem."), *TargetPath.ToString());
     }
 }
-
 
 //==================================
 //~ Begin IActorIO

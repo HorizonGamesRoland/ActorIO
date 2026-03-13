@@ -448,7 +448,7 @@ struct ACTORIO_API FActorIOMessage
 	GENERATED_BODY()
 
 	/** The action that is sending the message. */
-	TWeakObjectPtr<UActorIOAction> SenderPtr;
+	TSoftObjectPtr<UActorIOAction> SenderPtr;
 
 	/** Actor to execute the message on. */
 	TSoftObjectPtr<AActor> TargetPtr;
