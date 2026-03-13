@@ -24,6 +24,16 @@ public:
 
 protected:
 
+	TArray<TWeakObjectPtr<ULevel>> ActiveLevels;
+
+	/**
+	 * List of I/O messages that are queued for delivery.
+	 * Each message contains a formatted UnrealScript command that will be sent to the message target.
+	 */
+	TArray<FActorIOMessage> PendingMessages;
+
+	TArray<FActorIOMessage> MessagesAwaitingActivation;
+
 	/**
 	 * The current I/O action execution context.
 	 * Only valid at runtime between an actor receiving the execute action signal, and queuing the I/O message.
@@ -32,12 +42,9 @@ protected:
 	UPROPERTY(Transient)
 	FActionExecutionContext ActionExecContext;
 
-	/**
-	 * List of I/O messages that are queued for delivery.
-	 * Each message contains a formatted UnrealScript command that will be sent to the message target.
-	 */
-	UPROPERTY(Transient)
-	TArray<FActorIOMessage> PendingMessages;
+	FDelegateHandle DelegateHandle_OnLevelAdded;
+
+	FDelegateHandle DelegateHandle_OnLevelRemoved;
 
 public:
 
@@ -89,6 +96,17 @@ public:
 
 public:
 
+	UFUNCTION(BlueprintCallable, Category = "ActorIO")
+	void AddActiveLevel(ULevel* InLevel);
+
+	UFUNCTION(BlueprintCallable, Category = "ActorIO")
+	void RemoveActiveLevel(ULevel* InLevel);
+
+	UFUNCTION(BlueprintPure, Category = "ActorIO")
+	bool IsLevelActive(ULevel* InLevel) const;
+
+public:
+
 	/**
 	 * Queue an I/O message with a formatted UnrealScript command to be delivered to the target object.
 	 * Message delivery can be delayed.
@@ -124,8 +142,16 @@ public:
 
 protected:
 
+	void CompactActiveLevels();
+
+	virtual void QueueMessageInternal(FActorIOMessage& InMessage);
+
 	/** Handles the delivery of an I/O message. */
 	virtual void ProcessMessage(FActorIOMessage& InMessage);
+
+	void OnLevelAddedToWorld(ULevel* InLevel, UWorld* InWorld);
+
+	void OnLevelRemovedFromWorld(ULevel* InLevel, UWorld* InWorld);
 
 private:
 
@@ -141,6 +167,9 @@ public:
 
 	//~ Begin UTickableWorldSubsystem Interface
 	virtual bool ShouldCreateSubsystem(UObject* Outer) const override final;
+	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
+	virtual void Deinitialize() override;
+	virtual void OnWorldBeginPlay(UWorld& InWorld) override;
 	virtual void Tick(float DeltaTime) override;
 	virtual bool IsTickable() const override;
 	virtual TStatId GetStatId() const override;

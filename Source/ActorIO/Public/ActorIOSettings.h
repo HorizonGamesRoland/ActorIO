@@ -36,6 +36,9 @@ public:
 	UPROPERTY(Config, NoClear, EditAnywhere, Category = "Settings", DisplayName = "Actor I/O Subsystem Class")
 	TSubclassOf<class UActorIOSubsystemBase> ActorIOSubsystemClass;
 
+	UPROPERTY(Config, EditAnywhere, Category = "Settings")
+	bool bAutoActivateLevels;
+
 public:
 
 #if WITH_EDITOR

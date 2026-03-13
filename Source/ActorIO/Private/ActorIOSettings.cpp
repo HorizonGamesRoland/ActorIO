@@ -6,6 +6,7 @@
 UActorIOSettings::UActorIOSettings()
 {
 	ActorIOSubsystemClass = UActorIOSubsystemBase::StaticClass();
+	bAutoActivateLevels = true;
 }
 
 const UActorIOSettings* UActorIOSettings::Get()

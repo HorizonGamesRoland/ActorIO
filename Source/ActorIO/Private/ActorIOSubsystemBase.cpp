@@ -35,7 +35,9 @@
 
 UActorIOSubsystemBase::UActorIOSubsystemBase()
 {
+    ActiveLevels = TArray<TWeakObjectPtr<ULevel>>();
     PendingMessages = TArray<FActorIOMessage>();
+    MessagesAwaitingActivation = TArray<FActorIOMessage>();
     ActionExecContext = FActionExecutionContext();
 }
 
@@ -58,6 +60,65 @@ UActorIOSubsystemBase* UActorIOSubsystemBase::Get(UObject* WorldContextObject)
     }
 
     return nullptr;
+}
+
+bool UActorIOSubsystemBase::ShouldCreateSubsystem(UObject* Outer) const
+{
+    // Determine whether this specific subsystem should be created or not.
+    // Subsystems are registered with the engine automatically, but we only want one specific subsystem.
+
+    if (!Super::ShouldCreateSubsystem(Outer))
+    {
+        return false;
+    }
+
+    UClass* ThisClass = GetClass();
+
+    const UActorIOSettings* IOSettings = UActorIOSettings::Get();
+    if (IOSettings->ActorIOSubsystemClass != nullptr)
+    {
+        // A subsystem class is provided so only create if we are that class.
+        return ThisClass == IOSettings->ActorIOSubsystemClass;
+    }
+    else
+    {
+        // No subsystem class was provided so use the base implementation.
+        UE_LOG(LogActorIO, Error, TEXT("No Actor I/O Subsystem is specified in Actor I/O settings! Reverting to default implementation."));
+        return ThisClass == UActorIOSubsystemBase::StaticClass();
+    }
+}
+
+void UActorIOSubsystemBase::Initialize(FSubsystemCollectionBase& Collection)
+{
+    Super::Initialize(Collection);
+
+    if (GetWorld()->IsGameWorld())
+    {
+        DelegateHandle_OnLevelAdded = FWorldDelegates::LevelAddedToWorld.AddUObject(this, &ThisClass::OnLevelAddedToWorld);
+        DelegateHandle_OnLevelRemoved = FWorldDelegates::LevelRemovedFromWorld.AddUObject(this, &ThisClass::OnLevelRemovedFromWorld);
+    }
+}
+
+void UActorIOSubsystemBase::Deinitialize()
+{
+    Super::Deinitialize();
+
+    FWorldDelegates::LevelAddedToWorld.Remove(DelegateHandle_OnLevelAdded);
+    FWorldDelegates::LevelRemovedFromWorld.Remove(DelegateHandle_OnLevelRemoved);
+}
+
+void UActorIOSubsystemBase::OnWorldBeginPlay(UWorld& InWorld)
+{
+    Super::OnWorldBeginPlay(InWorld);
+
+    if (InWorld.IsGameWorld())
+    {
+        const UActorIOSettings* IOSettings = UActorIOSettings::Get();
+        if (IOSettings->bAutoActivateLevels)
+        {
+            AddActiveLevel(GetWorld()->PersistentLevel);
+        }
+    }
 }
 
 void UActorIOSubsystemBase::Tick(float DeltaTime)
@@ -87,7 +148,106 @@ TStatId UActorIOSubsystemBase::GetStatId() const
     RETURN_QUICK_DECLARE_CYCLE_STAT(UActorIOSubsystemBase, STATGROUP_Tickables);
 }
 
+void UActorIOSubsystemBase::AddActiveLevel(ULevel* InLevel)
+{
+    CompactActiveLevels();
+
+    if (IsLevelActive(InLevel))
+    {
+        return;
+    }
+
+    ActiveLevels.Emplace(InLevel);
+
+    const FSoftObjectPath LevelPath = InLevel->GetPathName();
+    const FTopLevelAssetPath LevelAssetPath = LevelPath.GetAssetPath();
+
+    UE_LOG(LogActorIO, Log, TEXT("ActorIOSubsystem: Level '%s' has been activated. Level is now scriptable."), *LevelAssetPath.ToString());
+
+    int32 NumMessagesFlushed = 0;
+    for (int32 MessageIdx = MessagesAwaitingActivation.Num() - 1; MessageIdx >= 0; --MessageIdx)
+    {
+        FActorIOMessage& Message = MessagesAwaitingActivation[MessageIdx];
+
+        const FSoftObjectPath& SenderPath = Message.SenderPtr.ToSoftObjectPath();
+        const FTopLevelAssetPath SenderAssetPath = SenderPath.GetAssetPath();
+
+        if (SenderAssetPath == LevelAssetPath)
+        {
+            QueueMessageInternal(Message);
+            MessagesAwaitingActivation.RemoveAt(MessageIdx);
+            NumMessagesFlushed++;
+        }
+    }
+
+    UE_LOG(LogActorIO, Log, TEXT("ActorIOSubsystem: Flushed [%d] pending messages."), NumMessagesFlushed);
+}
+
+void UActorIOSubsystemBase::RemoveActiveLevel(ULevel* InLevel)
+{
+    CompactActiveLevels();
+
+    if (!IsLevelActive(InLevel))
+    {
+        return;
+    }
+
+    ActiveLevels.Remove(InLevel);
+}
+
+bool UActorIOSubsystemBase::IsLevelActive(ULevel* InLevel) const
+{
+    for (const TWeakObjectPtr<ULevel>& LevelPtr : ActiveLevels)
+    {
+        if (LevelPtr.IsValid() && InLevel == LevelPtr.Get())
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+void UActorIOSubsystemBase::CompactActiveLevels()
+{
+    for (int32 LevelIdx = ActiveLevels.Num() - 1; LevelIdx >= 0; --LevelIdx)
+    {
+        if (ActiveLevels[LevelIdx].IsStale())
+        {
+            ActiveLevels.RemoveAt(LevelIdx);
+        }
+    }
+}
+
 void UActorIOSubsystemBase::QueueMessage(FActorIOMessage& InMessage)
+{
+    ULevel* SourceLevel = nullptr;
+    if (InMessage.SenderPtr.IsValid())
+    {
+        UActorIOAction* SendingAction = InMessage.SenderPtr.Get();
+        SourceLevel = SendingAction->GetOuterUActorIOComponent()->GetComponentLevel();
+        ensure(SourceLevel);
+    }
+
+    // #todo: try to get source level from sender path
+
+    if (!SourceLevel)
+    {
+        UE_LOG(LogActorIO, Error, TEXT("ActorIOSubsystem: QueueMessage failed because we could not get level from sender '%s'."), *InMessage.SenderPtr.ToString());
+        return;
+    }
+
+   if (IsLevelActive(SourceLevel))
+   {
+       QueueMessageInternal(InMessage);
+   }
+   else
+   {
+       MessagesAwaitingActivation.Add(InMessage);
+   }
+}
+
+void UActorIOSubsystemBase::QueueMessageInternal(FActorIOMessage& InMessage)
 {
     if (InMessage.TimeRemaining <= 0.0f)
     {
@@ -523,6 +683,34 @@ void UActorIOSubsystemBase::LoadFromRawData(TArray<uint8>& RawData)
     SerializePendingMessages(RootSlot.EnterRecord());
 }
 
+void UActorIOSubsystemBase::OnLevelAddedToWorld(ULevel* InLevel, UWorld* InWorld)
+{
+    if (InWorld != GetWorld())
+    {
+        return;
+    }
+
+    const UActorIOSettings* IOSettings = UActorIOSettings::Get();
+    if (IOSettings->bAutoActivateLevels)
+    {
+        AddActiveLevel(InLevel);
+    }
+}
+
+void UActorIOSubsystemBase::OnLevelRemovedFromWorld(ULevel* InLevel, UWorld* InWorld)
+{
+    if (InWorld != GetWorld())
+    {
+        return;
+    }
+
+    const UActorIOSettings* IOSettings = UActorIOSettings::Get();
+    if (IOSettings->bAutoActivateLevels)
+    {
+        RemoveActiveLevel(InLevel);
+    }
+}
+
 void UActorIOSubsystemBase::RegisterNativeFunctionsForObject(AActor* InObject, FActorIOFunctionList& FunctionRegistry)
 {
     //==================================
@@ -785,32 +973,6 @@ void UActorIOSubsystemBase::ProcessEvent_OnActorDestroyed(AActor* Actor, EEndPla
     {
         // Abort the action if end play was not caused by destroying the actor.
         ActionExecContext.AbortAction();
-    }
-}
-
-bool UActorIOSubsystemBase::ShouldCreateSubsystem(UObject* Outer) const
-{
-    // Determine whether this specific subsystem should be created or not.
-    // Subsystems are registered with the engine automatically, but we only want one specific subsystem.
-
-    if (!Super::ShouldCreateSubsystem(Outer))
-    {
-        return false;
-    }
-
-    UClass* ThisClass = GetClass();
-
-    const UActorIOSettings* IOSettings = UActorIOSettings::Get();
-    if (IOSettings->ActorIOSubsystemClass != nullptr)
-    {
-        // A subsystem class is provided so only create if we are that class.
-        return ThisClass == IOSettings->ActorIOSubsystemClass;
-    }
-    else
-    {
-        // No subsystem class was provided so use the base implementation.
-        UE_LOG(LogActorIO, Error, TEXT("No Actor I/O Subsystem is specified in Actor I/O settings! Reverting to default implementation."));
-        return ThisClass == UActorIOSubsystemBase::StaticClass();
     }
 }
 
