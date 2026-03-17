@@ -474,6 +474,9 @@ struct ACTORIO_API FActorIOMessage
 		TimeRemaining(0.0f)
 	{}
 
+	/** @return Path to the ULevel of the sending I/O action. */
+	FSoftObjectPath GetSenderLevelPath() const;
+
 	void SerializeMessage(FStructuredArchive::FRecord Record);
 	//bool Serialize(FStructuredArchive::FSlot Slot);
 };

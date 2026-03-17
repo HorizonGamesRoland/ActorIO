@@ -32,8 +32,6 @@ protected:
 	 */
 	TArray<FActorIOMessage> PendingMessages;
 
-	TArray<FActorIOMessage> MessagesAwaitingActivation;
-
 	/**
 	 * The current I/O action execution context.
 	 * Only valid at runtime between an actor receiving the execute action signal, and queuing the I/O message.
@@ -42,8 +40,10 @@ protected:
 	UPROPERTY(Transient)
 	FActionExecutionContext ActionExecContext;
 
+	/** Handle for when a level is added to the world. */
 	FDelegateHandle DelegateHandle_OnLevelAdded;
 
+	/** Handle for when a level is removed from the world. */
 	FDelegateHandle DelegateHandle_OnLevelRemoved;
 
 public:
@@ -97,13 +97,19 @@ public:
 public:
 
 	UFUNCTION(BlueprintCallable, Category = "ActorIO")
-	void AddActiveLevel(ULevel* InLevel);
-
+	void ActivateLevel(ULevel* InLevel);
+	
 	UFUNCTION(BlueprintCallable, Category = "ActorIO")
-	void RemoveActiveLevel(ULevel* InLevel);
+	void DeactivateLevel(ULevel* InLevel);
 
 	UFUNCTION(BlueprintPure, Category = "ActorIO")
 	bool IsLevelActive(ULevel* InLevel) const;
+
+	UFUNCTION(BlueprintPure, Category = "ActorIO")
+	bool IsLevelActiveByPath(const FSoftObjectPath& InLevelPath) const;
+
+	UFUNCTION(BlueprintPure, Category = "ActorIO")
+	ULevel* GetLevelByPath(const FSoftObjectPath& InLevelPath) const;
 
 public:
 
@@ -142,12 +148,12 @@ public:
 
 protected:
 
-	void CompactActiveLevels();
-
-	virtual void QueueMessageInternal(FActorIOMessage& InMessage);
+	void TickPendingMessages(float DeltaTime);
 
 	/** Handles the delivery of an I/O message. */
 	virtual void ProcessMessage(FActorIOMessage& InMessage);
+
+	void CompactActiveLevels();
 
 	void OnLevelAddedToWorld(ULevel* InLevel, UWorld* InWorld);
 
