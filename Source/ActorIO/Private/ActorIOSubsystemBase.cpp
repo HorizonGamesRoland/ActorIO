@@ -148,9 +148,7 @@ void UActorIOSubsystemBase::ActivateLevel(ULevel* InLevel)
     ActiveLevels.Emplace(InLevel);
 
     const FSoftObjectPath LevelPath = InLevel->GetPathName();
-    const FTopLevelAssetPath LevelAssetPath = LevelPath.GetAssetPath();
-
-    UE_LOG(LogActorIO, Log, TEXT("ActorIOSubsystem: Level '%s' has been activated."), *LevelAssetPath.ToString());
+    UE_LOG(LogActorIO, Log, TEXT("ActorIOSubsystem: Level '%s' has been activated."), *LevelPath.ToString());
 
     const int32 NumMessagesBeforeTick = PendingMessages.Num();
     TickPendingMessages(0.0f);
@@ -159,7 +157,7 @@ void UActorIOSubsystemBase::ActivateLevel(ULevel* InLevel)
     UE_LOG(LogActorIO, Log, TEXT("ActorIOSubsystem: Activated [%d] pending messages."), NumMessagesProcessed);
 }
 
-void UActorIOSubsystemBase::DeactivateLevel(ULevel* InLevel)
+void UActorIOSubsystemBase::DeactivateLevel(ULevel* InLevel, bool bRemoveMessages)
 {
     if (!IsLevelActive(InLevel))
     {
@@ -168,6 +166,18 @@ void UActorIOSubsystemBase::DeactivateLevel(ULevel* InLevel)
 
     CompactActiveLevels();
     ActiveLevels.Remove(InLevel);
+
+    const FSoftObjectPath LevelPath = InLevel->GetPathName();
+    UE_LOG(LogActorIO, Log, TEXT("ActorIOSubsystem: Level '%s' has been deactivated."), *LevelPath.ToString());
+
+    const int32 NumMessagesBefore = PendingMessages.Num();
+    if (bRemoveMessages)
+    {
+        RemovePendingMessages(InLevel);
+    }
+
+    const int32 NumMessagesRemoved = NumMessagesBefore - PendingMessages.Num();
+    UE_LOG(LogActorIO, Log, TEXT("ActorIOSubsystem: Removed [%d] pending messages."), NumMessagesRemoved);
 }
 
 bool UActorIOSubsystemBase::IsLevelActive(ULevel* InLevel) const
@@ -218,16 +228,82 @@ ULevel* UActorIOSubsystemBase::GetLevelByPath(const FSoftObjectPath& InLevelPath
     return nullptr;
 }
 
-void UActorIOSubsystemBase::QueueMessage(FActorIOMessage& InMessage)
+FSoftObjectPath UActorIOSubsystemBase::GetLevelPathFromObjectPath(const FSoftObjectPath& InObjectPath) const
 {
-    const FSoftObjectPath SenderPath = InMessage.GetSenderLevelPath();
-    if (!IsLevelActiveByPath(SenderPath) || InMessage.TimeRemaining > 0.0f)
+    FSoftObjectPath OutPath;
+
+    if (!InObjectPath.IsSubobject())
     {
-        PendingMessages.Add(InMessage);
+        // The given path does not point to any object.
+        return OutPath;
     }
-    else
+
+    // The subobject path is: Sublevel.Path.To.Object
+    // We only want the sublevel from this path so we are going to cut everything after the fist dot.
+    FString SubPath = InObjectPath.GetSubPathString();
+    int32 SubLevelEndIdx = INDEX_NONE;
+    if (SubPath.FindChar('.', SubLevelEndIdx))
     {
-        ProcessMessage(InMessage);
+        const FTopLevelAssetPath& AssetPath = InObjectPath.GetAssetPath();
+        SubPath.LeftInline(SubLevelEndIdx);
+        OutPath.SetPath(AssetPath, SubPath);
+    }
+
+    return OutPath;
+}
+
+void UActorIOSubsystemBase::QueueMessage(const FActorIOMessage& InMessage)
+{
+    if (InMessage.TimeRemaining <= 0.0f)
+    {
+        const FSoftObjectPath SenderLevelPath = GetLevelPathFromObjectPath(InMessage.SenderPtr.ToSoftObjectPath());
+        const FSoftObjectPath TargetLevelPath = GetLevelPathFromObjectPath(InMessage.TargetPtr.ToSoftObjectPath());
+        if (IsLevelActiveByPath(SenderLevelPath) && IsLevelActiveByPath(TargetLevelPath))
+        {
+            ProcessMessage(InMessage);
+            return;
+        }
+    }
+
+    PendingMessages.Add(InMessage);
+}
+
+void UActorIOSubsystemBase::RemovePendingMessages(UActorIOAction* InAction)
+{
+    if (!InAction)
+    {
+        return;
+    }
+
+    for (int32 MessageIdx = PendingMessages.Num() - 1; MessageIdx >= 0; --MessageIdx)
+    {
+        // Not comparing paths in this case because we have a pointer to the I/O action.
+        // Since messages are sent by I/O actions, we know that the soft pointer of the relevant messages are valid.
+
+        const FActorIOMessage& Message = PendingMessages[MessageIdx];
+        if (Message.SenderPtr.Get() == InAction)
+        {
+            PendingMessages.RemoveAt(MessageIdx);
+        }
+    }
+}
+
+void UActorIOSubsystemBase::RemovePendingMessages(ULevel* InLevel)
+{
+    if (!InLevel)
+    {
+        return;
+    }
+
+    const FSoftObjectPath LevelPath = InLevel->GetPathName();
+    for (int32 MessageIdx = PendingMessages.Num() - 1; MessageIdx >= 0; --MessageIdx)
+    {
+        const FActorIOMessage& Message = PendingMessages[MessageIdx];
+        const FSoftObjectPath SenderLevelPath = GetLevelPathFromObjectPath(Message.SenderPtr.ToSoftObjectPath());
+        if (SenderLevelPath == LevelPath)
+        {
+            PendingMessages.RemoveAt(MessageIdx);
+        }
     }
 }
 
@@ -240,9 +316,12 @@ void UActorIOSubsystemBase::TickPendingMessages(float DeltaTime)
     {
         FActorIOMessage& Message = PendingMessages[MessageIdx];
 
-        const FSoftObjectPath SenderPath = Message.GetSenderLevelPath();
-        if (!IsLevelActiveByPath(SenderPath))
+        const FSoftObjectPath SenderLevelPath = GetLevelPathFromObjectPath(Message.SenderPtr.ToSoftObjectPath());
+        const FSoftObjectPath TargetLevelPath = GetLevelPathFromObjectPath(Message.TargetPtr.ToSoftObjectPath());
+        if (!IsLevelActiveByPath(SenderLevelPath) || !IsLevelActiveByPath(TargetLevelPath))
         {
+            // Do not process messages for subjects that are part of an inactive level.
+            // This ensures that the level / world state can be restored from a save file before we actually do anything.
             continue;
         }
 
@@ -262,7 +341,7 @@ void UActorIOSubsystemBase::TickPendingMessages(float DeltaTime)
     }
 }
 
-void UActorIOSubsystemBase::ProcessMessage(FActorIOMessage& InMessage)
+void UActorIOSubsystemBase::ProcessMessage(const FActorIOMessage& InMessage)
 {
     AActor* ActorPtr = InMessage.TargetPtr.Get();
 
@@ -522,15 +601,12 @@ void UActorIOSubsystemBase::SerializePendingMessages(FStructuredArchive::FRecord
     FArchive& UnderlyingArchive = Record.GetUnderlyingArchive();
     check(UnderlyingArchive.IsSaveGame());
 
-    if (UnderlyingArchive.IsLoading())
-    {
-        PendingMessages.Reset();
-    }
-
+    TArray<FActorIOMessage> Messages;
     int32 NumMessages = 0;
 
     if (UnderlyingArchive.IsSaving())
     {
+        Messages = PendingMessages;
         NumMessages = PendingMessages.Num();
     }
 
@@ -554,11 +630,8 @@ void UActorIOSubsystemBase::SerializePendingMessages(FStructuredArchive::FRecord
 
         if (UnderlyingArchive.IsLoading())
         {
-            FActorIOMessage Message;
+            FActorIOMessage& Message = Messages.AddDefaulted_GetRef();
             Message.SerializeMessage(MessageRecord);
-
-            // #TODO: delay message execution until everything is restored?
-            QueueMessage(Message);
 
             if (!UnderlyingArchive.IsTextFormat())
             {
@@ -573,7 +646,7 @@ void UActorIOSubsystemBase::SerializePendingMessages(FStructuredArchive::FRecord
         }
         else
         {
-            FActorIOMessage& Message = PendingMessages[MessageIdx];
+            FActorIOMessage& Message = Messages[MessageIdx];
             Message.SerializeMessage(MessageRecord);
 
             // Seek back and re-write the data size with the actual size.
@@ -586,6 +659,80 @@ void UActorIOSubsystemBase::SerializePendingMessages(FStructuredArchive::FRecord
                 UnderlyingArchive << DataSize;
                 UnderlyingArchive.Seek(EndDataPosition);
             }
+        }
+    }
+
+    // Now queue all loaded messages.
+    if (UnderlyingArchive.IsLoading())
+    {
+        for (const FActorIOMessage& LoadedMessage : Messages)
+        {
+            QueueMessage(LoadedMessage);
+        }
+    }
+}
+
+void UActorIOSubsystemBase::SaveToRawData(TArray<uint8>& RawData)
+{
+    FMemoryWriter Archive = FMemoryWriter(RawData);
+    FObjectAndNameAsStringProxyArchive ProxyArchive = FObjectAndNameAsStringProxyArchive(Archive, false);
+    ProxyArchive.ArIsSaveGame = true;
+
+    FBinaryArchiveFormatter Formatter = FBinaryArchiveFormatter(ProxyArchive);
+    FStructuredArchive StructuredArchive = FStructuredArchive(Formatter);
+
+    FStructuredArchive::FSlot RootSlot = StructuredArchive.Open();
+    SerializePendingMessages(RootSlot.EnterRecord());
+}
+
+void UActorIOSubsystemBase::LoadFromRawData(TArray<uint8>& RawData)
+{
+    FMemoryReader Archive = FMemoryReader(RawData);
+    FObjectAndNameAsStringProxyArchive ProxyArchive = FObjectAndNameAsStringProxyArchive(Archive, false);
+    ProxyArchive.ArIsSaveGame = true;
+
+    FBinaryArchiveFormatter Formatter = FBinaryArchiveFormatter(ProxyArchive);
+    FStructuredArchive StructuredArchive = FStructuredArchive(Formatter);
+
+    FStructuredArchive::FSlot RootSlot = StructuredArchive.Open();
+    SerializePendingMessages(RootSlot.EnterRecord());
+}
+
+void UActorIOSubsystemBase::OnLevelAddedToWorld(ULevel* InLevel, UWorld* InWorld)
+{
+    if (InWorld != GetWorld())
+    {
+        return;
+    }
+
+    const UActorIOSettings* IOSettings = UActorIOSettings::Get();
+    if (IOSettings->bAutoActivateLevels)
+    {
+        ActivateLevel(InLevel);
+    }
+}
+
+void UActorIOSubsystemBase::OnLevelRemovedFromWorld(ULevel* InLevel, UWorld* InWorld)
+{
+    if (InWorld != GetWorld())
+    {
+        return;
+    }
+
+    const UActorIOSettings* IOSettings = UActorIOSettings::Get();
+    if (IOSettings->bAutoActivateLevels)
+    {
+        DeactivateLevel(InLevel);
+    }
+}
+
+void UActorIOSubsystemBase::CompactActiveLevels()
+{
+    for (int32 LevelIdx = ActiveLevels.Num() - 1; LevelIdx >= 0; --LevelIdx)
+    {
+        if (ActiveLevels[LevelIdx].IsStale())
+        {
+            ActiveLevels.RemoveAt(LevelIdx);
         }
     }
 }
@@ -657,71 +804,6 @@ void UActorIOSubsystemBase::RegisterNativeEventsForObject(AActor* InObject, FAct
             .SetTooltipText(LOCTEXT("Actor.OnDestroyedTooltip", "Event when the actor is getting destroyed."))
             .SetSparseDelegate(InObject, TEXT("OnEndPlay"))
             .SetEventProcessor(this, TEXT("ProcessEvent_OnActorDestroyed")));
-    }
-}
-
-void UActorIOSubsystemBase::SaveToRawData(TArray<uint8>& RawData)
-{
-    FMemoryWriter Archive = FMemoryWriter(RawData);
-    FObjectAndNameAsStringProxyArchive ProxyArchive = FObjectAndNameAsStringProxyArchive(Archive, false);
-    ProxyArchive.ArIsSaveGame = true;
-
-    FBinaryArchiveFormatter Formatter = FBinaryArchiveFormatter(ProxyArchive);
-    FStructuredArchive StructuredArchive = FStructuredArchive(Formatter);
-
-    FStructuredArchive::FSlot RootSlot = StructuredArchive.Open();
-    SerializePendingMessages(RootSlot.EnterRecord());
-}
-
-void UActorIOSubsystemBase::LoadFromRawData(TArray<uint8>& RawData)
-{
-    FMemoryReader Archive = FMemoryReader(RawData);
-    FObjectAndNameAsStringProxyArchive ProxyArchive = FObjectAndNameAsStringProxyArchive(Archive, false);
-    ProxyArchive.ArIsSaveGame = true;
-
-    FBinaryArchiveFormatter Formatter = FBinaryArchiveFormatter(ProxyArchive);
-    FStructuredArchive StructuredArchive = FStructuredArchive(Formatter);
-
-    FStructuredArchive::FSlot RootSlot = StructuredArchive.Open();
-    SerializePendingMessages(RootSlot.EnterRecord());
-}
-
-void UActorIOSubsystemBase::OnLevelAddedToWorld(ULevel* InLevel, UWorld* InWorld)
-{
-    if (InWorld != GetWorld())
-    {
-        return;
-    }
-
-    const UActorIOSettings* IOSettings = UActorIOSettings::Get();
-    if (IOSettings->bAutoActivateLevels)
-    {
-        ActivateLevel(InLevel);
-    }
-}
-
-void UActorIOSubsystemBase::OnLevelRemovedFromWorld(ULevel* InLevel, UWorld* InWorld)
-{
-    if (InWorld != GetWorld())
-    {
-        return;
-    }
-
-    const UActorIOSettings* IOSettings = UActorIOSettings::Get();
-    if (IOSettings->bAutoActivateLevels)
-    {
-        DeactivateLevel(InLevel);
-    }
-}
-
-void UActorIOSubsystemBase::CompactActiveLevels()
-{
-    for (int32 LevelIdx = ActiveLevels.Num() - 1; LevelIdx >= 0; --LevelIdx)
-    {
-        if (ActiveLevels[LevelIdx].IsStale())
-        {
-            ActiveLevels.RemoveAt(LevelIdx);
-        }
     }
 }
 

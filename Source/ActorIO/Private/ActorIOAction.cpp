@@ -471,7 +471,22 @@ void UActorIOAction::Serialize(FStructuredArchive::FRecord Record)
 
 		if (UnderlyingArchive.IsLoading())
 		{
+			const bool bHasExecutedAlready = bWasExecuted;
 			bWasExecuted = bExecuted;
+
+			// We must recall the messages if:
+			//  - the restored state says the action has been executed in the past
+			//  - and this action should only ever be executed once
+			//  - and before the state was restored the action has already been executed
+			if ((bWasExecuted && bExecuteOnlyOnce) && bHasExecutedAlready)
+			{
+				UE_CLOG(DebugIOActions, LogActorIO, Log, TEXT("Recalling pending I/O messages from action: '%s'"), *GetPathName());
+
+				// Since levels *should* only be active after the level's state was restored from a save file
+				// all messages that were sent prematurely *should* still be in the pending messages list.
+				UActorIOSubsystemBase* IOSubsystem = UActorIOSubsystemBase::Get(this);
+				IOSubsystem->RemovePendingMessages(this);
+			}
 		}
 	}
 	else

@@ -24,6 +24,10 @@ public:
 
 protected:
 
+	/**
+	 * List of levels that are considered for delivering I/O messages.
+	 * This abstraction ensures we do not execute I/O actions before their state can be restored from a save file.
+	 */
 	TArray<TWeakObjectPtr<ULevel>> ActiveLevels;
 
 	/**
@@ -100,7 +104,7 @@ public:
 	void ActivateLevel(ULevel* InLevel);
 	
 	UFUNCTION(BlueprintCallable, Category = "ActorIO")
-	void DeactivateLevel(ULevel* InLevel);
+	void DeactivateLevel(ULevel* InLevel, bool bRemoveMessages = true);
 
 	UFUNCTION(BlueprintPure, Category = "ActorIO")
 	bool IsLevelActive(ULevel* InLevel) const;
@@ -111,16 +115,32 @@ public:
 	UFUNCTION(BlueprintPure, Category = "ActorIO")
 	ULevel* GetLevelByPath(const FSoftObjectPath& InLevelPath) const;
 
+	/** Get the path to the ULevel that contains the given object. */
+	UFUNCTION(BlueprintPure, Category = "ActorIO")
+	FSoftObjectPath GetLevelPathFromObjectPath(const FSoftObjectPath& InObjectPath) const;
+
 public:
 
 	/**
 	 * Queue an I/O message with a formatted UnrealScript command to be delivered to the target object.
 	 * Message delivery can be delayed.
 	 */
-	virtual void QueueMessage(FActorIOMessage& InMessage);
+	virtual void QueueMessage(const FActorIOMessage& InMessage);
+
+	/**
+	 * Remove all pending messages that were sent by the given I/O action.
+	 * This is used when an I/O action's state is restored from a save file and the action needs to recall its messages.
+	 */
+	void RemovePendingMessages(UActorIOAction* InAction);
+
+	/** Remove all pending messages that were sent from the given level. */
+	void RemovePendingMessages(ULevel* InLevel);
 
 	/** @return List of I/O messages that are queued for delivery. */
 	const TArray<FActorIOMessage>& GetPendingMessages() const { return PendingMessages; }
+
+	/** @return Number of I/O messages that are queued for delivery. */
+	int32 GetNumPendingMessages() const { return PendingMessages.Num(); }
 
 	/**
 	 * Executes an UnrealScript command on the target object.
@@ -151,7 +171,7 @@ protected:
 	void TickPendingMessages(float DeltaTime);
 
 	/** Handles the delivery of an I/O message. */
-	virtual void ProcessMessage(FActorIOMessage& InMessage);
+	virtual void ProcessMessage(const FActorIOMessage& InMessage);
 
 	void CompactActiveLevels();
 

@@ -106,29 +106,6 @@ void FActionExecutionContext::AbortAction()
 //~ Begin FActorIOMessage
 //==================================
 
-FSoftObjectPath FActorIOMessage::GetSenderLevelPath() const
-{
-    FSoftObjectPath OutPath = FSoftObjectPath();
-
-    if (SenderPtr.IsNull())
-    {
-        return OutPath;
-    }
-
-    const FSoftObjectPath& SenderPath = SenderPtr.ToSoftObjectPath();
-    const FTopLevelAssetPath& AssetPath = SenderPath.GetAssetPath();
-
-    // The subpath is currently: Sublevel.ActorName.ActorIOComponent.ActorIOAction
-    // We only want the sublevel from this path so we are going to cut everything after the fist dot.
-    FString SubPath = SenderPath.GetSubPathString();
-    int32 LevelSubPathEndIdx = INDEX_NONE;
-    SubPath.FindChar('.', LevelSubPathEndIdx);
-    SubPath.LeftInline(LevelSubPathEndIdx, EAllowShrinking::Yes);
-
-    OutPath.SetPath(AssetPath, SubPath);
-    return OutPath;
-}
-
 void FActorIOMessage::SerializeMessage(FStructuredArchive::FRecord Record)
 {
     FArchive& UnderlyingArchive = Record.GetUnderlyingArchive();
