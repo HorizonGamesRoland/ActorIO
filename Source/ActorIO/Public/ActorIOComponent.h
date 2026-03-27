@@ -52,8 +52,6 @@ public:
 
 public:
 
-	void SerializeActions(FStructuredArchive::FSlot Slot);
-
 	UFUNCTION(BlueprintCallable, Category = "ActorIO")
 	void SaveToRawData(TArray<uint8>& RawData);
 
@@ -74,6 +72,7 @@ public:
 	virtual void OnRegister() override;
 	virtual void InitializeComponent() override;
 	virtual void UninitializeComponent() override;
+	virtual void Serialize(FStructuredArchive::FRecord Record) override;
 #if WITH_EDITOR
 	virtual void CheckForErrors() override;
 #endif

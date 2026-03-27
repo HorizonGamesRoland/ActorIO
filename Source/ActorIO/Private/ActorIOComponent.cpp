@@ -2,6 +2,7 @@
 
 #include "ActorIOComponent.h"
 #include "ActorIOAction.h"
+#include "ActorIOVersions.h"
 #include "GameFramework/Actor.h"
 #include "Engine/World.h"
 #include "Serialization/MemoryWriter.h"
@@ -106,87 +107,6 @@ void UActorIOComponent::UnbindActions()
 	}
 }
 
-void UActorIOComponent::SerializeActions(FStructuredArchive::FSlot Slot)
-{
-	FArchive& UnderlyingArchive = Slot.GetUnderlyingArchive();
-	check(UnderlyingArchive.IsSaveGame());
-
-	FStructuredArchive::FRecord Record = Slot.EnterRecord();
-
-	int32 NumActions = 0;
-
-	if (UnderlyingArchive.IsSaving())
-	{
-		NumActions = Actions.Num();
-	}
-
-	FStructuredArchive::FMap ActionsMap = Record.EnterMap(TEXT("Actions"), NumActions);
-
-	for (int32 ActionIdx = 0; ActionIdx != NumActions; ++ActionIdx)
-	{
-		UActorIOAction* ActionPtr = nullptr;
-		FString ActionName; // #TODO: Use guid instead?
-
-		if (UnderlyingArchive.IsSaving())
-		{
-			ActionPtr = Actions[ActionIdx].Get();
-			ActionName = ActionPtr->GetName();
-		}
-
-		FStructuredArchive::FSlot ActionSlot = ActionsMap.EnterElement(ActionName);
-		FStructuredArchive::FRecord ActionRecord = ActionSlot.EnterRecord();
-
-		const int64 DataSizePosition = UnderlyingArchive.Tell();
-		int64 DataSize = 0;
-
-		// Pre-serialize the data size. We'll rewrite this after serializing the action.
-		if (!UnderlyingArchive.IsTextFormat())
-		{
-			ActionRecord << SA_VALUE(TEXT("DataSize"), DataSize);
-		}
-
-		const int64 BeginDataPosition = UnderlyingArchive.Tell();
-
-		if (UnderlyingArchive.IsLoading())
-		{
-			ActionPtr = FindObjectFast<UActorIOAction>(this, *ActionName);
-			UE_CLOG(!ActionPtr, LogActorIO, Warning, TEXT("%s - No action found with name '%s'."), *GetPathName(), *ActionName);
-
-			if (ActionPtr)
-			{
-				ActionPtr->Serialize(ActionRecord);
-			}
-
-			if (!UnderlyingArchive.IsTextFormat())
-			{
-				if (!ensureMsgf(UnderlyingArchive.Tell() <= BeginDataPosition + DataSize, TEXT("%s - Serialized more data then expected when loading %s!"), *GetPathName(), *ActionName))
-				{
-					UnderlyingArchive.SetError();
-					return;
-				}
-
-				UnderlyingArchive.Seek(BeginDataPosition + DataSize);
-			}
-		}
-		else
-		{
-			check(ActionPtr);
-			ActionPtr->Serialize(ActionRecord);
-
-			// Seek back and re-write the data size with the actual size.
-			if (!UnderlyingArchive.IsTextFormat())
-			{
-				const int64 EndDataPosition = UnderlyingArchive.Tell();
-				DataSize = EndDataPosition - BeginDataPosition;
-
-				UnderlyingArchive.Seek(DataSizePosition);
-				UnderlyingArchive << DataSize;
-				UnderlyingArchive.Seek(EndDataPosition);
-			}
-		}
-	}
-}
-
 void UActorIOComponent::SaveToRawData(TArray<uint8>& RawData)
 {
 	FMemoryWriter Archive = FMemoryWriter(RawData);
@@ -197,7 +117,7 @@ void UActorIOComponent::SaveToRawData(TArray<uint8>& RawData)
 	FStructuredArchive StructuredArchive = FStructuredArchive(Formatter);
 
 	FStructuredArchive::FSlot RootSlot = StructuredArchive.Open();
-	SerializeActions(RootSlot);
+	Serialize(RootSlot.EnterRecord());
 }
 
 void UActorIOComponent::LoadFromRawData(TArray<uint8>& RawData)
@@ -210,7 +130,7 @@ void UActorIOComponent::LoadFromRawData(TArray<uint8>& RawData)
 	FStructuredArchive StructuredArchive = FStructuredArchive(Formatter);
 
 	FStructuredArchive::FSlot RootSlot = StructuredArchive.Open();
-	SerializeActions(RootSlot);
+	Serialize(RootSlot.EnterRecord());
 }
 
 void UActorIOComponent::UninitializeComponent()
@@ -218,6 +138,94 @@ void UActorIOComponent::UninitializeComponent()
 	UnbindActions();
 
 	Super::UninitializeComponent();
+}
+
+void UActorIOComponent::Serialize(FStructuredArchive::FRecord Record)
+{
+	FArchive& UnderlyingArchive = Record.GetUnderlyingArchive();
+	if (UnderlyingArchive.IsSaveGame())
+	{
+		UnderlyingArchive.UsingCustomVersion(FActorIOActionVersion::GUID);
+
+		int32 Version = UnderlyingArchive.CustomVer(FActorIOActionVersion::GUID);
+		Record << SA_VALUE(TEXT("Version"), Version);
+
+		if (UnderlyingArchive.IsLoading())
+		{
+			UnderlyingArchive.SetCustomVersion(FActorIOActionVersion::GUID, Version, TEXT("ActorIOActionVer"));
+		}
+
+		int32 NumActions = Actions.Num();
+		FStructuredArchive::FMap ActionsMap = Record.EnterMap(TEXT("Actions"), NumActions);
+
+		for (int32 ActionIdx = 0; ActionIdx != NumActions; ++ActionIdx)
+		{
+			UActorIOAction* ActionPtr = nullptr;
+			FString ActionName; // #TODO: Use guid instead?
+
+			if (UnderlyingArchive.IsSaving())
+			{
+				ActionPtr = Actions[ActionIdx].Get();
+				ActionName = ActionPtr->GetName();
+			}
+
+			FStructuredArchive::FSlot ActionSlot = ActionsMap.EnterElement(ActionName);
+			FStructuredArchive::FRecord ActionRecord = ActionSlot.EnterRecord();
+
+			const int64 DataSizePosition = UnderlyingArchive.Tell();
+			int64 DataSize = 0;
+
+			// Pre-serialize the data size. We'll rewrite this after serializing the action.
+			if (!UnderlyingArchive.IsTextFormat())
+			{
+				ActionRecord << SA_VALUE(TEXT("DataSize"), DataSize);
+			}
+
+			const int64 BeginDataPosition = UnderlyingArchive.Tell();
+
+			if (UnderlyingArchive.IsLoading())
+			{
+				ActionPtr = FindObjectFast<UActorIOAction>(this, *ActionName);
+				UE_CLOG(!ActionPtr, LogActorIO, Warning, TEXT("%s - No action found with name '%s'."), *GetPathName(), *ActionName);
+
+				if (ActionPtr)
+				{
+					ActionPtr->Serialize(ActionRecord);
+				}
+
+				if (!UnderlyingArchive.IsTextFormat())
+				{
+					if (!ensureMsgf(UnderlyingArchive.Tell() <= BeginDataPosition + DataSize, TEXT("%s - Serialized more data then expected when loading %s!"), *GetPathName(), *ActionName))
+					{
+						UnderlyingArchive.SetError();
+						return;
+					}
+
+					UnderlyingArchive.Seek(BeginDataPosition + DataSize);
+				}
+			}
+			else
+			{
+				check(ActionPtr);
+				ActionPtr->Serialize(ActionRecord);
+
+				// Seek back and re-write the data size with the actual size.
+				if (!UnderlyingArchive.IsTextFormat())
+				{
+					const int64 EndDataPosition = UnderlyingArchive.Tell();
+					DataSize = EndDataPosition - BeginDataPosition;
+
+					UnderlyingArchive.Seek(DataSizePosition);
+					UnderlyingArchive << DataSize;
+					UnderlyingArchive.Seek(EndDataPosition);
+				}
+			}
+		}
+	}
+	else
+	{
+		Super::Serialize(Record);
+	}
 }
 
 #if WITH_EDITOR

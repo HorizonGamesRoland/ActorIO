@@ -5,6 +5,7 @@
 #include "ActorIOInterface.h"
 #include "ActorIOAction.h"
 #include "ActorIOSettings.h"
+#include "ActorIOVersions.h"
 #include "LogicActors/LogicActorBase.h"
 #include "GameFramework/Actor.h"
 #include "GameFramework/Pawn.h"
@@ -600,6 +601,16 @@ void UActorIOSubsystemBase::SerializePendingMessages(FStructuredArchive::FRecord
 {
     FArchive& UnderlyingArchive = Record.GetUnderlyingArchive();
     check(UnderlyingArchive.IsSaveGame());
+
+    UnderlyingArchive.UsingCustomVersion(FActorIOMessageVersion::GUID);
+
+    int32 Version = UnderlyingArchive.CustomVer(FActorIOMessageVersion::GUID);
+    Record << SA_VALUE(TEXT("Version"), Version);
+
+    if (UnderlyingArchive.IsLoading())
+    {
+        UnderlyingArchive.SetCustomVersion(FActorIOMessageVersion::GUID, Version, TEXT("ActorIOMessageVer"));
+    }
 
     TArray<FActorIOMessage> Messages;
     int32 NumMessages = 0;

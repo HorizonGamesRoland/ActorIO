@@ -168,15 +168,19 @@ public:
 
 protected:
 
+	/** Update remaining time on all pending messages, potentially activating them. */
 	void TickPendingMessages(float DeltaTime);
 
 	/** Handles the delivery of an I/O message. */
 	virtual void ProcessMessage(const FActorIOMessage& InMessage);
 
+	/** Remove all null entries from the active levels list. */
 	void CompactActiveLevels();
 
+	/** Callback for when a level is added to the world. */
 	void OnLevelAddedToWorld(ULevel* InLevel, UWorld* InWorld);
 
+	/** Callback for when a level is removed from the world. */
 	void OnLevelRemovedFromWorld(ULevel* InLevel, UWorld* InWorld);
 
 private:
