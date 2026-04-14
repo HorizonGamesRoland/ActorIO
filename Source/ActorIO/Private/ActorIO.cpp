@@ -218,8 +218,7 @@ const TArray<TWeakObjectPtr<UActorIOAction>> IActorIO::GetInputActionsForObject(
             UActorIOAction* Action = *ActionItr;
             if (IsValid(Action) && IsValid(Action->GetOwnerActor()))
             {
-                // According to TObjectIterator description, we need to make sure that we
-                // don't include objects from different worlds (e.g. PIE sessions).
+                // Make sure that we don't include objects from different worlds (e.g. other PIE sessions).
                 if (Action->GetWorld() == InObject->GetWorld())
                 {
                     if (Action->TargetActor.Get() == InObject)

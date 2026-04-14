@@ -54,3 +54,22 @@ ALogicActorBase::ALogicActorBase()
 	SetReplicatingMovement(false);
 	SetCanBeDamaged(false);
 }
+
+void ALogicActorBase::Serialize(FArchive& Ar)
+{
+	PreSerializeLogicActor(Ar);
+
+	Super::Serialize(Ar);
+
+	PostSerializeLogicActor(Ar);
+}
+
+void ALogicActorBase::Serialize(FStructuredArchive::FRecord Record)
+{
+	FArchive& UnderlyingArchive = Record.GetUnderlyingArchive();
+	PreSerializeLogicActor(UnderlyingArchive);
+
+	Super::Serialize(Record);
+
+	PostSerializeLogicActor(UnderlyingArchive);
+}

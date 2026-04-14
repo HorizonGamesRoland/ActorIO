@@ -96,7 +96,7 @@ protected:
     UPROPERTY()
     TArray<TObjectPtr<AActor>> SpawnedActors;
 
-protected:
+public:
 
     //~ Begin ALogicActorBase Interface
     virtual void RegisterIOEvents(FActorIOEventList& EventRegistry) override;

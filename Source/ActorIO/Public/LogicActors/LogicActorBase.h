@@ -39,7 +39,28 @@ protected:
 	TObjectPtr<UBillboardComponent> SpriteComponent;
 #endif
 
-protected:
+public:
+
+	/**
+	 * Called before the logic actor is serialized.
+	 * Can be used to update save properties before they are saved.
+	 * This function is public to support direct serialization using UObject::SerializeScriptProperties.
+	 */
+	virtual void PreSerializeLogicActor(FArchive& Ar) {}
+
+	/**
+	 * Called after the logic actor is serialized.
+	 * Can be used to apply the restored save properties on the actor.
+	 * This function is public to support direct serialization using UObject::SerializeScriptProperties.
+	 */
+	virtual void PostSerializeLogicActor(FArchive& Ar) {}
+
+public:
+
+	//~Begin AActor Interface
+	virtual void Serialize(FArchive& Ar) override;
+	virtual void Serialize(FStructuredArchive::FRecord Record) override;
+	//~End AActor Interface
 
 	//~ Begin IActorIOInterface Implementation
 	virtual void RegisterIOEvents(FActorIOEventList& EventRegistry) override {}
