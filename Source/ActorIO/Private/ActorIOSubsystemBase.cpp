@@ -211,24 +211,6 @@ bool UActorIOSubsystemBase::IsLevelActiveByPath(const FSoftObjectPath& InLevelPa
     return false;
 }
 
-ULevel* UActorIOSubsystemBase::GetLevelByPath(const FSoftObjectPath& InLevelPath) const
-{
-    for (FConstLevelIterator It(GetWorld()->GetLevelIterator()); It; ++It)
-    {
-        ULevel* Level = *It;
-        if (Level)
-        {
-            const FSoftObjectPath LevelPath = Level->GetPathName();
-            if (LevelPath == InLevelPath)
-            {
-                return Level;
-            }
-        }
-    }
-
-    return nullptr;
-}
-
 FSoftObjectPath UActorIOSubsystemBase::GetLevelPathFromObjectPath(const FSoftObjectPath& InObjectPath) const
 {
     FSoftObjectPath OutPath;
@@ -597,92 +579,6 @@ bool UActorIOSubsystemBase::ExecuteCommand(UObject* Target, const TCHAR* Str, FO
     return !bFailed;
 }
 
-void UActorIOSubsystemBase::SerializePendingMessages(FStructuredArchive::FRecord Record)
-{
-    FArchive& UnderlyingArchive = Record.GetUnderlyingArchive();
-    check(UnderlyingArchive.IsSaveGame());
-
-    UnderlyingArchive.UsingCustomVersion(FActorIOMessageVersion::GUID);
-
-    int32 Version = UnderlyingArchive.CustomVer(FActorIOMessageVersion::GUID);
-    Record << SA_VALUE(TEXT("Version"), Version);
-
-    if (UnderlyingArchive.IsLoading())
-    {
-        UnderlyingArchive.SetCustomVersion(FActorIOMessageVersion::GUID, Version, TEXT("ActorIOMessageVer"));
-    }
-
-    TArray<FActorIOMessage> Messages;
-    int32 NumMessages = 0;
-
-    if (UnderlyingArchive.IsSaving())
-    {
-        Messages = PendingMessages;
-        NumMessages = PendingMessages.Num();
-    }
-
-    FStructuredArchive::FArray MessageArray = Record.EnterArray(TEXT("PendingMessages"), NumMessages);
-
-    for (int32 MessageIdx = 0; MessageIdx != NumMessages; ++MessageIdx)
-    {
-        FStructuredArchive::FSlot MessageSlot = MessageArray.EnterElement();
-        FStructuredArchive::FRecord MessageRecord = MessageSlot.EnterRecord();
-
-        const int64 DataSizePosition = UnderlyingArchive.Tell();
-        int64 DataSize = 0;
-
-        // Pre-serialize the data size. We'll rewrite this after serializing the action.
-        if (!UnderlyingArchive.IsTextFormat())
-        {
-            MessageRecord << SA_VALUE(TEXT("DataSize"), DataSize);
-        }
-
-        const int64 BeginDataPosition = UnderlyingArchive.Tell();
-
-        if (UnderlyingArchive.IsLoading())
-        {
-            FActorIOMessage& Message = Messages.AddDefaulted_GetRef();
-            Message.SerializeMessage(MessageRecord);
-
-            if (!UnderlyingArchive.IsTextFormat())
-            {
-                if (!ensureMsgf(UnderlyingArchive.Tell() <= BeginDataPosition + DataSize, TEXT("Serialized more data then expected when loading PendingMessages of I/O subsystem!")))
-                {
-                    UnderlyingArchive.SetError();
-                    return;
-                }
-            
-                UnderlyingArchive.Seek(BeginDataPosition + DataSize);
-            }
-        }
-        else
-        {
-            FActorIOMessage& Message = Messages[MessageIdx];
-            Message.SerializeMessage(MessageRecord);
-
-            // Seek back and re-write the data size with the actual size.
-            if (!UnderlyingArchive.IsTextFormat())
-            {
-                const int64 EndDataPosition = UnderlyingArchive.Tell();
-                DataSize = EndDataPosition - BeginDataPosition;
-            
-                UnderlyingArchive.Seek(DataSizePosition);
-                UnderlyingArchive << DataSize;
-                UnderlyingArchive.Seek(EndDataPosition);
-            }
-        }
-    }
-
-    // Now queue all loaded messages.
-    if (UnderlyingArchive.IsLoading())
-    {
-        for (const FActorIOMessage& LoadedMessage : Messages)
-        {
-            QueueMessage(LoadedMessage);
-        }
-    }
-}
-
 void UActorIOSubsystemBase::SaveToRawData(TArray<uint8>& RawData)
 {
     FMemoryWriter Archive = FMemoryWriter(RawData);
@@ -693,7 +589,7 @@ void UActorIOSubsystemBase::SaveToRawData(TArray<uint8>& RawData)
     FStructuredArchive StructuredArchive = FStructuredArchive(Formatter);
 
     FStructuredArchive::FSlot RootSlot = StructuredArchive.Open();
-    SerializePendingMessages(RootSlot.EnterRecord());
+    Serialize(RootSlot.EnterRecord());
 }
 
 void UActorIOSubsystemBase::LoadFromRawData(TArray<uint8>& RawData)
@@ -706,13 +602,108 @@ void UActorIOSubsystemBase::LoadFromRawData(TArray<uint8>& RawData)
     FStructuredArchive StructuredArchive = FStructuredArchive(Formatter);
 
     FStructuredArchive::FSlot RootSlot = StructuredArchive.Open();
-    SerializePendingMessages(RootSlot.EnterRecord());
+    Serialize(RootSlot.EnterRecord());
+}
+
+void UActorIOSubsystemBase::Serialize(FStructuredArchive::FRecord Record)
+{
+    Super::Serialize(Record);
+
+    FArchive& UnderlyingArchive = Record.GetUnderlyingArchive();
+    if (UnderlyingArchive.IsSaveGame())
+    {
+        UnderlyingArchive.UsingCustomVersion(FActorIOSubsystemVersion::GUID);
+
+        int32 Version = UnderlyingArchive.CustomVer(FActorIOSubsystemVersion::GUID);
+        Record << SA_VALUE(TEXT("Version"), Version);
+
+        if (UnderlyingArchive.IsLoading())
+        {
+            UnderlyingArchive.SetCustomVersion(FActorIOSubsystemVersion::GUID, Version, TEXT("ActorIOSubsystemVer"));
+        }
+
+        TArray<FActorIOMessage> Messages;
+        int32 NumMessages = 0;
+
+        if (UnderlyingArchive.IsSaving())
+        {
+            Messages = PendingMessages;
+            NumMessages = PendingMessages.Num();
+        }
+
+        FStructuredArchive::FArray MessageArray = Record.EnterArray(TEXT("PendingMessages"), NumMessages);
+
+        if (UnderlyingArchive.IsLoading())
+        {
+            PendingMessages.Reset(NumMessages);
+        }
+
+        for (int32 MessageIdx = 0; MessageIdx != NumMessages; ++MessageIdx)
+        {
+            FStructuredArchive::FSlot MessageSlot = MessageArray.EnterElement();
+            FStructuredArchive::FRecord MessageRecord = MessageSlot.EnterRecord();
+
+            const int64 DataSizePosition = UnderlyingArchive.Tell();
+            int64 DataSize = 0;
+
+            // Pre-serialize the data size. We'll rewrite this after serializing the action.
+            if (!UnderlyingArchive.IsTextFormat())
+            {
+                MessageRecord << SA_VALUE(TEXT("DataSize"), DataSize);
+            }
+
+            const int64 BeginDataPosition = UnderlyingArchive.Tell();
+
+            if (UnderlyingArchive.IsLoading())
+            {
+                FActorIOMessage& Message = Messages.AddDefaulted_GetRef();
+                Message.SerializeMessage(MessageRecord);
+
+                if (!UnderlyingArchive.IsTextFormat())
+                {
+                    if (!ensureMsgf(UnderlyingArchive.Tell() <= BeginDataPosition + DataSize, TEXT("Serialized more data then expected when loading PendingMessages of I/O subsystem!")))
+                    {
+                        UnderlyingArchive.SetError();
+                        return;
+                    }
+
+                    UnderlyingArchive.Seek(BeginDataPosition + DataSize);
+                }
+            }
+            else
+            {
+                FActorIOMessage& Message = Messages[MessageIdx];
+                Message.SerializeMessage(MessageRecord);
+
+                // Seek back and re-write the data size with the actual size.
+                if (!UnderlyingArchive.IsTextFormat())
+                {
+                    const int64 EndDataPosition = UnderlyingArchive.Tell();
+                    DataSize = EndDataPosition - BeginDataPosition;
+
+                    UnderlyingArchive.Seek(DataSizePosition);
+                    UnderlyingArchive << DataSize;
+                    UnderlyingArchive.Seek(EndDataPosition);
+                }
+            }
+        }
+
+        // Now queue all loaded messages.
+        if (UnderlyingArchive.IsLoading())
+        {
+            for (const FActorIOMessage& LoadedMessage : Messages)
+            {
+                QueueMessage(LoadedMessage);
+            }
+        }
+    }
 }
 
 void UActorIOSubsystemBase::OnLevelAddedToWorld(ULevel* InLevel, UWorld* InWorld)
 {
     if (InWorld != GetWorld())
     {
+        // Do nothing if the level was not added to our world (e.g. other PIE sessions).
         return;
     }
 
@@ -727,6 +718,7 @@ void UActorIOSubsystemBase::OnLevelRemovedFromWorld(ULevel* InLevel, UWorld* InW
 {
     if (InWorld != GetWorld())
     {
+        // Do nothing if the level was not removed from our world (e.g. other PIE sessions).
         return;
     }
 

@@ -474,18 +474,9 @@ struct ACTORIO_API FActorIOMessage
 		TimeRemaining(0.0f)
 	{}
 
+	/** Serialize to structured archive. */
 	void SerializeMessage(FStructuredArchive::FRecord Record);
-	//bool Serialize(FStructuredArchive::FSlot Slot);
 };
-
-//template<>
-//struct TStructOpsTypeTraits<FActorIOMessage> : public TStructOpsTypeTraitsBase2<FActorIOMessage>
-//{
-//	enum
-//	{
-//		WithStructuredSerializer = true
-//	};
-//};
 
 /**
  * Interface to interact with the Actor I/O system.

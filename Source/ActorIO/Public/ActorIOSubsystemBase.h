@@ -10,7 +10,8 @@ class UActorIOAction;
 
 /**
  * Base implementation of the Actor I/O Subsystem.
- * Stores the current action execution context, and exposes native I/O events and functions.
+ * This subsystem handles the delivery and execution of I/O messages.
+ * It is also responsible for exposing native events and functions to the I/O system.
  */
 UCLASS(Blueprintable)
 class ACTORIO_API UActorIOSubsystemBase : public UTickableWorldSubsystem
@@ -100,20 +101,28 @@ public:
 
 public:
 
+	/**
+	 * Add a level to the list of 'active levels' so that it is now considered for delivering I/O messages to/from.
+	 * It also triggers the execution of all pending messages who's participants were awaiting this level's activation.
+	 * This abstraction ensures we do not execute I/O actions before their state can be restored from a save file.
+	 */
 	UFUNCTION(BlueprintCallable, Category = "ActorIO")
 	void ActivateLevel(ULevel* InLevel);
 	
+	/**
+	 * Remove a level from the list of 'active levels" so that it is now longer considered for I/O message delivery.
+	 * Messages from inactive levels are put into a pending list, and delivered once the level is activated.
+	 */
 	UFUNCTION(BlueprintCallable, Category = "ActorIO")
 	void DeactivateLevel(ULevel* InLevel, bool bRemoveMessages = true);
 
+	/** Get whether the level is part of the 'active levels' list. */
 	UFUNCTION(BlueprintPure, Category = "ActorIO")
 	bool IsLevelActive(ULevel* InLevel) const;
 
+	/** Get whether the level is part of the 'active levels' list */
 	UFUNCTION(BlueprintPure, Category = "ActorIO")
 	bool IsLevelActiveByPath(const FSoftObjectPath& InLevelPath) const;
-
-	UFUNCTION(BlueprintPure, Category = "ActorIO")
-	ULevel* GetLevelByPath(const FSoftObjectPath& InLevelPath) const;
 
 	/** Get the path to the ULevel that contains the given object. */
 	UFUNCTION(BlueprintPure, Category = "ActorIO")
@@ -158,8 +167,6 @@ public:
 
 public:
 
-	void SerializePendingMessages(FStructuredArchive::FRecord Record);
-
 	UFUNCTION(BlueprintCallable, Category = "ActorIO")
 	void SaveToRawData(TArray<uint8>& RawData);
 
@@ -203,5 +210,6 @@ public:
 	virtual void Tick(float DeltaTime) override;
 	virtual bool IsTickable() const override;
 	virtual TStatId GetStatId() const override;
+	virtual void Serialize(FStructuredArchive::FRecord Record) override;
 	//~ End UTickableWorldSubsystem Interface
 };

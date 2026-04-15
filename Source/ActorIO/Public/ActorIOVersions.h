@@ -22,14 +22,14 @@ struct FActorIOActionVersion
 	/** The GUID for this custom version number. */
 	ACTORIO_API const static FGuid GUID;
 
-private:
-	FActorIOActionVersion() {}
+	/** Not instantiable */
+	FActorIOActionVersion() = delete;
 };
 
 /**
- * Custom serialization version for I/O messages.
+ * Custom serialization version for the I/O subsystem.
  */
-struct FActorIOMessageVersion
+struct FActorIOSubsystemVersion
 {
 	enum Type
 	{
@@ -44,6 +44,6 @@ struct FActorIOMessageVersion
 	/** The GUID for this custom version number. */
 	ACTORIO_API const static FGuid GUID;
 
-private:
-	FActorIOMessageVersion() {}
+	/** Not instantiable */
+	FActorIOSubsystemVersion() = delete;
 };
