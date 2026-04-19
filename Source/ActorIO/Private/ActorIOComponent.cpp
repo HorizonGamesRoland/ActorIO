@@ -107,7 +107,7 @@ void UActorIOComponent::UnbindActions()
 	}
 }
 
-void UActorIOComponent::SaveToRawData(TArray<uint8>& RawData)
+void UActorIOComponent::SerializeToRawData(TArray<uint8>& RawData)
 {
 	FMemoryWriter Archive = FMemoryWriter(RawData);
 	FObjectAndNameAsStringProxyArchive ProxyArchive = FObjectAndNameAsStringProxyArchive(Archive, false);
@@ -120,7 +120,7 @@ void UActorIOComponent::SaveToRawData(TArray<uint8>& RawData)
 	Serialize(RootSlot.EnterRecord());
 }
 
-void UActorIOComponent::LoadFromRawData(TArray<uint8>& RawData)
+void UActorIOComponent::RestoreFromRawData(TArray<uint8>& RawData)
 {
 	FMemoryReader Archive = FMemoryReader(RawData);
 	FObjectAndNameAsStringProxyArchive ProxyArchive = FObjectAndNameAsStringProxyArchive(Archive, false);
@@ -142,8 +142,6 @@ void UActorIOComponent::UninitializeComponent()
 
 void UActorIOComponent::Serialize(FStructuredArchive::FRecord Record)
 {
-	Super::Serialize(Record);
-
 	FArchive& UnderlyingArchive = Record.GetUnderlyingArchive();
 	if (UnderlyingArchive.IsSaveGame())
 	{
@@ -157,17 +155,30 @@ void UActorIOComponent::Serialize(FStructuredArchive::FRecord Record)
 			UnderlyingArchive.SetCustomVersion(FActorIOActionVersion::GUID, Version, TEXT("ActorIOActionVer"));
 		}
 
-		int32 NumActions = Actions.Num();
+		TArray<UActorIOAction*> SerializeActions;
+		if (UnderlyingArchive.IsSaving())
+		{
+			for (const TObjectPtr<UActorIOAction>& ActionPtr : Actions)
+			{
+				UActorIOAction* Action = ActionPtr.Get();
+				if (Action && Action->ShouldSerializeToArchive(UnderlyingArchive))
+				{
+					SerializeActions.Add(Action);
+				}
+			}
+		}
+
+		int32 NumActions = SerializeActions.Num();
 		FStructuredArchive::FMap ActionsMap = Record.EnterMap(TEXT("Actions"), NumActions);
 
 		for (int32 ActionIdx = 0; ActionIdx != NumActions; ++ActionIdx)
 		{
 			UActorIOAction* ActionPtr = nullptr;
-			FString ActionName; // #TODO: Use guid instead?
+			FString ActionName;
 
 			if (UnderlyingArchive.IsSaving())
 			{
-				ActionPtr = Actions[ActionIdx].Get();
+				ActionPtr = SerializeActions[ActionIdx];
 				ActionName = ActionPtr->GetName();
 			}
 
@@ -194,7 +205,8 @@ void UActorIOComponent::Serialize(FStructuredArchive::FRecord Record)
 				{
 					ActionPtr->Serialize(ActionRecord);
 				}
-
+				
+				// Seek to the end of the data block in case we serialized less.
 				if (!UnderlyingArchive.IsTextFormat())
 				{
 					if (!ensureMsgf(UnderlyingArchive.Tell() <= BeginDataPosition + DataSize, TEXT("%s - Serialized more data then expected when loading %s!"), *GetPathName(), *ActionName))
@@ -223,6 +235,11 @@ void UActorIOComponent::Serialize(FStructuredArchive::FRecord Record)
 				}
 			}
 		}
+	}
+	else
+	{
+		// Use the default property serialization if not saving game data.
+		Super::Serialize(Record);
 	}
 }
 

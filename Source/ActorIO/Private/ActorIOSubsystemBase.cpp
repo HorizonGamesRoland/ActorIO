@@ -624,7 +624,7 @@ bool UActorIOSubsystemBase::ExecuteCommand(UObject* Target, const TCHAR* Str, FO
     return !bFailed;
 }
 
-void UActorIOSubsystemBase::SaveToRawData(TArray<uint8>& RawData)
+void UActorIOSubsystemBase::SerializeToRawData(TArray<uint8>& RawData)
 {
     FMemoryWriter Archive = FMemoryWriter(RawData);
     FObjectAndNameAsStringProxyArchive ProxyArchive = FObjectAndNameAsStringProxyArchive(Archive, false);
@@ -637,7 +637,7 @@ void UActorIOSubsystemBase::SaveToRawData(TArray<uint8>& RawData)
     Serialize(RootSlot.EnterRecord());
 }
 
-void UActorIOSubsystemBase::LoadFromRawData(TArray<uint8>& RawData)
+void UActorIOSubsystemBase::RestoreFromRawData(TArray<uint8>& RawData)
 {
     FMemoryReader Archive = FMemoryReader(RawData);
     FObjectAndNameAsStringProxyArchive ProxyArchive = FObjectAndNameAsStringProxyArchive(Archive, false);

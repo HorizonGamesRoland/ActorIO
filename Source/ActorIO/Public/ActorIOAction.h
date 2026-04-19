@@ -59,7 +59,6 @@ public:
 protected:
 
 	/** Whether the action was executed before. */
-	UPROPERTY(SaveGame)
 	bool bWasExecuted;
 
 	/** Whether the action is bound to the assigned I/O event. */
@@ -109,6 +108,9 @@ public:
 	 * @param TargetObject Optimization in case we already know which object is targeted by this action.
 	 */
 	UFunction* ResolveUFunction(const FActorIOFunction* TargetFunction = nullptr, UObject* TargetObject = nullptr) const;
+
+	/** @return Whether the action should be serialized when saving game data. */
+	bool ShouldSerializeToArchive(FArchive& Ar) const;
 
 protected:
 

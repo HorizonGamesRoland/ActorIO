@@ -189,11 +189,19 @@ public:
 
 public:
 
-	UFUNCTION(BlueprintCallable, Category = "ActorIO")
-	void SaveToRawData(TArray<uint8>& RawData);
+	/**
+	 * Serialize the I/O subsystem into raw data that can be stored in save files easily.
+	 * Use in conjunction with RestoreFromRawData.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "ActorIO", meta = (Keywords = "Save,Load"))
+	void SerializeToRawData(TArray<uint8>& RawData);
 
-	UFUNCTION(BlueprintCallable, Category = "ActorIO")
-	void LoadFromRawData(UPARAM(Ref) TArray<uint8>& RawData);
+	/**
+	 * Serialize the I/O subsystem back from previously saved raw data, restoring the saved state.
+	 * Use in conjunction with SerializeToRawData.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "ActorIO", meta = (Keywords = "Save,Load"))
+	void RestoreFromRawData(UPARAM(Ref) TArray<uint8>& RawData);
 
 protected:
 

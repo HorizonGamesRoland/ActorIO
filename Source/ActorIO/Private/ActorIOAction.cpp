@@ -459,10 +459,14 @@ UFunction* UActorIOAction::ResolveUFunction(const FActorIOFunction* TargetFuncti
 	return OutFunctionPtr;
 }
 
+bool UActorIOAction::ShouldSerializeToArchive(FArchive& Ar) const
+{
+	check(Ar.IsSaveGame());
+	return bWasExecuted || Ar.ArNoDelta;
+}
+
 void UActorIOAction::Serialize(FStructuredArchive::FRecord Record)
 {
-	Super::Serialize(Record);
-
 	FArchive& UnderlyingArchive = Record.GetUnderlyingArchive();
 	if (UnderlyingArchive.IsSaveGame())
 	{
@@ -473,7 +477,6 @@ void UActorIOAction::Serialize(FStructuredArchive::FRecord Record)
 			bExecuted = bWasExecuted;
 		}
 
-		// #TODO: Only serialize if value changed?
 		Record << SA_VALUE(TEXT("WasExecuted"), bExecuted);
 
 		if (UnderlyingArchive.IsLoading())
@@ -495,5 +498,10 @@ void UActorIOAction::Serialize(FStructuredArchive::FRecord Record)
 				IOSubsystem->RemovePendingMessages(this);
 			}
 		}
+	}
+	else
+	{
+		// Use the default property serialization if not saving game data.
+		Super::Serialize(Record);
 	}
 }
