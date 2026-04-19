@@ -126,15 +126,13 @@ void FActorIOMessage::SerializeMessage(FStructuredArchive::FRecord Record)
     Record << SA_VALUE(TEXT("Target"), TargetPath);
     Record << SA_VALUE(TEXT("FunctionId"), FunctionId);
     Record << SA_VALUE(TEXT("Arguments"), Arguments);
+    Record << SA_VALUE(TEXT("MessageFlags"), MessageFlags);
     Record << SA_VALUE(TEXT("TimeRemaining"), TimeRemaining);
 
     if (UnderlyingArchive.IsLoading())
     {
-        SenderPtr = SenderPath; // #todo: resolve object?
-        UE_CLOG(!SenderPath.IsSubobject(), LogActorIO, Warning, TEXT("Could not find sender '%s' when loading PendingMessages of I/O subsystem."), *SenderPath.ToString());
-
+        SenderPtr = SenderPath;
         TargetPtr = TargetPath;
-        UE_CLOG(!TargetPath.IsSubobject(), LogActorIO, Warning, TEXT("Could not find message target '%s' when loading PendingMessages of I/O subsystem."), *TargetPath.ToString());
     }
 }
 

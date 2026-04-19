@@ -459,6 +459,24 @@ struct ACTORIO_API FActorIOMessage
 	/** Parameters to send to the function in UnrealScript format. */
 	FString Arguments;
 
+	/** Possible I/O message flags. */
+	enum class EMessageFlags : uint8
+	{
+		/** No flags. */
+		None = 0x00,
+
+		// Intentionally leaving 4 bit room here for future use.
+
+		/** Awaiting the sender's level activate. */
+		SenderIsPending = 0x10,
+
+		/** Awaiting the target's level to activate. */
+		TargetIsPending = 0x20,
+	};
+
+	/** Additional runtime message data. */
+	uint8 MessageFlags;
+
 	/**
 	 * Time in seconds before the command is executed.
 	 * Ticked down every frame by the I/O subsystem.
@@ -471,6 +489,7 @@ struct ACTORIO_API FActorIOMessage
 		TargetPtr(nullptr),
 		FunctionId(NAME_None),
 		Arguments(FString()),
+		MessageFlags(0x00),
 		TimeRemaining(0.0f)
 	{}
 

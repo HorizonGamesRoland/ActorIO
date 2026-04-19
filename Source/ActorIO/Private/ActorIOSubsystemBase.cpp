@@ -114,7 +114,7 @@ void UActorIOSubsystemBase::OnWorldBeginPlay(UWorld& InWorld)
     if (InWorld.IsGameWorld())
     {
         const UActorIOSettings* IOSettings = UActorIOSettings::Get();
-        if (IOSettings->bAutoActivateLevels)
+        if (IOSettings->LevelActivationMethod == ELevelActivationMethod::Automatic)
         {
             ActivateLevel(GetWorld()->PersistentLevel);
         }
@@ -181,6 +181,17 @@ void UActorIOSubsystemBase::DeactivateLevel(ULevel* InLevel, bool bRemoveMessage
     UE_LOG(LogActorIO, Log, TEXT("ActorIOSubsystem: Removed [%d] pending messages."), NumMessagesRemoved);
 }
 
+void UActorIOSubsystemBase::CompactActiveLevels()
+{
+    for (int32 LevelIdx = ActiveLevels.Num() - 1; LevelIdx >= 0; --LevelIdx)
+    {
+        if (ActiveLevels[LevelIdx].IsStale())
+        {
+            ActiveLevels.RemoveAt(LevelIdx);
+        }
+    }
+}
+
 bool UActorIOSubsystemBase::IsLevelActive(ULevel* InLevel) const
 {
     for (const TWeakObjectPtr<ULevel>& LevelPtr : ActiveLevels)
@@ -211,6 +222,20 @@ bool UActorIOSubsystemBase::IsLevelActiveByPath(const FSoftObjectPath& InLevelPa
     return false;
 }
 
+TArray<ULevel*> UActorIOSubsystemBase::K2_GetActiveLevels() const
+{
+    TArray<ULevel*> OutLevels;
+    for (const TWeakObjectPtr<ULevel>& LevelPtr : ActiveLevels)
+    {
+        if (LevelPtr.IsValid())
+        {
+            OutLevels.Add(LevelPtr.Get());
+        }
+    }
+
+    return OutLevels;
+}
+
 FSoftObjectPath UActorIOSubsystemBase::GetLevelPathFromObjectPath(const FSoftObjectPath& InObjectPath) const
 {
     FSoftObjectPath OutPath;
@@ -235,13 +260,12 @@ FSoftObjectPath UActorIOSubsystemBase::GetLevelPathFromObjectPath(const FSoftObj
     return OutPath;
 }
 
-void UActorIOSubsystemBase::QueueMessage(const FActorIOMessage& InMessage)
+void UActorIOSubsystemBase::QueueMessage(FActorIOMessage& InMessage)
 {
     if (InMessage.TimeRemaining <= 0.0f)
     {
-        const FSoftObjectPath SenderLevelPath = GetLevelPathFromObjectPath(InMessage.SenderPtr.ToSoftObjectPath());
-        const FSoftObjectPath TargetLevelPath = GetLevelPathFromObjectPath(InMessage.TargetPtr.ToSoftObjectPath());
-        if (IsLevelActiveByPath(SenderLevelPath) && IsLevelActiveByPath(TargetLevelPath))
+        // If the message can tick, we can process it immediately.
+        if (PreTickMessage(InMessage, true))
         {
             ProcessMessage(InMessage);
             return;
@@ -298,13 +322,9 @@ void UActorIOSubsystemBase::TickPendingMessages(float DeltaTime)
     for (int32 MessageIdx = 0; MessageIdx != PendingMessages.Num(); ++MessageIdx)
     {
         FActorIOMessage& Message = PendingMessages[MessageIdx];
-
-        const FSoftObjectPath SenderLevelPath = GetLevelPathFromObjectPath(Message.SenderPtr.ToSoftObjectPath());
-        const FSoftObjectPath TargetLevelPath = GetLevelPathFromObjectPath(Message.TargetPtr.ToSoftObjectPath());
-        if (!IsLevelActiveByPath(SenderLevelPath) || !IsLevelActiveByPath(TargetLevelPath))
+        if (!PreTickMessage(Message))
         {
-            // Do not process messages for subjects that are part of an inactive level.
-            // This ensures that the level / world state can be restored from a save file before we actually do anything.
+            // Message is not allowed to tick.
             continue;
         }
 
@@ -322,6 +342,31 @@ void UActorIOSubsystemBase::TickPendingMessages(float DeltaTime)
     {
         PendingMessages.RemoveAt(ProcessedMessageIdx);
     }
+}
+
+bool UActorIOSubsystemBase::PreTickMessage(FActorIOMessage& InMessage, bool bInitialTick)
+{
+    if (InMessage.MessageFlags & static_cast<uint8>(FActorIOMessage::EMessageFlags::SenderIsPending))
+    {
+        const FSoftObjectPath SenderLevelPath = GetLevelPathFromObjectPath(InMessage.SenderPtr.ToSoftObjectPath());
+        if (IsLevelActiveByPath(SenderLevelPath))
+        {
+            InMessage.MessageFlags &= ~static_cast<uint8>(FActorIOMessage::EMessageFlags::SenderIsPending);
+        }
+    }
+
+    if (InMessage.MessageFlags & static_cast<uint8>(FActorIOMessage::EMessageFlags::TargetIsPending))
+    {
+        const FSoftObjectPath TargetLevelPath = GetLevelPathFromObjectPath(InMessage.TargetPtr.ToSoftObjectPath());
+        if (IsLevelActiveByPath(TargetLevelPath))
+        {
+            InMessage.MessageFlags &= ~static_cast<uint8>(FActorIOMessage::EMessageFlags::TargetIsPending);
+        }
+    }
+
+    const bool bSenderLevelActive = !(InMessage.MessageFlags & static_cast<uint8>(FActorIOMessage::EMessageFlags::SenderIsPending));
+    const bool bTargetLevelActive = !(InMessage.MessageFlags & static_cast<uint8>(FActorIOMessage::EMessageFlags::TargetIsPending));
+    return bSenderLevelActive && bTargetLevelActive;
 }
 
 void UActorIOSubsystemBase::ProcessMessage(const FActorIOMessage& InMessage)
@@ -691,7 +736,7 @@ void UActorIOSubsystemBase::Serialize(FStructuredArchive::FRecord Record)
         // Now queue all loaded messages.
         if (UnderlyingArchive.IsLoading())
         {
-            for (const FActorIOMessage& LoadedMessage : Messages)
+            for (FActorIOMessage& LoadedMessage : Messages)
             {
                 QueueMessage(LoadedMessage);
             }
@@ -708,7 +753,7 @@ void UActorIOSubsystemBase::OnLevelAddedToWorld(ULevel* InLevel, UWorld* InWorld
     }
 
     const UActorIOSettings* IOSettings = UActorIOSettings::Get();
-    if (IOSettings->bAutoActivateLevels)
+    if (IOSettings->LevelActivationMethod == ELevelActivationMethod::Automatic)
     {
         ActivateLevel(InLevel);
     }
@@ -723,20 +768,9 @@ void UActorIOSubsystemBase::OnLevelRemovedFromWorld(ULevel* InLevel, UWorld* InW
     }
 
     const UActorIOSettings* IOSettings = UActorIOSettings::Get();
-    if (IOSettings->bAutoActivateLevels)
+    if (IOSettings->LevelActivationMethod == ELevelActivationMethod::Automatic)
     {
         DeactivateLevel(InLevel);
-    }
-}
-
-void UActorIOSubsystemBase::CompactActiveLevels()
-{
-    for (int32 LevelIdx = ActiveLevels.Num() - 1; LevelIdx >= 0; --LevelIdx)
-    {
-        if (ActiveLevels[LevelIdx].IsStale())
-        {
-            ActiveLevels.RemoveAt(LevelIdx);
-        }
     }
 }
 

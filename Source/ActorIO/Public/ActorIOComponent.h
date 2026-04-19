@@ -41,7 +41,7 @@ public:
 	 */
 	void MoveAction(int32 OriginalIndex, int32 NewIndex);
 
-	/** Removes all entries from the action list that are nullptr. */
+	/** Removes all invalid (nullptr) entries from the action list. */
 	void CompactActions();
 
 	/** @return List I/O actions managed by the component. */

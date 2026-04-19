@@ -358,11 +358,16 @@ void UActorIOAction::ExecuteAction()
 		ProcessedArgs.Append(Argument);
 	}
 
+	uint8 MessageFlags = 0x00;
+	MessageFlags |= static_cast<uint8>(FActorIOMessage::EMessageFlags::SenderIsPending);
+	MessageFlags |= static_cast<uint8>(FActorIOMessage::EMessageFlags::TargetIsPending);
+
 	FActorIOMessage NewMessage;
 	NewMessage.SenderPtr = this;
 	NewMessage.TargetPtr = TargetActor;
 	NewMessage.FunctionId = FunctionId;
 	NewMessage.Arguments = ProcessedArgs;
+	NewMessage.MessageFlags = MessageFlags;
 	NewMessage.TimeRemaining = Delay;
 
 	// Leave the context now because QueueMessage can immediately lead into another I/O execution.
@@ -456,6 +461,8 @@ UFunction* UActorIOAction::ResolveUFunction(const FActorIOFunction* TargetFuncti
 
 void UActorIOAction::Serialize(FStructuredArchive::FRecord Record)
 {
+	Super::Serialize(Record);
+
 	FArchive& UnderlyingArchive = Record.GetUnderlyingArchive();
 	if (UnderlyingArchive.IsSaveGame())
 	{
@@ -488,9 +495,5 @@ void UActorIOAction::Serialize(FStructuredArchive::FRecord Record)
 				IOSubsystem->RemovePendingMessages(this);
 			}
 		}
-	}
-	else
-	{
-		Super::Serialize(Record);
 	}
 }

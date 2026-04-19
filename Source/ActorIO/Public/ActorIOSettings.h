@@ -7,6 +7,16 @@
 #include "Templates/SubclassOf.h"
 #include "ActorIOSettings.generated.h"
 
+/** Determines how level activation is handled. */
+UENUM()
+enum class ELevelActivationMethod : uint8
+{
+	/** Levels need to be activated and deactivated manually using the I/O subsystem. */
+	Manual,
+	/** The I/O subsystem activates and deactivates levels automatically when they are added or removed from the world. */
+	Automatic
+};
+
 /**
  * Settings for the Actor I/O level scripting system.
  */
@@ -36,8 +46,14 @@ public:
 	UPROPERTY(Config, NoClear, EditAnywhere, Category = "Settings", DisplayName = "Actor I/O Subsystem Class")
 	TSubclassOf<class UActorIOSubsystemBase> ActorIOSubsystemClass;
 
+	/**
+	 * Determines how level activation is handled.
+	 * All levels start out in an inactive state, where I/O messages are put into a pending list instead of delivery.
+	 * This ensures we do not execute I/O actions before their state can be restored from a save file.
+	 * Levels can be activated using the I/O subsystem, which enables I/O message delivery.
+	 */
 	UPROPERTY(Config, EditAnywhere, Category = "Settings")
-	bool bAutoActivateLevels;
+	ELevelActivationMethod LevelActivationMethod;
 
 public:
 

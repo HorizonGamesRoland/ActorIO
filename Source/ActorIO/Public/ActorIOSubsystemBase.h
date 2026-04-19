@@ -102,7 +102,7 @@ public:
 public:
 
 	/**
-	 * Add a level to the list of 'active levels' so that it is now considered for delivering I/O messages to/from.
+	 * Add a level to the list of 'active levels' so that it is now considered for I/O message delivery.
 	 * It also triggers the execution of all pending messages who's participants were awaiting this level's activation.
 	 * This abstraction ensures we do not execute I/O actions before their state can be restored from a save file.
 	 */
@@ -110,11 +110,18 @@ public:
 	void ActivateLevel(ULevel* InLevel);
 	
 	/**
-	 * Remove a level from the list of 'active levels" so that it is now longer considered for I/O message delivery.
+	 * Remove a level from the list of 'active levels' so that it is now longer considered for I/O message delivery.
 	 * Messages from inactive levels are put into a pending list, and delivered once the level is activated.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "ActorIO")
 	void DeactivateLevel(ULevel* InLevel, bool bRemoveMessages = true);
+
+	/**
+	 * Remove all invald (nullptr) elements from the 'active levels' list.
+	 * Called automatically before a level is added or removed from the list.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "ActorIO")
+	void CompactActiveLevels();
 
 	/** Get whether the level is part of the 'active levels' list. */
 	UFUNCTION(BlueprintPure, Category = "ActorIO")
@@ -123,6 +130,21 @@ public:
 	/** Get whether the level is part of the 'active levels' list */
 	UFUNCTION(BlueprintPure, Category = "ActorIO")
 	bool IsLevelActiveByPath(const FSoftObjectPath& InLevelPath) const;
+
+	/** @return List of 'active levels' that are considered for I/O message delivery. */
+	const TArray<TWeakObjectPtr<ULevel>>& GetActiveLevels() const { return ActiveLevels; }
+
+	/**
+	 * Blueprint access to the list of 'active levels' that are considered for I/O message delivery.
+	 * This only returns valid ULevel references.
+	 * The actual list may have additional (nullptr) elements awaiting removal.
+	 */
+	UFUNCTION(BlueprintPure, Category = "ActorIO", DisplayName = "Get Active Levels")
+	TArray<ULevel*> K2_GetActiveLevels() const;
+	
+	/** Get the number of 'active levels' that are considered for I/O message delivery. */
+	UFUNCTION(BlueprintPure, Category = "ActorIO")
+	int32 GetNumActiveLevels() const { return ActiveLevels.Num(); }
 
 	/** Get the path to the ULevel that contains the given object. */
 	UFUNCTION(BlueprintPure, Category = "ActorIO")
@@ -134,7 +156,7 @@ public:
 	 * Queue an I/O message with a formatted UnrealScript command to be delivered to the target object.
 	 * Message delivery can be delayed.
 	 */
-	virtual void QueueMessage(const FActorIOMessage& InMessage);
+	virtual void QueueMessage(FActorIOMessage& InMessage);
 
 	/**
 	 * Remove all pending messages that were sent by the given I/O action.
@@ -177,12 +199,12 @@ protected:
 
 	/** Update remaining time on all pending messages, potentially activating them. */
 	void TickPendingMessages(float DeltaTime);
+	
+	/** Determine if the message can be ticked. Not const because we want to update inner properties. */
+	bool PreTickMessage(FActorIOMessage& InMessage, bool bInitialTick = false);
 
 	/** Handles the delivery of an I/O message. */
 	virtual void ProcessMessage(const FActorIOMessage& InMessage);
-
-	/** Remove all null entries from the active levels list. */
-	void CompactActiveLevels();
 
 	/** Callback for when a level is added to the world. */
 	void OnLevelAddedToWorld(ULevel* InLevel, UWorld* InWorld);

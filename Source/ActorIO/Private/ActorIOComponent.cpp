@@ -142,6 +142,8 @@ void UActorIOComponent::UninitializeComponent()
 
 void UActorIOComponent::Serialize(FStructuredArchive::FRecord Record)
 {
+	Super::Serialize(Record);
+
 	FArchive& UnderlyingArchive = Record.GetUnderlyingArchive();
 	if (UnderlyingArchive.IsSaveGame())
 	{
@@ -221,10 +223,6 @@ void UActorIOComponent::Serialize(FStructuredArchive::FRecord Record)
 				}
 			}
 		}
-	}
-	else
-	{
-		Super::Serialize(Record);
 	}
 }
 
