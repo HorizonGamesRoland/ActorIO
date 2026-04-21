@@ -18,6 +18,7 @@
 #include "Engine/Light.h"
 #include "Engine/World.h"
 #include "Engine/Engine.h"
+#include "Engine/Level.h"
 #include "Particles/Emitter.h"
 #include "Sound/AmbientSound.h"
 #include "Sound/AudioVolume.h"
