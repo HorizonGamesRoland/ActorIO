@@ -1,9 +1,14 @@
-// Copyright 2024-2025 Horizon Games and all contributors at https://github.com/HorizonGamesRoland/ActorIO/graphs/contributors
+// Copyright 2024-2026 Horizon Games and all contributors at https://github.com/HorizonGamesRoland/ActorIO/graphs/contributors
 
 #include "ActorIOComponent.h"
 #include "ActorIOAction.h"
+#include "ActorIOVersions.h"
 #include "GameFramework/Actor.h"
 #include "Engine/World.h"
+#include "Serialization/MemoryWriter.h"
+#include "Serialization/MemoryReader.h"
+#include "Serialization/ObjectAndNameAsStringProxyArchive.h"
+#include "Serialization/Formatters/BinaryArchiveFormatter.h"
 #include "Logging/MessageLog.h"
 #include "Misc/UObjectToken.h"
 
@@ -102,11 +107,140 @@ void UActorIOComponent::UnbindActions()
 	}
 }
 
+void UActorIOComponent::SerializeToRawData(TArray<uint8>& RawData)
+{
+	FMemoryWriter Archive = FMemoryWriter(RawData);
+	FObjectAndNameAsStringProxyArchive ProxyArchive = FObjectAndNameAsStringProxyArchive(Archive, false);
+	ProxyArchive.ArIsSaveGame = true;
+
+	FBinaryArchiveFormatter Formatter = FBinaryArchiveFormatter(ProxyArchive);
+	FStructuredArchive StructuredArchive = FStructuredArchive(Formatter);
+
+	FStructuredArchive::FSlot RootSlot = StructuredArchive.Open();
+	Serialize(RootSlot.EnterRecord());
+}
+
+void UActorIOComponent::RestoreFromRawData(TArray<uint8>& RawData)
+{
+	FMemoryReader Archive = FMemoryReader(RawData);
+	FObjectAndNameAsStringProxyArchive ProxyArchive = FObjectAndNameAsStringProxyArchive(Archive, false);
+	ProxyArchive.ArIsSaveGame = true;
+
+	FBinaryArchiveFormatter Formatter = FBinaryArchiveFormatter(ProxyArchive);
+	FStructuredArchive StructuredArchive = FStructuredArchive(Formatter);
+
+	FStructuredArchive::FSlot RootSlot = StructuredArchive.Open();
+	Serialize(RootSlot.EnterRecord());
+}
+
 void UActorIOComponent::UninitializeComponent()
 {
 	UnbindActions();
 
 	Super::UninitializeComponent();
+}
+
+void UActorIOComponent::Serialize(FStructuredArchive::FRecord Record)
+{
+	FArchive& UnderlyingArchive = Record.GetUnderlyingArchive();
+	if (UnderlyingArchive.IsSaveGame())
+	{
+		UnderlyingArchive.UsingCustomVersion(FActorIOActionVersion::GUID);
+
+		int32 Version = UnderlyingArchive.CustomVer(FActorIOActionVersion::GUID);
+		Record << SA_VALUE(TEXT("Version"), Version);
+
+		if (UnderlyingArchive.IsLoading())
+		{
+			UnderlyingArchive.SetCustomVersion(FActorIOActionVersion::GUID, Version, TEXT("ActorIOActionVer"));
+		}
+
+		TArray<UActorIOAction*> SerializeActions;
+		if (UnderlyingArchive.IsSaving())
+		{
+			for (const TObjectPtr<UActorIOAction>& ActionPtr : Actions)
+			{
+				UActorIOAction* Action = ActionPtr.Get();
+				if (Action && Action->ShouldSerializeToArchive(UnderlyingArchive))
+				{
+					SerializeActions.Add(Action);
+				}
+			}
+		}
+
+		int32 NumActions = SerializeActions.Num();
+		FStructuredArchive::FMap ActionsMap = Record.EnterMap(TEXT("Actions"), NumActions);
+
+		for (int32 ActionIdx = 0; ActionIdx != NumActions; ++ActionIdx)
+		{
+			UActorIOAction* ActionPtr = nullptr;
+			FString ActionName;
+
+			if (UnderlyingArchive.IsSaving())
+			{
+				ActionPtr = SerializeActions[ActionIdx];
+				ActionName = ActionPtr->GetName();
+			}
+
+			FStructuredArchive::FSlot ActionSlot = ActionsMap.EnterElement(ActionName);
+			FStructuredArchive::FRecord ActionRecord = ActionSlot.EnterRecord();
+
+			const int64 DataSizePosition = UnderlyingArchive.Tell();
+			int64 DataSize = 0;
+
+			// Pre-serialize the data size. We'll rewrite this after serializing the action.
+			if (!UnderlyingArchive.IsTextFormat())
+			{
+				ActionRecord << SA_VALUE(TEXT("DataSize"), DataSize);
+			}
+
+			const int64 BeginDataPosition = UnderlyingArchive.Tell();
+
+			if (UnderlyingArchive.IsLoading())
+			{
+				ActionPtr = FindObjectFast<UActorIOAction>(this, *ActionName);
+				UE_CLOG(!ActionPtr, LogActorIO, Warning, TEXT("%s - No action found with name '%s'."), *GetPathName(), *ActionName);
+
+				if (ActionPtr)
+				{
+					ActionPtr->Serialize(ActionRecord);
+				}
+				
+				// Seek to the end of the data block in case we serialized less.
+				if (!UnderlyingArchive.IsTextFormat())
+				{
+					if (!ensureMsgf(UnderlyingArchive.Tell() <= BeginDataPosition + DataSize, TEXT("%s - Serialized more data then expected when loading %s!"), *GetPathName(), *ActionName))
+					{
+						UnderlyingArchive.SetError();
+						return;
+					}
+
+					UnderlyingArchive.Seek(BeginDataPosition + DataSize);
+				}
+			}
+			else
+			{
+				check(ActionPtr);
+				ActionPtr->Serialize(ActionRecord);
+
+				// Seek back and re-write the data size with the actual size.
+				if (!UnderlyingArchive.IsTextFormat())
+				{
+					const int64 EndDataPosition = UnderlyingArchive.Tell();
+					DataSize = EndDataPosition - BeginDataPosition;
+
+					UnderlyingArchive.Seek(DataSizePosition);
+					UnderlyingArchive << DataSize;
+					UnderlyingArchive.Seek(EndDataPosition);
+				}
+			}
+		}
+	}
+	else
+	{
+		// Use the default property serialization if not saving game data.
+		Super::Serialize(Record);
+	}
 }
 
 #if WITH_EDITOR

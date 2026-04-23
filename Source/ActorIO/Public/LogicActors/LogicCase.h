@@ -1,4 +1,4 @@
-// Copyright 2024-2025 Horizon Games and all contributors at https://github.com/HorizonGamesRoland/ActorIO/graphs/contributors
+// Copyright 2024-2026 Horizon Games and all contributors at https://github.com/HorizonGamesRoland/ActorIO/graphs/contributors
 
 #pragma once
 
@@ -81,7 +81,7 @@ public:
     UPROPERTY(BlueprintAssignable, Category = "Events")
     FSimpleActionDelegate OnDefault;
 
-protected:
+public:
 
     //~ Begin ALogicActorBase Interface
     virtual void RegisterIOEvents(FActorIOEventList& EventRegistry) override;

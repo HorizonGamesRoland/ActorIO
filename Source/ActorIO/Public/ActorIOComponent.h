@@ -1,4 +1,4 @@
-// Copyright 2024-2025 Horizon Games and all contributors at https://github.com/HorizonGamesRoland/ActorIO/graphs/contributors
+// Copyright 2024-2026 Horizon Games and all contributors at https://github.com/HorizonGamesRoland/ActorIO/graphs/contributors
 
 #pragma once
 
@@ -41,7 +41,7 @@ public:
 	 */
 	void MoveAction(int32 OriginalIndex, int32 NewIndex);
 
-	/** Removes all entries from the action list that are nullptr. */
+	/** Removes all invalid (nullptr) entries from the action list. */
 	void CompactActions();
 
 	/** @return List I/O actions managed by the component. */
@@ -49,6 +49,22 @@ public:
 
 	/** @return Number of actions. */
 	int32 GetNumActions() const { return Actions.Num(); }
+
+public:
+
+	/**
+	 * Serialize the I/O component into raw data that can be stored in save files easily.
+	 * Use in conjunction with RestoreFromRawData.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "ActorIO", meta = (Keywords = "Save,Load"))
+	void SerializeToRawData(TArray<uint8>& RawData);
+
+	/**
+	 * Serialize the I/O component back from previously saved raw data, restoring the saved state.
+	 * Use in conjunction with SerializeToRawData.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "ActorIO", meta = (Keywords = "Save,Load"))
+	void RestoreFromRawData(UPARAM(Ref) TArray<uint8>& RawData);
 
 protected:
 
@@ -64,6 +80,7 @@ public:
 	virtual void OnRegister() override;
 	virtual void InitializeComponent() override;
 	virtual void UninitializeComponent() override;
+	virtual void Serialize(FStructuredArchive::FRecord Record) override;
 #if WITH_EDITOR
 	virtual void CheckForErrors() override;
 #endif

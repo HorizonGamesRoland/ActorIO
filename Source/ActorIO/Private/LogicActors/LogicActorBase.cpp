@@ -1,4 +1,4 @@
-// Copyright 2024-2025 Horizon Games and all contributors at https://github.com/HorizonGamesRoland/ActorIO/graphs/contributors
+// Copyright 2024-2026 Horizon Games and all contributors at https://github.com/HorizonGamesRoland/ActorIO/graphs/contributors
 
 #include "LogicActors/LogicActorBase.h"
 #include "Engine/Level.h"
@@ -53,4 +53,23 @@ ALogicActorBase::ALogicActorBase()
 	bEnableAutoLODGeneration = false;
 	SetReplicatingMovement(false);
 	SetCanBeDamaged(false);
+}
+
+void ALogicActorBase::Serialize(FArchive& Ar)
+{
+	PreSerializeLogicActor(Ar);
+
+	Super::Serialize(Ar);
+
+	PostSerializeLogicActor(Ar);
+}
+
+void ALogicActorBase::Serialize(FStructuredArchive::FRecord Record)
+{
+	FArchive& UnderlyingArchive = Record.GetUnderlyingArchive();
+	PreSerializeLogicActor(UnderlyingArchive);
+
+	Super::Serialize(Record);
+
+	PostSerializeLogicActor(UnderlyingArchive);
 }

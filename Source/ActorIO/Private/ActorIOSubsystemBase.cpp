@@ -1,10 +1,11 @@
-// Copyright 2024-2025 Horizon Games and all contributors at https://github.com/HorizonGamesRoland/ActorIO/graphs/contributors
+// Copyright 2024-2026 Horizon Games and all contributors at https://github.com/HorizonGamesRoland/ActorIO/graphs/contributors
 
 #include "ActorIOSubsystemBase.h"
 #include "ActorIOComponent.h"
 #include "ActorIOInterface.h"
 #include "ActorIOAction.h"
 #include "ActorIOSettings.h"
+#include "ActorIOVersions.h"
 #include "LogicActors/LogicActorBase.h"
 #include "GameFramework/Actor.h"
 #include "GameFramework/Pawn.h"
@@ -17,10 +18,15 @@
 #include "Engine/Light.h"
 #include "Engine/World.h"
 #include "Engine/Engine.h"
+#include "Engine/Level.h"
 #include "Particles/Emitter.h"
 #include "Sound/AmbientSound.h"
 #include "Sound/AudioVolume.h"
 #include "Kismet/GameplayStatics.h"
+#include "Serialization/MemoryWriter.h"
+#include "Serialization/MemoryReader.h"
+#include "Serialization/ObjectAndNameAsStringProxyArchive.h"
+#include "Serialization/Formatters/BinaryArchiveFormatter.h"
 #include "Misc/EngineVersionComparison.h"
 
 #if UE_VERSION_NEWER_THAN(5, 6, ENGINE_PATCH_VERSION)
@@ -31,6 +37,7 @@
 
 UActorIOSubsystemBase::UActorIOSubsystemBase()
 {
+    ActiveLevels = TArray<TWeakObjectPtr<ULevel>>();
     PendingMessages = TArray<FActorIOMessage>();
     ActionExecContext = FActionExecutionContext();
 }
@@ -56,21 +63,70 @@ UActorIOSubsystemBase* UActorIOSubsystemBase::Get(UObject* WorldContextObject)
     return nullptr;
 }
 
+bool UActorIOSubsystemBase::ShouldCreateSubsystem(UObject* Outer) const
+{
+    // Determine whether this specific subsystem should be created or not.
+    // Subsystems are registered with the engine automatically, but we only want one specific subsystem.
+
+    if (!Super::ShouldCreateSubsystem(Outer))
+    {
+        return false;
+    }
+
+    UClass* ThisClass = GetClass();
+
+    const UActorIOSettings* IOSettings = UActorIOSettings::Get();
+    if (IOSettings->ActorIOSubsystemClass != nullptr)
+    {
+        // A subsystem class is provided so only create if we are that class.
+        return ThisClass == IOSettings->ActorIOSubsystemClass;
+    }
+    else
+    {
+        // No subsystem class was provided so use the base implementation.
+        UE_LOG(LogActorIO, Error, TEXT("No Actor I/O Subsystem is specified in Actor I/O settings! Reverting to default implementation."));
+        return ThisClass == UActorIOSubsystemBase::StaticClass();
+    }
+}
+
+void UActorIOSubsystemBase::Initialize(FSubsystemCollectionBase& Collection)
+{
+    Super::Initialize(Collection);
+
+    if (GetWorld()->IsGameWorld())
+    {
+        DelegateHandle_OnLevelAdded = FWorldDelegates::LevelAddedToWorld.AddUObject(this, &ThisClass::OnLevelAddedToWorld);
+        DelegateHandle_OnLevelRemoved = FWorldDelegates::LevelRemovedFromWorld.AddUObject(this, &ThisClass::OnLevelRemovedFromWorld);
+    }
+}
+
+void UActorIOSubsystemBase::Deinitialize()
+{
+    Super::Deinitialize();
+
+    FWorldDelegates::LevelAddedToWorld.Remove(DelegateHandle_OnLevelAdded);
+    FWorldDelegates::LevelRemovedFromWorld.Remove(DelegateHandle_OnLevelRemoved);
+}
+
+void UActorIOSubsystemBase::OnWorldBeginPlay(UWorld& InWorld)
+{
+    Super::OnWorldBeginPlay(InWorld);
+
+    if (InWorld.IsGameWorld())
+    {
+        const UActorIOSettings* IOSettings = UActorIOSettings::Get();
+        if (IOSettings->LevelActivationMethod == ELevelActivationMethod::Automatic)
+        {
+            ActivateLevel(GetWorld()->PersistentLevel);
+        }
+    }
+}
+
 void UActorIOSubsystemBase::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
 
-    for (int32 MessageIdx = PendingMessages.Num() - 1; MessageIdx >= 0; --MessageIdx)
-    {
-        FActorIOMessage& Message = PendingMessages[MessageIdx];
-        Message.TimeRemaining -= DeltaTime;
-
-        if (Message.TimeRemaining <= 0.0f)
-        {
-            ProcessMessage(Message);
-            PendingMessages.RemoveAt(MessageIdx);
-        }
-    }
+    TickPendingMessages(DeltaTime);
 }
 
 bool UActorIOSubsystemBase::IsTickable() const
@@ -83,19 +139,238 @@ TStatId UActorIOSubsystemBase::GetStatId() const
     RETURN_QUICK_DECLARE_CYCLE_STAT(UActorIOSubsystemBase, STATGROUP_Tickables);
 }
 
+void UActorIOSubsystemBase::ActivateLevel(ULevel* InLevel)
+{
+    if (IsLevelActive(InLevel))
+    {
+        return;
+    }
+
+    CompactActiveLevels();
+    ActiveLevels.Emplace(InLevel);
+
+    const FSoftObjectPath LevelPath = InLevel->GetPathName();
+    UE_LOG(LogActorIO, Log, TEXT("ActorIOSubsystem: Level '%s' has been activated."), *LevelPath.ToString());
+
+    const int32 NumMessagesBeforeTick = PendingMessages.Num();
+    TickPendingMessages(0.0f);
+
+    const int32 NumMessagesProcessed = NumMessagesBeforeTick - PendingMessages.Num();
+    UE_LOG(LogActorIO, Log, TEXT("ActorIOSubsystem: Activated [%d] pending messages."), NumMessagesProcessed);
+}
+
+void UActorIOSubsystemBase::DeactivateLevel(ULevel* InLevel, bool bRemoveMessages)
+{
+    if (!IsLevelActive(InLevel))
+    {
+        return;
+    }
+
+    CompactActiveLevels();
+    ActiveLevels.Remove(InLevel);
+
+    const FSoftObjectPath LevelPath = InLevel->GetPathName();
+    UE_LOG(LogActorIO, Log, TEXT("ActorIOSubsystem: Level '%s' has been deactivated."), *LevelPath.ToString());
+
+    const int32 NumMessagesBefore = PendingMessages.Num();
+    if (bRemoveMessages)
+    {
+        RemovePendingMessages(InLevel);
+    }
+
+    const int32 NumMessagesRemoved = NumMessagesBefore - PendingMessages.Num();
+    UE_LOG(LogActorIO, Log, TEXT("ActorIOSubsystem: Removed [%d] pending messages."), NumMessagesRemoved);
+}
+
+void UActorIOSubsystemBase::CompactActiveLevels()
+{
+    for (int32 LevelIdx = ActiveLevels.Num() - 1; LevelIdx >= 0; --LevelIdx)
+    {
+        if (ActiveLevels[LevelIdx].IsStale())
+        {
+            ActiveLevels.RemoveAt(LevelIdx);
+        }
+    }
+}
+
+bool UActorIOSubsystemBase::IsLevelActive(ULevel* InLevel) const
+{
+    for (const TWeakObjectPtr<ULevel>& LevelPtr : ActiveLevels)
+    {
+        if (LevelPtr.IsValid() && InLevel == LevelPtr.Get())
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool UActorIOSubsystemBase::IsLevelActiveByPath(const FSoftObjectPath& InLevelPath) const
+{
+    for (const TWeakObjectPtr<ULevel>& LevelPtr : ActiveLevels)
+    {
+        if (LevelPtr.IsValid())
+        {
+            const FSoftObjectPath LevelPath = LevelPtr->GetPathName();
+            if (LevelPath == InLevelPath)
+            {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+TArray<ULevel*> UActorIOSubsystemBase::K2_GetActiveLevels() const
+{
+    TArray<ULevel*> OutLevels;
+    for (const TWeakObjectPtr<ULevel>& LevelPtr : ActiveLevels)
+    {
+        if (LevelPtr.IsValid())
+        {
+            OutLevels.Add(LevelPtr.Get());
+        }
+    }
+
+    return OutLevels;
+}
+
+FSoftObjectPath UActorIOSubsystemBase::GetLevelPathFromObjectPath(const FSoftObjectPath& InObjectPath) const
+{
+    FSoftObjectPath OutPath;
+
+    if (!InObjectPath.IsSubobject())
+    {
+        // The given path does not point to any object.
+        return OutPath;
+    }
+
+    // The subobject path is: Sublevel.Path.To.Object
+    // We only want the sublevel from this path so we are going to cut everything after the fist dot.
+    FString SubPath = InObjectPath.GetSubPathString();
+    int32 SubLevelEndIdx = INDEX_NONE;
+    if (SubPath.FindChar('.', SubLevelEndIdx))
+    {
+        const FTopLevelAssetPath& AssetPath = InObjectPath.GetAssetPath();
+        SubPath.LeftInline(SubLevelEndIdx);
+        OutPath.SetPath(AssetPath, SubPath);
+    }
+
+    return OutPath;
+}
+
 void UActorIOSubsystemBase::QueueMessage(FActorIOMessage& InMessage)
 {
     if (InMessage.TimeRemaining <= 0.0f)
     {
-        ProcessMessage(InMessage);
+        // If the message can tick, we can process it immediately.
+        if (PreTickMessage(InMessage, true))
+        {
+            ProcessMessage(InMessage);
+            return;
+        }
     }
-    else
+
+    PendingMessages.Add(InMessage);
+}
+
+void UActorIOSubsystemBase::RemovePendingMessages(UActorIOAction* InAction)
+{
+    if (!InAction)
     {
-        PendingMessages.Add(InMessage);
+        return;
+    }
+
+    for (int32 MessageIdx = PendingMessages.Num() - 1; MessageIdx >= 0; --MessageIdx)
+    {
+        // Not comparing paths in this case because we have a pointer to the I/O action.
+        // Since messages are sent by I/O actions, we know that the soft pointer of the relevant messages are valid.
+
+        const FActorIOMessage& Message = PendingMessages[MessageIdx];
+        if (Message.SenderPtr.Get() == InAction)
+        {
+            PendingMessages.RemoveAt(MessageIdx);
+        }
     }
 }
 
-void UActorIOSubsystemBase::ProcessMessage(FActorIOMessage& InMessage)
+void UActorIOSubsystemBase::RemovePendingMessages(ULevel* InLevel)
+{
+    if (!InLevel)
+    {
+        return;
+    }
+
+    const FSoftObjectPath LevelPath = InLevel->GetPathName();
+    for (int32 MessageIdx = PendingMessages.Num() - 1; MessageIdx >= 0; --MessageIdx)
+    {
+        const FActorIOMessage& Message = PendingMessages[MessageIdx];
+        const FSoftObjectPath SenderLevelPath = GetLevelPathFromObjectPath(Message.SenderPtr.ToSoftObjectPath());
+        if (SenderLevelPath == LevelPath)
+        {
+            PendingMessages.RemoveAt(MessageIdx);
+        }
+    }
+}
+
+void UActorIOSubsystemBase::TickPendingMessages(float DeltaTime)
+{
+    TArray<int32> MessagesProcessed = TArray<int32>();
+
+    // Tick pending messages in sequence.
+    for (int32 MessageIdx = 0; MessageIdx != PendingMessages.Num(); ++MessageIdx)
+    {
+        FActorIOMessage& Message = PendingMessages[MessageIdx];
+        if (!PreTickMessage(Message))
+        {
+            // Message is not allowed to tick.
+            continue;
+        }
+
+        Message.TimeRemaining -= DeltaTime;
+
+        if (Message.TimeRemaining <= 0.0f)
+        {
+            ProcessMessage(Message);
+            MessagesProcessed.Add(MessageIdx);
+        }
+    }
+
+    // Now remove all pending messages that were processed (activated).
+    for (int32 ProcessedMessageIdx = MessagesProcessed.Num() - 1; ProcessedMessageIdx >= 0; --ProcessedMessageIdx)
+    {
+        PendingMessages.RemoveAt(ProcessedMessageIdx);
+    }
+}
+
+bool UActorIOSubsystemBase::PreTickMessage(FActorIOMessage& InMessage, bool bInitialTick)
+{
+    if (InMessage.MessageFlags & static_cast<uint8>(FActorIOMessage::EMessageFlags::SenderIsPending))
+    {
+        const FSoftObjectPath SenderLevelPath = GetLevelPathFromObjectPath(InMessage.SenderPtr.ToSoftObjectPath());
+        if (IsLevelActiveByPath(SenderLevelPath))
+        {
+            InMessage.MessageFlags &= ~static_cast<uint8>(FActorIOMessage::EMessageFlags::SenderIsPending);
+        }
+    }
+
+    if (InMessage.MessageFlags & static_cast<uint8>(FActorIOMessage::EMessageFlags::TargetIsPending))
+    {
+        const FSoftObjectPath TargetLevelPath = GetLevelPathFromObjectPath(InMessage.TargetPtr.ToSoftObjectPath());
+        if (IsLevelActiveByPath(TargetLevelPath))
+        {
+            InMessage.MessageFlags &= ~static_cast<uint8>(FActorIOMessage::EMessageFlags::TargetIsPending);
+        }
+    }
+
+    const bool bSenderLevelActive = !(InMessage.MessageFlags & static_cast<uint8>(FActorIOMessage::EMessageFlags::SenderIsPending));
+    const bool bTargetLevelActive = !(InMessage.MessageFlags & static_cast<uint8>(FActorIOMessage::EMessageFlags::TargetIsPending));
+    return bSenderLevelActive && bTargetLevelActive;
+}
+
+void UActorIOSubsystemBase::ProcessMessage(const FActorIOMessage& InMessage)
 {
     AActor* ActorPtr = InMessage.TargetPtr.Get();
 
@@ -348,6 +623,156 @@ bool UActorIOSubsystemBase::ExecuteCommand(UObject* Target, const TCHAR* Str, FO
     }
 
     return !bFailed;
+}
+
+void UActorIOSubsystemBase::SerializeToRawData(TArray<uint8>& RawData)
+{
+    FMemoryWriter Archive = FMemoryWriter(RawData);
+    FObjectAndNameAsStringProxyArchive ProxyArchive = FObjectAndNameAsStringProxyArchive(Archive, false);
+    ProxyArchive.ArIsSaveGame = true;
+
+    FBinaryArchiveFormatter Formatter = FBinaryArchiveFormatter(ProxyArchive);
+    FStructuredArchive StructuredArchive = FStructuredArchive(Formatter);
+
+    FStructuredArchive::FSlot RootSlot = StructuredArchive.Open();
+    Serialize(RootSlot.EnterRecord());
+}
+
+void UActorIOSubsystemBase::RestoreFromRawData(TArray<uint8>& RawData)
+{
+    FMemoryReader Archive = FMemoryReader(RawData);
+    FObjectAndNameAsStringProxyArchive ProxyArchive = FObjectAndNameAsStringProxyArchive(Archive, false);
+    ProxyArchive.ArIsSaveGame = true;
+
+    FBinaryArchiveFormatter Formatter = FBinaryArchiveFormatter(ProxyArchive);
+    FStructuredArchive StructuredArchive = FStructuredArchive(Formatter);
+
+    FStructuredArchive::FSlot RootSlot = StructuredArchive.Open();
+    Serialize(RootSlot.EnterRecord());
+}
+
+void UActorIOSubsystemBase::Serialize(FStructuredArchive::FRecord Record)
+{
+    Super::Serialize(Record);
+
+    FArchive& UnderlyingArchive = Record.GetUnderlyingArchive();
+    if (UnderlyingArchive.IsSaveGame())
+    {
+        UnderlyingArchive.UsingCustomVersion(FActorIOSubsystemVersion::GUID);
+
+        int32 Version = UnderlyingArchive.CustomVer(FActorIOSubsystemVersion::GUID);
+        Record << SA_VALUE(TEXT("Version"), Version);
+
+        if (UnderlyingArchive.IsLoading())
+        {
+            UnderlyingArchive.SetCustomVersion(FActorIOSubsystemVersion::GUID, Version, TEXT("ActorIOSubsystemVer"));
+        }
+
+        TArray<FActorIOMessage> Messages;
+        int32 NumMessages = 0;
+
+        if (UnderlyingArchive.IsSaving())
+        {
+            Messages = PendingMessages;
+            NumMessages = PendingMessages.Num();
+        }
+
+        FStructuredArchive::FArray MessageArray = Record.EnterArray(TEXT("PendingMessages"), NumMessages);
+
+        if (UnderlyingArchive.IsLoading())
+        {
+            PendingMessages.Reset(NumMessages);
+        }
+
+        for (int32 MessageIdx = 0; MessageIdx != NumMessages; ++MessageIdx)
+        {
+            FStructuredArchive::FSlot MessageSlot = MessageArray.EnterElement();
+            FStructuredArchive::FRecord MessageRecord = MessageSlot.EnterRecord();
+
+            const int64 DataSizePosition = UnderlyingArchive.Tell();
+            int64 DataSize = 0;
+
+            // Pre-serialize the data size. We'll rewrite this after serializing the action.
+            if (!UnderlyingArchive.IsTextFormat())
+            {
+                MessageRecord << SA_VALUE(TEXT("DataSize"), DataSize);
+            }
+
+            const int64 BeginDataPosition = UnderlyingArchive.Tell();
+
+            if (UnderlyingArchive.IsLoading())
+            {
+                FActorIOMessage& Message = Messages.AddDefaulted_GetRef();
+                Message.SerializeMessage(MessageRecord);
+
+                if (!UnderlyingArchive.IsTextFormat())
+                {
+                    if (!ensureMsgf(UnderlyingArchive.Tell() <= BeginDataPosition + DataSize, TEXT("Serialized more data then expected when loading PendingMessages of I/O subsystem!")))
+                    {
+                        UnderlyingArchive.SetError();
+                        return;
+                    }
+
+                    UnderlyingArchive.Seek(BeginDataPosition + DataSize);
+                }
+            }
+            else
+            {
+                FActorIOMessage& Message = Messages[MessageIdx];
+                Message.SerializeMessage(MessageRecord);
+
+                // Seek back and re-write the data size with the actual size.
+                if (!UnderlyingArchive.IsTextFormat())
+                {
+                    const int64 EndDataPosition = UnderlyingArchive.Tell();
+                    DataSize = EndDataPosition - BeginDataPosition;
+
+                    UnderlyingArchive.Seek(DataSizePosition);
+                    UnderlyingArchive << DataSize;
+                    UnderlyingArchive.Seek(EndDataPosition);
+                }
+            }
+        }
+
+        // Now queue all loaded messages.
+        if (UnderlyingArchive.IsLoading())
+        {
+            for (FActorIOMessage& LoadedMessage : Messages)
+            {
+                QueueMessage(LoadedMessage);
+            }
+        }
+    }
+}
+
+void UActorIOSubsystemBase::OnLevelAddedToWorld(ULevel* InLevel, UWorld* InWorld)
+{
+    if (InWorld != GetWorld())
+    {
+        // Do nothing if the level was not added to our world (e.g. other PIE sessions).
+        return;
+    }
+
+    const UActorIOSettings* IOSettings = UActorIOSettings::Get();
+    if (IOSettings->LevelActivationMethod == ELevelActivationMethod::Automatic)
+    {
+        ActivateLevel(InLevel);
+    }
+}
+
+void UActorIOSubsystemBase::OnLevelRemovedFromWorld(ULevel* InLevel, UWorld* InWorld)
+{
+    if (InWorld != GetWorld())
+    {
+        // Do nothing if the level was not removed from our world (e.g. other PIE sessions).
+        return;
+    }
+
+    const UActorIOSettings* IOSettings = UActorIOSettings::Get();
+    if (IOSettings->LevelActivationMethod == ELevelActivationMethod::Automatic)
+    {
+        DeactivateLevel(InLevel);
+    }
 }
 
 void UActorIOSubsystemBase::RegisterNativeEventsForObject(AActor* InObject, FActorIOEventList& EventRegistry)
@@ -682,32 +1107,6 @@ void UActorIOSubsystemBase::ProcessEvent_OnActorDestroyed(AActor* Actor, EEndPla
     {
         // Abort the action if end play was not caused by destroying the actor.
         ActionExecContext.AbortAction();
-    }
-}
-
-bool UActorIOSubsystemBase::ShouldCreateSubsystem(UObject* Outer) const
-{
-    // Determine whether this specific subsystem should be created or not.
-    // Subsystems are registered with the engine automatically, but we only want one specific subsystem.
-
-    if (!Super::ShouldCreateSubsystem(Outer))
-    {
-        return false;
-    }
-
-    UClass* ThisClass = GetClass();
-
-    const UActorIOSettings* IOSettings = UActorIOSettings::Get();
-    if (IOSettings->ActorIOSubsystemClass != nullptr)
-    {
-        // A subsystem class is provided so only create if we are that class.
-        return ThisClass == IOSettings->ActorIOSubsystemClass;
-    }
-    else
-    {
-        // No subsystem class was provided so use the base implementation.
-        UE_LOG(LogActorIO, Error, TEXT("No Actor I/O Subsystem is specified in Actor I/O settings! Reverting to default implementation."));
-        return ThisClass == UActorIOSubsystemBase::StaticClass();
     }
 }
 

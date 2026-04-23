@@ -1,4 +1,4 @@
-// Copyright 2024-2025 Horizon Games and all contributors at https://github.com/HorizonGamesRoland/ActorIO/graphs/contributors
+// Copyright 2024-2026 Horizon Games and all contributors at https://github.com/HorizonGamesRoland/ActorIO/graphs/contributors
 
 #pragma once
 
@@ -26,7 +26,7 @@ public:
     FString InitialValue;
 
     /** The value to compare against. */
-    UPROPERTY(EditInstanceOnly, Category = "Compare")
+    UPROPERTY(EditInstanceOnly, SaveGame, Category = "Compare")
     FString CompareValue;
 
     /** Maximum allowed difference before considering numeric values as equal. */
@@ -52,10 +52,10 @@ public:
 protected:
 
     /** Current value to use for comparison. */
-    UPROPERTY()
+    UPROPERTY(SaveGame)
     FString CurrentValue;
 
-protected:
+public:
 
     //~ Begin ALogicActorBase Interface
     virtual void RegisterIOEvents(FActorIOEventList& EventRegistry) override;

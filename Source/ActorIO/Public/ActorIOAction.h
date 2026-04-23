@@ -1,4 +1,4 @@
-// Copyright 2024-2025 Horizon Games and all contributors at https://github.com/HorizonGamesRoland/ActorIO/graphs/contributors
+// Copyright 2024-2026 Horizon Games and all contributors at https://github.com/HorizonGamesRoland/ActorIO/graphs/contributors
 
 #pragma once
 
@@ -59,7 +59,6 @@ public:
 protected:
 
 	/** Whether the action was executed before. */
-	UPROPERTY()
 	bool bWasExecuted;
 
 	/** Whether the action is bound to the assigned I/O event. */
@@ -110,6 +109,9 @@ public:
 	 */
 	UFunction* ResolveUFunction(const FActorIOFunction* TargetFunction = nullptr, UObject* TargetObject = nullptr) const;
 
+	/** @return Whether the action should be serialized when saving game data. */
+	bool ShouldSerializeToArchive(FArchive& Ar) const;
+
 protected:
 
 	/**
@@ -136,5 +138,6 @@ public:
 
 	//~ Begin UObject Interface
 	virtual void ProcessEvent(UFunction* Function, void* Parms) override;
+	virtual void Serialize(FStructuredArchive::FRecord Record);
 	//~ End UObject Interface
 };

@@ -1,4 +1,4 @@
-// Copyright 2024-2025 Horizon Games and all contributors at https://github.com/HorizonGamesRoland/ActorIO/graphs/contributors
+// Copyright 2024-2026 Horizon Games and all contributors at https://github.com/HorizonGamesRoland/ActorIO/graphs/contributors
 
 #include "LogicActors/LogicTimeline.h"
 #include "GameFramework/WorldSettings.h"
@@ -19,6 +19,7 @@ ALogicTimeline::ALogicTimeline()
 
 	Timeline = FTimeline();
 	TimelineCurve = nullptr;
+	TimelineProperties = FTimelineLogicProperties();
 
 #if WITH_EDITORONLY_DATA
 	ConstructorHelpers::FObjectFinderOptional<UTexture2D> SpriteTexture(TEXT("/ActorIO/AssetIcons/S_Timeline"));
@@ -97,6 +98,7 @@ void ALogicTimeline::PostInitializeComponents()
 			TimelineCurve = NewCurve;
 		}
 
+		Timeline.SetLooping(bLoop);
 		Timeline.AddInterpFloat(TimelineCurve, FOnTimelineFloatStatic::CreateUObject(this, &ThisClass::OnTimelineValueChangedCallback));
 		Timeline.SetTimelineFinishedFunc(FOnTimelineEventStatic::CreateUObject(this, &ThisClass::OnTimelineFinishedCallback));
 	}
@@ -126,6 +128,43 @@ void ALogicTimeline::Tick(float DeltaSeconds)
 	if (!Timeline.IsPlaying())
 	{
 		SetActorTickEnabled(false);
+	}
+}
+
+void ALogicTimeline::PreSerializeLogicActor(FArchive& Ar)
+{
+	if (Ar.IsSaving() && Ar.IsSaveGame())
+	{
+		TimelineProperties.bIsPlaying = Timeline.IsPlaying();
+		TimelineProperties.bIsReversing = Timeline.IsReversing();
+		TimelineProperties.TimelinePosition = Timeline.GetPlaybackPosition();
+	}
+}
+
+void ALogicTimeline::PostSerializeLogicActor(FArchive& Ar)
+{
+	if (Ar.IsLoading() && Ar.IsSaveGame())
+	{
+		Timeline.SetPlaybackPosition(TimelineProperties.TimelinePosition, false);
+
+		if (TimelineProperties.bIsPlaying != Timeline.IsPlaying())
+		{
+			if (TimelineProperties.bIsPlaying)
+			{
+				if (TimelineProperties.bIsReversing)
+				{
+					Timeline.Reverse();
+				}
+				else
+				{
+					Timeline.Play();
+				}
+			}
+			else
+			{
+				Timeline.Stop();
+			}
+		}
 	}
 }
 

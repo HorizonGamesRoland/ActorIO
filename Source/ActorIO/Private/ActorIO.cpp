@@ -1,4 +1,4 @@
-// Copyright 2024-2025 Horizon Games and all contributors at https://github.com/HorizonGamesRoland/ActorIO/graphs/contributors
+// Copyright 2024-2026 Horizon Games and all contributors at https://github.com/HorizonGamesRoland/ActorIO/graphs/contributors
 
 #include "ActorIO.h"
 #include "ActorIOComponent.h"
@@ -103,6 +103,40 @@ void FActionExecutionContext::AbortAction()
 }
 
 //==================================
+//~ Begin FActorIOMessage
+//==================================
+
+void FActorIOMessage::SerializeMessage(FStructuredArchive::FRecord Record)
+{
+    FArchive& UnderlyingArchive = Record.GetUnderlyingArchive();
+
+    FSoftObjectPath SenderPath;
+    FSoftObjectPath TargetPath;
+
+    if (UnderlyingArchive.IsSaving())
+    {
+        SenderPath = SenderPtr.ToSoftObjectPath();
+        SenderPath.SetPath(UWorld::RemovePIEPrefix(SenderPath.ToString()));
+
+        TargetPath = TargetPtr.ToSoftObjectPath();
+        TargetPath.SetPath(UWorld::RemovePIEPrefix(TargetPath.ToString()));
+    }
+
+    Record << SA_VALUE(TEXT("Sender"), SenderPath);
+    Record << SA_VALUE(TEXT("Target"), TargetPath);
+    Record << SA_VALUE(TEXT("FunctionId"), FunctionId);
+    Record << SA_VALUE(TEXT("Arguments"), Arguments);
+    Record << SA_VALUE(TEXT("MessageFlags"), MessageFlags);
+    Record << SA_VALUE(TEXT("TimeRemaining"), TimeRemaining);
+
+    if (UnderlyingArchive.IsLoading())
+    {
+        SenderPtr = SenderPath;
+        TargetPtr = TargetPath;
+    }
+}
+
+//==================================
 //~ Begin IActorIO
 //==================================
 
@@ -182,8 +216,7 @@ const TArray<TWeakObjectPtr<UActorIOAction>> IActorIO::GetInputActionsForObject(
             UActorIOAction* Action = *ActionItr;
             if (IsValid(Action) && IsValid(Action->GetOwnerActor()))
             {
-                // According to TObjectIterator description, we need to make sure that we
-                // don't include objects from different worlds (e.g. PIE sessions).
+                // Make sure that we don't include objects from different worlds (e.g. other PIE sessions).
                 if (Action->GetWorld() == InObject->GetWorld())
                 {
                     if (Action->TargetActor.Get() == InObject)

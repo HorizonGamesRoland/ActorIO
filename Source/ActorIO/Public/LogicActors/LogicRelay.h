@@ -1,4 +1,4 @@
-// Copyright 2024-2025 Horizon Games and all contributors at https://github.com/HorizonGamesRoland/ActorIO/graphs/contributors
+// Copyright 2024-2026 Horizon Games and all contributors at https://github.com/HorizonGamesRoland/ActorIO/graphs/contributors
 
 #pragma once
 
@@ -24,14 +24,14 @@ public:
 public:
 
     /** Whether the relay is enabled or not. */
-    UPROPERTY(EditInstanceOnly, Category = "Relay")
+    UPROPERTY(EditInstanceOnly, SaveGame, Category = "Relay")
     bool bIsEnabled;
 
     /** Event when the relay is triggered */
     UPROPERTY(BlueprintAssignable, Category = "Events")
     FSimpleActionDelegate OnTrigger;
 
-protected:
+public:
 
     //~ Begin ALogicActorBase Interface
     virtual void RegisterIOEvents(FActorIOEventList& EventRegistry) override;

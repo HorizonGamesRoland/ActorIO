@@ -1,4 +1,4 @@
-// Copyright 2024-2025 Horizon Games and all contributors at https://github.com/HorizonGamesRoland/ActorIO/graphs/contributors
+// Copyright 2024-2026 Horizon Games and all contributors at https://github.com/HorizonGamesRoland/ActorIO/graphs/contributors
 
 #pragma once
 
@@ -20,7 +20,7 @@ public:
     /** Default constructor. */
     ALogicBranch();
 
-protected:
+public:
 
     //~ Begin ALogicActorBase Interface
     virtual void RegisterIOEvents(FActorIOEventList& EventRegistry) override;
@@ -46,7 +46,7 @@ public:
 protected:
 
     /** Current value of the branch. */
-    UPROPERTY()
+    UPROPERTY(SaveGame)
     bool bCurrentValue;
 
 public:

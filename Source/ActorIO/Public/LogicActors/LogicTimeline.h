@@ -1,4 +1,4 @@
-// Copyright 2024-2025 Horizon Games and all contributors at https://github.com/HorizonGamesRoland/ActorIO/graphs/contributors
+// Copyright 2024-2026 Horizon Games and all contributors at https://github.com/HorizonGamesRoland/ActorIO/graphs/contributors
 
 #pragma once
 
@@ -10,6 +10,34 @@
 
 /** Delegate with the timeline's current value. */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTimelineValueChanged, float, Value);
+
+/**
+ * Properties of the timeline, representing the overall logical state.
+ */
+USTRUCT()
+struct ACTORIO_API FTimelineLogicProperties
+{
+    GENERATED_BODY()
+
+    /** Tracked playing state of the timeline. */
+    UPROPERTY(SaveGame)
+    bool bIsPlaying;
+
+    /** Tracked reversing state of the timeline. */
+    UPROPERTY(SaveGame)
+    bool bIsReversing;
+
+    /** Tracked playback position of the timeline. */
+    UPROPERTY(SaveGame)
+    float TimelinePosition;
+
+    /** Default constructor. */
+    FTimelineLogicProperties() :
+        bIsPlaying(false),
+        bIsReversing(false),
+        TimelinePosition(0.0f)
+    {}
+};
 
 /**
  * An actor that runs a timeline evaluating the value of a given curve.
@@ -61,13 +89,19 @@ protected:
     UPROPERTY(Transient)
     TObjectPtr<UCurveFloat> TimelineCurve;
 
-protected:
+    /** Properties of the timeline. Only updated at specific times. */
+    UPROPERTY(SaveGame)
+    FTimelineLogicProperties TimelineProperties;
+
+public:
 
     //~ Begin ALogicActorBase Interface
     virtual void RegisterIOEvents(FActorIOEventList& EventRegistry) override;
     virtual void RegisterIOFunctions(FActorIOFunctionList& FunctionRegistry) override;
     virtual void PostInitializeComponents() override;
     virtual void Tick(float DeltaSeconds) override;
+    virtual void PreSerializeLogicActor(FArchive& Ar) override;
+    virtual void PostSerializeLogicActor(FArchive& Ar) override;
     //~ End ALogicActorBase Interface
 
 public:

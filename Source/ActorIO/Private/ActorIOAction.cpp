@@ -1,4 +1,4 @@
-// Copyright 2024-2025 Horizon Games and all contributors at https://github.com/HorizonGamesRoland/ActorIO/graphs/contributors
+// Copyright 2024-2026 Horizon Games and all contributors at https://github.com/HorizonGamesRoland/ActorIO/graphs/contributors
 
 #include "ActorIOAction.h"
 #include "ActorIOComponent.h"
@@ -358,11 +358,16 @@ void UActorIOAction::ExecuteAction()
 		ProcessedArgs.Append(Argument);
 	}
 
+	uint8 MessageFlags = 0x00;
+	MessageFlags |= static_cast<uint8>(FActorIOMessage::EMessageFlags::SenderIsPending);
+	MessageFlags |= static_cast<uint8>(FActorIOMessage::EMessageFlags::TargetIsPending);
+
 	FActorIOMessage NewMessage;
 	NewMessage.SenderPtr = this;
 	NewMessage.TargetPtr = TargetActor;
 	NewMessage.FunctionId = FunctionId;
 	NewMessage.Arguments = ProcessedArgs;
+	NewMessage.MessageFlags = MessageFlags;
 	NewMessage.TimeRemaining = Delay;
 
 	// Leave the context now because QueueMessage can immediately lead into another I/O execution.
@@ -452,4 +457,51 @@ UFunction* UActorIOAction::ResolveUFunction(const FActorIOFunction* TargetFuncti
 	}
 
 	return OutFunctionPtr;
+}
+
+bool UActorIOAction::ShouldSerializeToArchive(FArchive& Ar) const
+{
+	check(Ar.IsSaveGame());
+	return bWasExecuted || Ar.ArNoDelta;
+}
+
+void UActorIOAction::Serialize(FStructuredArchive::FRecord Record)
+{
+	FArchive& UnderlyingArchive = Record.GetUnderlyingArchive();
+	if (UnderlyingArchive.IsSaveGame())
+	{
+		bool bExecuted = false;
+
+		if (UnderlyingArchive.IsSaving())
+		{
+			bExecuted = bWasExecuted;
+		}
+
+		Record << SA_VALUE(TEXT("WasExecuted"), bExecuted);
+
+		if (UnderlyingArchive.IsLoading())
+		{
+			const bool bHasExecutedAlready = bWasExecuted;
+			bWasExecuted = bExecuted;
+
+			// We must recall the messages if:
+			//  - the restored state says the action has been executed in the past
+			//  - and this action should only ever be executed once
+			//  - and before the state was restored the action has already been executed
+			if ((bWasExecuted && bExecuteOnlyOnce) && bHasExecutedAlready)
+			{
+				UE_CLOG(DebugIOActions, LogActorIO, Log, TEXT("Recalling pending I/O messages from action: '%s'"), *GetPathName());
+
+				// Since levels *should* only be active after the level's state was restored from a save file
+				// all messages that were sent prematurely *should* still be in the pending messages list.
+				UActorIOSubsystemBase* IOSubsystem = UActorIOSubsystemBase::Get(this);
+				IOSubsystem->RemovePendingMessages(this);
+			}
+		}
+	}
+	else
+	{
+		// Use the default property serialization if not saving game data.
+		Super::Serialize(Record);
+	}
 }
