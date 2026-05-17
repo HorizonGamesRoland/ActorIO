@@ -341,7 +341,7 @@ void UActorIOSubsystemBase::TickPendingMessages(float DeltaTime)
     // Now remove all pending messages that were processed (activated).
     for (int32 ProcessedMessageIdx = MessagesProcessed.Num() - 1; ProcessedMessageIdx >= 0; --ProcessedMessageIdx)
     {
-        PendingMessages.RemoveAt(ProcessedMessageIdx);
+        PendingMessages.RemoveAt(MessagesProcessed[ProcessedMessageIdx]);
     }
 }
 
