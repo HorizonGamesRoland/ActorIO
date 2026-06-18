@@ -48,7 +48,7 @@ void FActorIOEditor::StartupModule()
 	}
 
 	// Register PIE authorizer to abort PIE sessions if the plugin is configured incorrectly.
-	// #NOTE: IModularFeatures won't compile in IWYU mode.
+	// #NOTE: IModularFeatures may not compile in IWYU mode.
 	PIEAuthorizer = FActorIOPIEAuthorizer();
 	IModularFeatures::Get().RegisterModularFeature(FActorIOPIEAuthorizer::GetModularFeatureName(), &PIEAuthorizer);
 
