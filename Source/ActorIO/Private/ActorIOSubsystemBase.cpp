@@ -452,15 +452,15 @@ bool UActorIOSubsystemBase::ExecuteCommand(UObject* Target, const TCHAR* Str, FO
      *
      * List of changes:
      *
-     *   - Skip importing value for 'out' properties that are not passed by 'ref'.
-     *   - Skip CPP param default value initialization because it only works in editor and not packaged games.
      *   - FindFunction and ProcessEvent are called on Target.
      *   - Add IsValid check for Target before finding UFunction.
-     *   - Use Ar.Logf instead of UE_LOG(LogScriptCore) because LogScriptCore is static and its verbosity cannot be changed.
+     *   - Use Ar.Logf instead of UE_LOG(LogScriptCore) because LogScriptCore is static therefore its verbosity cannot be changed.
+     *   - Skip importing value for 'out' properties that are not passed by 'ref'.
+     *   - Skip CPP param default value initialization because it only works in editor and not packaged games.
      *   - Return success/failure properly.
      */
 
-#if UE_VERSION_NEWER_THAN(5, 7, ENGINE_PATCH_VERSION) // <- patch version doesn't matter
+#if UE_VERSION_NEWER_THAN(5, 8, ENGINE_PATCH_VERSION) // <- patch version doesn't matter
 #error "Review latest implementation of UObject::CallFunctionByNameWithString then update UE version comparison."
 #endif
 
