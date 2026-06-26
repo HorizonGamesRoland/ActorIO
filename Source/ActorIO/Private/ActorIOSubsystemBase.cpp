@@ -442,7 +442,7 @@ void UActorIOSubsystemBase::ProcessMessage(const FActorIOMessage& InMessage)
     }
 }
 
-bool UActorIOSubsystemBase::ExecuteCommand(UObject* Target, const TCHAR* Str, FOutputDevice& Ar, UObject* Executor)
+bool UActorIOSubsystemBase::ExecuteCommand(UObject* Target, const TCHAR* Str, FOutputDevice& Ar, UObject* Executor, FString* OutRetValue)
 {
     /**
      * THIS IS A MODIFIED VERSION OF UObject::CallFunctionByNameWithString
@@ -614,6 +614,18 @@ bool UActorIOSubsystemBase::ExecuteCommand(UObject* Target, const TCHAR* Str, FO
     if (!bFailed)
     {
         Target->ProcessEvent(Function, Parms);
+
+        // #TODO: Find a better way to access the return value before it is destructed
+        if (OutRetValue != nullptr)
+        {
+            FProperty* ReturnProp = Function->GetReturnProperty();
+            if (ReturnProp)
+            {
+                ReturnProp->ExportTextItem_InContainer(*OutRetValue, Parms, nullptr, nullptr, PPF_None);
+
+                UE_LOG(LogActorIO, Warning, TEXT("%s exported return value: %s"), *Function->GetName(), **OutRetValue);
+            }
+        }
     }
 
     //!!destructframe see also UObject::ProcessEvent

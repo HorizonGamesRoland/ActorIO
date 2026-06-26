@@ -182,7 +182,7 @@ public:
 	 * @param Ar Output device to push error messages to. Use FOutputDeviceNull if not needed.
 	 * @param Executor Object that is executing the function.
 	 */
-	virtual bool ExecuteCommand(UObject* Target, const TCHAR* Str, FOutputDevice& Ar, UObject* Executor);
+	virtual bool ExecuteCommand(UObject* Target, const TCHAR* Str, FOutputDevice& Ar, UObject* Executor, FString* OutRetValue = nullptr);
 
 	/** @return Reference to the global execution context. */
 	FActionExecutionContext& GetExecutionContext() { return ActionExecContext; }
