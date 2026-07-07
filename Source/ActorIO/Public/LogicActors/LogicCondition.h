@@ -4,15 +4,39 @@
 
 #include "ActorIO.h"
 #include "LogicActors/LogicActorBase.h"
-#include "UObject/WeakObjectPtrTemplates.h"
 #include "LogicCondition.generated.h"
 
-UCLASS(DefaultToInstanced, EditInlineNew)
+UCLASS(Abstract, DefaultToInstanced, EditInlineNew)
 class ACTORIO_API UActorIOExpression : public UObject
 {
 	GENERATED_BODY()
 
 public:
+
+	virtual bool Evaluate(FString& OutResult) PURE_VIRTUAL(UActorIOExpression::Evaluate(), return false;)
+};
+
+UCLASS()
+class ACTORIO_API UActorIOExpressionLiteral : public UActorIOExpression
+{
+	GENERATED_BODY()
+
+protected:
+
+	UPROPERTY(EditAnywhere)
+	FString StringValue;
+
+public:
+
+	virtual bool Evaluate(FString& OutResult) override;
+};
+
+UCLASS()
+class ACTORIO_API UActorIOExpressionFunction : public UActorIOExpression
+{
+	GENERATED_BODY()
+
+protected:
 
 	UPROPERTY(EditAnywhere, meta = (EditCondition = "!bFunctionIsKismetOp"))
 	TSoftObjectPtr<AActor> ObjectPtr;
@@ -24,12 +48,25 @@ public:
 	UPROPERTY(EditAnywhere)
 	bool bFunctionIsKismetOp;
 
-	UPROPERTY(EditAnywhere)
-	TArray<UActorIOExpression*> Args;
+	UPROPERTY(Instanced, EditAnywhere)
+	TArray<TObjectPtr<UActorIOExpression>> Args;
 
 public:
 
-	bool Evaluate(FString& OutResult);
+	virtual bool Evaluate(FString& OutResult) override;
+};
+
+USTRUCT()
+struct ACTORIO_API FActorIOExpressionCondition
+{
+	GENERATED_BODY()
+
+	UPROPERTY(Instanced, EditAnywhere)
+	TObjectPtr<UActorIOExpressionFunction> Expression;
+
+	FActorIOExpressionCondition() :
+		Expression(nullptr)
+	{}
 };
 
 /**
@@ -57,8 +94,12 @@ public:
 
 protected:
 
+	UPROPERTY(EditInstanceOnly)
+	FActorIOExpressionCondition Condition;
+
+	// #temp
 	UPROPERTY(Instanced, EditInstanceOnly)
-	UActorIOExpression* Expression;
+	TObjectPtr<UActorIOExpressionFunction> Expression;
 
 public:
 

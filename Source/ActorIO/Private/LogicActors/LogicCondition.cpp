@@ -8,7 +8,13 @@
 
 #define LOCTEXT_NAMESPACE "ActorIO"
 
-bool UActorIOExpression::Evaluate(FString& OutResult)
+bool UActorIOExpressionLiteral::Evaluate(FString& OutResult)
+{
+	OutResult = StringValue;
+	return true;
+}
+
+bool UActorIOExpressionFunction::Evaluate(FString& OutResult)
 {
 	OutResult.Empty();
 

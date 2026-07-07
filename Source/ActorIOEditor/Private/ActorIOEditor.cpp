@@ -5,6 +5,7 @@
 #include "ActorIOAction.h"
 #include "ActorIOComponent.h"
 #include "ActorIOComponentVisualizer.h"
+#include "ActorIODetailsCustomization.h"
 #include "LogicActors/LogicActorBase.h"
 #include "Widgets/SActorIOEditor.h"
 #include "Widgets/Docking/SDockTab.h"
@@ -14,6 +15,7 @@
 #include "Features/IModularFeatures.h"
 #include "WorkspaceMenuStructure.h"
 #include "WorkspaceMenuStructureModule.h"
+#include "PropertyEditorModule.h"
 #include "Editor.h"
 #include "UnrealEdGlobals.h"
 #include "Editor/UnrealEdEngine.h"
@@ -37,6 +39,11 @@ void FActorIOEditor::StartupModule()
 		.SetTooltipText(LOCTEXT("TabTooltip", "Open the Actor I/O editor tab to edit scripted actions of actors in the level."))
 		.SetGroup(WorkspaceMenu::GetMenuStructure().GetLevelEditorCategory())
 		.SetIcon(FSlateIcon(FAppStyle::GetAppStyleSetName(), "Icons.Event"));
+
+	// Register property customizations.
+	FPropertyEditorModule& PropertyModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>(TEXT("PropertyEditor"));
+	PropertyModule.RegisterCustomPropertyTypeLayout(TEXT("ActorIOExpressionCondition"), FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FActorIOExpressionCustomization::MakeInstance));
+	PropertyModule.NotifyCustomizationModuleChanged();
 
 	// Register component visualizer to draw I/O lines between actors.
 	// The GUnrealEd check is important here for packaging.
@@ -72,6 +79,14 @@ void FActorIOEditor::ShutdownModule()
 {
 	// Unregister Actor I/O editor tab.
 	FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(TEXT("ActorIO"));
+
+	// Unregister property customizations.
+	if (FModuleManager::Get().IsModuleLoaded("PropertyEditor"))
+	{
+		FPropertyEditorModule& PropertyModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>(TEXT("PropertyEditor"));
+		PropertyModule.UnregisterCustomPropertyTypeLayout(TEXT("ActorIOExpressionCondition"));
+		PropertyModule.NotifyCustomizationModuleChanged();
+	}
 
 	// Unregister component visualizer.
 	if (GUnrealEd)
