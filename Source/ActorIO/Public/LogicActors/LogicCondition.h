@@ -4,39 +4,34 @@
 
 #include "ActorIO.h"
 #include "LogicActors/LogicActorBase.h"
+#include "StructUtils/InstancedStruct.h"
 #include "LogicCondition.generated.h"
 
-UCLASS(Abstract, DefaultToInstanced, EditInlineNew)
-class ACTORIO_API UActorIOExpression : public UObject
+USTRUCT()
+struct ACTORIO_API FActorIOExpressionBase
 {
 	GENERATED_BODY()
 
-public:
+	virtual ~FActorIOExpressionBase() = default;
 
 	virtual bool Evaluate(FString& OutResult) PURE_VIRTUAL(UActorIOExpression::Evaluate(), return false;)
 };
 
-UCLASS()
-class ACTORIO_API UActorIOExpressionLiteral : public UActorIOExpression
+USTRUCT()
+struct ACTORIO_API FActorIOExpressionLiteral : public FActorIOExpressionBase
 {
 	GENERATED_BODY()
 
-protected:
-
 	UPROPERTY(EditAnywhere)
-	FString StringValue;
-
-public:
+	FString LiteralValue;
 
 	virtual bool Evaluate(FString& OutResult) override;
 };
 
-UCLASS()
-class ACTORIO_API UActorIOExpressionFunction : public UActorIOExpression
+USTRUCT()
+struct ACTORIO_API FActorIOExpressionFunction : public FActorIOExpressionBase
 {
 	GENERATED_BODY()
-
-protected:
 
 	UPROPERTY(EditAnywhere, meta = (EditCondition = "!bFunctionIsKismetOp"))
 	TSoftObjectPtr<AActor> ObjectPtr;
@@ -48,25 +43,19 @@ protected:
 	UPROPERTY(EditAnywhere)
 	bool bFunctionIsKismetOp;
 
-	UPROPERTY(Instanced, EditAnywhere)
-	TArray<TObjectPtr<UActorIOExpression>> Args;
-
-public:
+	UPROPERTY(EditAnywhere)
+	TArray<TInstancedStruct<FActorIOExpressionBase>> Args;
 
 	virtual bool Evaluate(FString& OutResult) override;
 };
 
 USTRUCT()
-struct ACTORIO_API FActorIOExpressionCondition
+struct ACTORIO_API FActorIOExpressionConditionProperty
 {
 	GENERATED_BODY()
 
-	UPROPERTY(Instanced, EditAnywhere)
-	TObjectPtr<UActorIOExpressionFunction> Expression;
-
-	FActorIOExpressionCondition() :
-		Expression(nullptr)
-	{}
+	UPROPERTY(EditAnywhere)
+	TInstancedStruct<FActorIOExpressionFunction> Expression;
 };
 
 /**
@@ -95,11 +84,7 @@ public:
 protected:
 
 	UPROPERTY(EditInstanceOnly)
-	FActorIOExpressionCondition Condition;
-
-	// #temp
-	UPROPERTY(Instanced, EditInstanceOnly)
-	TObjectPtr<UActorIOExpressionFunction> Expression;
+	FActorIOExpressionConditionProperty Condition;
 
 public:
 

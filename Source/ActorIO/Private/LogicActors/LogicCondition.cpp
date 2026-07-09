@@ -8,21 +8,29 @@
 
 #define LOCTEXT_NAMESPACE "ActorIO"
 
-bool UActorIOExpressionLiteral::Evaluate(FString& OutResult)
+bool FActorIOExpressionLiteral::Evaluate(FString& OutResult)
 {
-	OutResult = StringValue;
+	OutResult = LiteralValue;
 	return true;
 }
 
-bool UActorIOExpressionFunction::Evaluate(FString& OutResult)
+bool FActorIOExpressionFunction::Evaluate(FString& OutResult)
 {
 	OutResult.Empty();
 
 	FString Cmd = FunctionId.ToString();
-	for (UActorIOExpression* Expr : Args)
+	for (TInstancedStruct<FActorIOExpressionBase>& Expr : Args)
 	{
+		if (!Expr.IsValid())
+		{
+			UE_LOG(LogActorIO, Error, TEXT("Encountered an invalid expression!"));
+			return false;
+		}
+
+		FActorIOExpressionBase& ExprRef = Expr.GetMutable();
+
 		FString Result;
-		if (!Expr->Evaluate(Result))
+		if (!ExprRef.Evaluate(Result))
 		{
 			return false;
 		}
@@ -75,14 +83,16 @@ void ALogicCondition::RegisterIOFunctions(FActorIOFunctionList& FunctionRegistry
 
 void ALogicCondition::Test()
 {
-	if (!Expression)
+	if (!Condition.Expression.IsValid())
 	{
 		OnPass.Broadcast();
 		return;
 	}
 
+	FActorIOExpressionBase& ExprRef = Condition.Expression.GetMutable();
+
 	FString Result;
-	bool bSuccess = Expression->Evaluate(Result);
+	bool bSuccess = ExprRef.Evaluate(Result);
 
 	if (Result == TEXT("1") || Result == TEXT("True"))
 	{
