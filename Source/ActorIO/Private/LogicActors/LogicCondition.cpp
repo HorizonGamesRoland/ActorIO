@@ -1,56 +1,8 @@
 // Copyright 2024-2026 Horizon Games and all contributors at https://github.com/HorizonGamesRoland/ActorIO/graphs/contributors
 
 #include "LogicActors/LogicCondition.h"
-#include "ActorIOSubsystemBase.h"
-#include "Kismet/KismetMathLibrary.h"
-#include "Engine/Engine.h"
-#include "Misc/OutputDeviceNull.h"
 
 #define LOCTEXT_NAMESPACE "ActorIO"
-
-bool FActorIOExpressionLiteral::Evaluate(FString& OutResult)
-{
-	OutResult = LiteralValue;
-	return true;
-}
-
-bool FActorIOExpressionFunction::Evaluate(FString& OutResult)
-{
-	OutResult.Empty();
-
-	FString Cmd = FunctionId.ToString();
-	for (TInstancedStruct<FActorIOExpressionBase>& Expr : Args)
-	{
-		if (!Expr.IsValid())
-		{
-			UE_LOG(LogActorIO, Error, TEXT("Encountered an invalid expression!"));
-			return false;
-		}
-
-		FActorIOExpressionBase& ExprRef = Expr.GetMutable();
-
-		FString Result;
-		if (!ExprRef.Evaluate(Result))
-		{
-			return false;
-		}
-
-		Cmd += TEXT(" ");
-		Cmd += Result;
-	}
-
-	UActorIOSubsystemBase* IOSubsystem = UActorIOSubsystemBase::Get(GEngine->GetCurrentPlayWorld());
-	check(IOSubsystem);
-
-	UObject* Target = ObjectPtr.Get();
-	if (bFunctionIsKismetOp)
-	{
-		Target = GetMutableDefault<UKismetMathLibrary>();
-	}
-
-	FOutputDeviceNull Ar;
-	return IOSubsystem->ExecuteCommand(Target, *Cmd, Ar, IOSubsystem, &OutResult);
-}
 
 ALogicCondition::ALogicCondition()
 {
@@ -83,16 +35,8 @@ void ALogicCondition::RegisterIOFunctions(FActorIOFunctionList& FunctionRegistry
 
 void ALogicCondition::Test()
 {
-	if (!Condition.Expression.IsValid())
-	{
-		OnPass.Broadcast();
-		return;
-	}
-
-	FActorIOExpressionBase& ExprRef = Condition.Expression.GetMutable();
-
 	FString Result;
-	bool bSuccess = ExprRef.Evaluate(Result);
+	bool bSuccess = Condition.Expression.Evaluate(Result);
 
 	if (Result == TEXT("1") || Result == TEXT("True"))
 	{

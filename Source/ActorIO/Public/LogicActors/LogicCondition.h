@@ -4,59 +4,8 @@
 
 #include "ActorIO.h"
 #include "LogicActors/LogicActorBase.h"
-#include "StructUtils/InstancedStruct.h"
+#include "ActorIOExpression.h"
 #include "LogicCondition.generated.h"
-
-USTRUCT()
-struct ACTORIO_API FActorIOExpressionBase
-{
-	GENERATED_BODY()
-
-	virtual ~FActorIOExpressionBase() = default;
-
-	virtual bool Evaluate(FString& OutResult) PURE_VIRTUAL(UActorIOExpression::Evaluate(), return false;)
-};
-
-USTRUCT()
-struct ACTORIO_API FActorIOExpressionLiteral : public FActorIOExpressionBase
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere)
-	FString LiteralValue;
-
-	virtual bool Evaluate(FString& OutResult) override;
-};
-
-USTRUCT()
-struct ACTORIO_API FActorIOExpressionFunction : public FActorIOExpressionBase
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere, meta = (EditCondition = "!bFunctionIsKismetOp"))
-	TSoftObjectPtr<AActor> ObjectPtr;
-
-	UPROPERTY(EditAnywhere)
-	FName FunctionId;
-
-	// #temp
-	UPROPERTY(EditAnywhere)
-	bool bFunctionIsKismetOp;
-
-	UPROPERTY(EditAnywhere)
-	TArray<TInstancedStruct<FActorIOExpressionBase>> Args;
-
-	virtual bool Evaluate(FString& OutResult) override;
-};
-
-USTRUCT()
-struct ACTORIO_API FActorIOExpressionConditionProperty
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere)
-	TInstancedStruct<FActorIOExpressionFunction> Expression;
-};
 
 /**
  * 
