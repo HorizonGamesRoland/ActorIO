@@ -7,7 +7,7 @@
 /**
  * 
  */
-class ACTORIOEDITOR_API FActorIOExpressionCustomization : public IPropertyTypeCustomization
+class ACTORIOEDITOR_API FActorIOFunctionExpressionCustomization : public IPropertyTypeCustomization
 {
 public:
 
