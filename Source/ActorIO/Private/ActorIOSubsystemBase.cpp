@@ -455,6 +455,7 @@ bool UActorIOSubsystemBase::ExecuteCommand(UObject* Target, const TCHAR* Str, FO
      *   - FindFunction and ProcessEvent are called on Target.
      *   - Add IsValid check for Target before finding UFunction.
      *   - Use Ar.Logf instead of UE_LOG(LogScriptCore) because LogScriptCore is static therefore its verbosity cannot be changed.
+     *   - Auto initialize blueprint generated '__WorldContext' property to support static functions.
      *   - Skip importing value for 'out' properties that are not passed by 'ref'.
      *   - Skip CPP param default value initialization because it only works in editor and not packaged games.
      *   - Return success/failure properly.
@@ -524,6 +525,19 @@ bool UActorIOSubsystemBase::ExecuteCommand(UObject* Target, const TCHAR* Str, FO
             if (Op && Executor->IsA(Op->PropertyClass))
             {
                 // First parameter is implicit reference to object executing the command.
+                Op->SetObjectPropertyValue(Op->ContainerPtrToValuePtr<uint8>(Parms), Executor);
+                continue;
+            }
+        }
+
+        /*
+         * AUTO INITIALIZE BLUEPRINT GENERATED '__WORLDCONTEXT' PROPERTY TO SUPPORT STATIC FUNCTIONS
+         */
+        if (PropertyParam->GetName() == TEXT("__WorldContext"))
+        {
+            FObjectPropertyBase* Op = CastField<FObjectPropertyBase>(*It);
+            if (Op && Executor)
+            {
                 Op->SetObjectPropertyValue(Op->ContainerPtrToValuePtr<uint8>(Parms), Executor);
                 continue;
             }
@@ -619,6 +633,11 @@ bool UActorIOSubsystemBase::ExecuteCommand(UObject* Target, const TCHAR* Str, FO
         if (OutRetValue != nullptr)
         {
             FProperty* ReturnProp = Function->GetReturnProperty();
+            if (!ReturnProp && LastParameter->HasAnyPropertyFlags(CPF_OutParm) && !LastParameter->HasAnyPropertyFlags(CPF_ReferenceParm))
+            {
+                ReturnProp = LastParameter;
+            }
+
             if (ReturnProp)
             {
                 ReturnProp->ExportTextItem_InContainer(*OutRetValue, Parms, nullptr, nullptr, PPF_None);
