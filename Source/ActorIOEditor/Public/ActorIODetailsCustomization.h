@@ -4,6 +4,10 @@
 
 #include "IPropertyTypeCustomization.h"
 
+class IPropertyHandle;
+class IPropertyHandleArray;
+class IPropertyUtilities;
+
 /**
  * 
  */
@@ -18,4 +22,24 @@ public:
 	virtual void CustomizeHeader(TSharedRef<IPropertyHandle> StructPropertyHandle, FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils) override;
 	virtual void CustomizeChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils) override;
 	//~ End IPropertyTypeCustomization Interface
+
+protected:
+
+	TSharedPtr<IPropertyHandle> PropClass;
+
+	TSharedPtr<IPropertyHandle> PropFunctionId;
+
+	TSharedPtr<IPropertyHandleArray> PropArgs;
+
+	TSharedPtr<IPropertyUtilities> PropUtilities;
+
+protected:
+
+	void OnFunctionReferenceChanged();
+
+	void SetArgsCount(int32 InCount);
+
+	UFunction* GetReferencedFunction();
+
+	TArray<FProperty*> GetFunctionParams(UFunction* InFunctionPtr);
 };
