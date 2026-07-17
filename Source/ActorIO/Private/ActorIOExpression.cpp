@@ -6,11 +6,19 @@
 #include "Engine/Engine.h"
 #include "Misc/OutputDeviceNull.h"
 
+//=======================================================
+//~ Begin FActorIOLiteralExpression
+//=======================================================
+
 bool FActorIOLiteralExpression::Evaluate(FString& OutResult)
 {
 	OutResult = LiteralValue;
 	return true;
 }
+
+//=======================================================
+//~ Begin FActorIOFunctionExpression
+//=======================================================
 
 bool FActorIOFunctionExpression::Evaluate(FString& OutResult)
 {
@@ -49,4 +57,35 @@ bool FActorIOFunctionExpression::Evaluate(FString& OutResult)
 
 	FOutputDeviceNull Ar;
 	return IOSubsystem->ExecuteCommand(ClassPtr->GetDefaultObject(), *Cmd, Ar, IOSubsystem, &OutResult);
+}
+
+//=======================================================
+//~ Begin FActorIOExpressionGroup
+//=======================================================
+
+bool FActorIOExpressionGroup::Evaluate(FString& OutResult)
+{
+	for (TInstancedStruct<FActorIOExpressionBase>& Expr : Args)
+	{
+		if (!Expr.IsValid())
+		{
+			UE_LOG(LogActorIO, Error, TEXT("Encountered an invalid expression!"));
+			return false;
+		}
+
+		FActorIOExpressionBase& ExprRef = Expr.GetMutable();
+
+		FString Result;
+		if (!ExprRef.Evaluate(Result))
+		{
+			return false;
+		}
+
+		if (Result != TEXT("1") && Result != TEXT("True"))
+		{
+			return false;
+		}
+	}
+
+	return true;
 }

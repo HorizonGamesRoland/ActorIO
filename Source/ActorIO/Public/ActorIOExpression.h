@@ -47,10 +47,21 @@ struct ACTORIO_API FActorIOFunctionExpression: public FActorIOExpressionBase
 };
 
 USTRUCT()
+struct ACTORIO_API FActorIOExpressionGroup : public FActorIOExpressionBase
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere)
+	TArray<TInstancedStruct<FActorIOExpressionBase>> Args;
+
+	virtual bool Evaluate(FString& OutResult) override;
+};
+
+USTRUCT()
 struct ACTORIO_API FActorIOExpressionConditionProperty
 {
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere)
-	FActorIOFunctionExpression Expression;
+	FActorIOExpressionGroup Expression;
 };
