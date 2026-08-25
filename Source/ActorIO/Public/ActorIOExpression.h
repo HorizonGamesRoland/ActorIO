@@ -2,66 +2,81 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
-#include "Kismet/BlueprintFunctionLibrary.h"
-#include "Templates/SubclassOf.h"
-#include "StructUtils/InstancedStruct.h"
+#include "ActorIO.h"
 #include "ActorIOExpression.generated.h"
 
-USTRUCT()
+enum class ACTORIO_API EActorIOExpressionType : uint8
+{
+	Invalid,
+	Literal,
+	Function
+};
+
 struct ACTORIO_API FActorIOExpressionBase
 {
-	GENERATED_BODY()
-
 	virtual ~FActorIOExpressionBase() = default;
 
-	virtual bool Evaluate(FString& OutResult) PURE_VIRTUAL(FActorIOExpressionBase::Evaluate, return false;)
+	FActorIOExpressionBase* ParentExpr;
+
+	virtual EActorIOExpressionType GetType() const { return EActorIOExpressionType::Invalid; }
+	virtual FName GetSubType() const { return NAME_None; }
+	virtual bool Evaluate(FString& OutResult) { return false; }
+
+	void SetParent(FActorIOExpressionBase* InExpr) { ParentExpr = InExpr; }
+	FActorIOExpressionBase* GetParent() const { return ParentExpr; }
 };
 
-USTRUCT()
 struct ACTORIO_API FActorIOLiteralExpression : public FActorIOExpressionBase
 {
-	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere)
 	FString LiteralValue;
 
+	virtual EActorIOExpressionType GetType() const override { return EActorIOExpressionType::Literal; }
 	virtual bool Evaluate(FString& OutResult) override;
 };
 
-USTRUCT()
-struct ACTORIO_API FActorIOFunctionExpression: public FActorIOExpressionBase
+struct ACTORIO_API FActorIOFunctionExpressionBase: public FActorIOExpressionBase
 {
-	GENERATED_BODY()
+	TArray<FActorIOExpressionBase*> Args;
 
-	UPROPERTY(EditAnywhere)
-	TSubclassOf<UBlueprintFunctionLibrary> ClassRef;
+	virtual EActorIOExpressionType GetType() const override { return EActorIOExpressionType::Function; }
 
-	UPROPERTY(EditAnywhere)
+	void AddArgument(FActorIOExpressionBase* InExpr);
+	void RemoveArgument(FActorIOExpressionBase* InExpr);
+	void SetArgumentAt(int32 Index, FActorIOExpressionBase* InExpr);
+	void ResetArguments();
+	FActorIOExpressionBase* GetArgumentAt(int32 Index) const;
+};
+
+struct ACTORIO_API FActorIOKismetFunctionExpression : public FActorIOFunctionExpressionBase
+{
+	UClass* ClassPtr;
+
 	FName FunctionId;
 
-	UPROPERTY(EditAnywhere)
-	TArray<TInstancedStruct<FActorIOExpressionBase>> Args;
+	virtual FName GetSubType() const { return FName(TEXT("KismetFunction")); }
+	virtual bool Evaluate(FString& OutResult) override;
 
+	void SetFunctionClass(UClass* InClassPtr);
+
+	void SetFunctionId(FName InFunctionId);
+
+	void UpdateArguments();
+
+	UFunction* GetUFunction();
+
+	TArray<FProperty*> GetUFunctionParams();
+};
+
+struct ACTORIO_API FActorIOGroupExpression : public FActorIOFunctionExpressionBase
+{
+	virtual FName GetSubType() const { return FName(TEXT("Group")); }
 	virtual bool Evaluate(FString& OutResult) override;
 };
 
 USTRUCT()
-struct ACTORIO_API FActorIOExpressionGroup : public FActorIOExpressionBase
+struct ACTORIO_API FActorIOScriptCondition
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere)
-	TArray<TInstancedStruct<FActorIOExpressionBase>> Args;
-
-	virtual bool Evaluate(FString& OutResult) override;
-};
-
-USTRUCT()
-struct ACTORIO_API FActorIOExpressionConditionProperty
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere)
-	FActorIOExpressionGroup Expression;
+	FActorIOGroupExpression Expression;
 };

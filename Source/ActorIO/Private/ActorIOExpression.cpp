@@ -17,14 +17,70 @@ bool FActorIOLiteralExpression::Evaluate(FString& OutResult)
 }
 
 //=======================================================
-//~ Begin FActorIOFunctionExpression
+//~ Begin FActorIOFunctionExpressionBase
 //=======================================================
 
-bool FActorIOFunctionExpression::Evaluate(FString& OutResult)
+void FActorIOFunctionExpressionBase::AddArgument(FActorIOExpressionBase* InExpr)
+{
+	if (InExpr)
+	{
+		InExpr->SetParent(this);
+		Args.Add(InExpr);
+	}
+}
+
+void FActorIOFunctionExpressionBase::RemoveArgument(FActorIOExpressionBase* InExpr)
+{
+	if (InExpr)
+	{
+		int32 Idx = Args.Find(InExpr);
+		if (Idx != INDEX_NONE)
+		{
+			Args.RemoveAt(Idx);
+			delete InExpr;
+		}
+	}
+}
+
+void FActorIOFunctionExpressionBase::SetArgumentAt(int32 Index, FActorIOExpressionBase* InExpr)
+{
+	if (InExpr && Args.IsValidIndex(Index))
+	{
+		if (Args[Index] != nullptr)
+		{
+			delete Args[Index];
+			Args[Index] = nullptr;
+		}
+
+		InExpr->SetParent(this);
+		Args[Index] = InExpr;
+	}
+}
+
+void FActorIOFunctionExpressionBase::ResetArguments()
+{
+	// #todo: check if element destructors are called properly
+	Args.Empty();
+}
+
+FActorIOExpressionBase* FActorIOFunctionExpressionBase::GetArgumentAt(int32 Index) const
+{
+	if (Args.IsValidIndex(Index))
+	{
+		return Args[Index];
+	}
+
+	return nullptr;
+}
+
+//=======================================================
+//~ Begin FActorIOKismetFunctionExpression
+//=======================================================
+
+bool FActorIOKismetFunctionExpression::Evaluate(FString& OutResult)
 {
 	OutResult.Empty();
 
-	UClass* ClassPtr = ClassRef.Get();
 	if (!ClassPtr)
 	{
 		// #TODO: log error
@@ -32,18 +88,10 @@ bool FActorIOFunctionExpression::Evaluate(FString& OutResult)
 	}
 
 	FString Cmd = FunctionId.ToString();
-	for (TInstancedStruct<FActorIOExpressionBase>& Expr : Args)
+	for (FActorIOExpressionBase* Expr : Args)
 	{
-		if (!Expr.IsValid())
-		{
-			UE_LOG(LogActorIO, Error, TEXT("Encountered an invalid expression!"));
-			return false;
-		}
-
-		FActorIOExpressionBase& ExprRef = Expr.GetMutable();
-
 		FString Result;
-		if (!ExprRef.Evaluate(Result))
+		if (!Expr || !Expr->Evaluate(Result))
 		{
 			return false;
 		}
@@ -59,24 +107,95 @@ bool FActorIOFunctionExpression::Evaluate(FString& OutResult)
 	return IOSubsystem->ExecuteCommand(ClassPtr->GetDefaultObject(), *Cmd, Ar, IOSubsystem, &OutResult);
 }
 
-//=======================================================
-//~ Begin FActorIOExpressionGroup
-//=======================================================
-
-bool FActorIOExpressionGroup::Evaluate(FString& OutResult)
+void FActorIOKismetFunctionExpression::SetFunctionClass(UClass* InClassPtr)
 {
-	for (TInstancedStruct<FActorIOExpressionBase>& Expr : Args)
+	if (ClassPtr != InClassPtr)
 	{
-		if (!Expr.IsValid())
+		ClassPtr = InClassPtr;
+		UpdateArguments();
+	}
+}
+
+void FActorIOKismetFunctionExpression::SetFunctionId(FName InFunctionId)
+{
+	if (FunctionId != InFunctionId)
+	{
+		FunctionId = InFunctionId;
+		UpdateArguments();
+	}
+}
+
+void FActorIOKismetFunctionExpression::UpdateArguments()
+{
+	ResetArguments();
+
+	TArray<FProperty*> FunctionParams = GetUFunctionParams();
+	for (int32 ArgIdx = 0; ArgIdx != FunctionParams.Num(); ++ArgIdx)
+	{
+		FActorIOLiteralExpression* NewArg = new FActorIOLiteralExpression();
+		AddArgument(NewArg);
+	}
+}
+
+UFunction* FActorIOKismetFunctionExpression::GetUFunction()
+{
+	if (ClassPtr && FunctionId != NAME_None)
+	{
+		return ClassPtr->FindFunctionByName(FunctionId);
+	}
+
+	return nullptr;
+}
+
+TArray<FProperty*> FActorIOKismetFunctionExpression::GetUFunctionParams()
+{
+	TArray<FProperty*> OutParams;
+
+	UFunction* ReferencedFunction = GetUFunction();
+	if (ReferencedFunction)
+	{
+		for (TFieldIterator<FProperty> It(ReferencedFunction); It && It->HasAnyPropertyFlags(CPF_Parm); ++It)
 		{
-			UE_LOG(LogActorIO, Error, TEXT("Encountered an invalid expression!"));
-			return false;
+			FProperty* FunctionProp = *It;
+			checkSlow(FunctionProp);
+
+			// Do not create widget for return property.
+			if (FunctionProp->HasAnyPropertyFlags(CPF_ReturnParm))
+			{
+				continue;
+			}
+
+			// Do not create widget for output params, but only if they are not passed by ref
+			// since in that case the value is also an input param.
+			if (FunctionProp->HasAnyPropertyFlags(CPF_OutParm) && !FunctionProp->HasAnyPropertyFlags(CPF_ReferenceParm))
+			{
+				continue;
+			}
+
+			// Skip blueprint generated '__WorldContext' property.
+			// The value for this will be auto initialized for us by the 'ActorIO::ExecuteCommand' function.
+			if (FunctionProp->GetName() == TEXT("__WorldContext"))
+			{
+				continue;
+			}
+
+			OutParams.Add(FunctionProp);
 		}
+	}
 
-		FActorIOExpressionBase& ExprRef = Expr.GetMutable();
+	return OutParams;
+}
 
+//=======================================================
+//~ Begin FActorIOGroupExpression
+//=======================================================
+
+bool FActorIOGroupExpression::Evaluate(FString& OutResult)
+{
+	for (FActorIOExpressionBase* Expr : Args)
+	{
 		FString Result;
-		if (!ExprRef.Evaluate(Result))
+		if (!Expr || !Expr->Evaluate(Result))
 		{
 			return false;
 		}

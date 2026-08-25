@@ -1,176 +1,541 @@
 // Copyright 2024-2026 Horizon Games and all contributors at https://github.com/HorizonGamesRoland/ActorIO/graphs/contributors
 
 #include "ActorIODetailsCustomization.h"
-#include "ActorIOExpression.h"
+#include "ActorIOEditorStyle.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/Images/SImage.h"
+#include "Widgets/Layout/SBox.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Input/SEditableTextBox.h"
+#include "Widgets/Text/STextBlock.h"
 #include "PropertyHandle.h"
+#include "PropertyCustomizationHelpers.h"
 #include "DetailWidgetRow.h"
 #include "DetailLayoutBuilder.h"
 #include "IDetailChildrenBuilder.h"
 #include "IPropertyUtilities.h"
+#include "Kismet/BlueprintFunctionLibrary.h"
 
 #define LOCTEXT_NAMESPACE "ActorIOEditor"
 
-TSharedRef<IPropertyTypeCustomization> FActorIOFunctionExpressionCustomization::MakeInstance()
+//=======================================================
+//~ Begin FActorIODetailCustomizationHelper
+//=======================================================
+
+TSharedRef<IDetailCustomNodeBuilder> FActorIODetailCustomizationHelper::GenerateExpressionDetailRow(const FActorIOExpressionBuilderParams& InParams)
 {
-	return MakeShareable(new FActorIOFunctionExpressionCustomization);
-}
+	const EActorIOExpressionType ExprType = InParams.Expr->GetType();
+	const FName ExprSubType = InParams.Expr->GetSubType();
 
-void FActorIOFunctionExpressionCustomization::CustomizeHeader(TSharedRef<IPropertyHandle> StructPropertyHandle, FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
-{
-	PropClass = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FActorIOFunctionExpression, ClassRef));
-	PropFunctionId = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FActorIOFunctionExpression, FunctionId));
-	PropArgs = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FActorIOFunctionExpression, Args))->AsArray();
-	PropUtilities = StructCustomizationUtils.GetPropertyUtilities();
-
-	FSimpleDelegate FunctionChangedDelegate = FSimpleDelegate::CreateSP(this, &FActorIOFunctionExpressionCustomization::OnFunctionReferenceChanged);
-	PropClass->SetOnPropertyValueChanged(FunctionChangedDelegate);
-	PropClass->SetOnPropertyResetToDefault(FunctionChangedDelegate);
-	PropFunctionId->SetOnPropertyValueChanged(FunctionChangedDelegate);
-	PropFunctionId->SetOnPropertyResetToDefault(FunctionChangedDelegate);
-
-	UFunction* FunctionPtr = GetReferencedFunction();
-	TArray<FProperty*> FunctionParams = GetFunctionParams(FunctionPtr);
-
-	// Ensure argument count matches the function before drawing child properties.
-	uint32 NumArgs = 0;
-	if (PropArgs->GetNumElements(NumArgs) == FPropertyAccess::Success)
+	if (ExprType == EActorIOExpressionType::Literal)
 	{
-		if (NumArgs != (uint32)FunctionParams.Num())
+		return MakeShared<FActorIOLiteralExpressionBuilder>(InParams);
+	}
+	else if (ExprType == EActorIOExpressionType::Function)
+	{
+		if (ExprSubType == TEXT("KismetFunction"))
 		{
-			SetArgsCount(FunctionParams.Num());
+			return MakeShared<FActorIOKismetFunctionExpressionBuilder>(InParams);
+		}
+		else if (ExprSubType == TEXT("Group"))
+		{
+			return MakeShared<FActorIOGroupExpressionBuilder>(InParams);
 		}
 	}
 
-	FText NameOverride = LOCTEXT("ExpressionEd_SelectFunction", "Select a function...");
-	if (FunctionPtr)
+	return MakeShared<FActorIOInvalidExpressionBuilder>(InParams);
+}
+
+//=======================================================
+//~ Begin FActorIOScriptConditionCustomization
+//=======================================================
+
+TSharedRef<IPropertyTypeCustomization> FActorIOScriptConditionCustomization::MakeInstance()
+{
+	return MakeShareable(new FActorIOScriptConditionCustomization);
+}
+
+void FActorIOScriptConditionCustomization::CustomizeHeader(TSharedRef<IPropertyHandle> StructPropertyHandle, FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
+{
+	void* RawData = nullptr;
+	if (StructPropertyHandle->GetValueData(RawData) == FPropertyAccess::Success)
 	{
-		NameOverride = FunctionPtr->GetDisplayNameText();
+		Struct = static_cast<FActorIOScriptCondition*>(RawData);
 	}
 
+	PropUtilities = StructCustomizationUtils.GetPropertyUtilities();
+
 	HeaderRow
-	.WholeRowContent()
+	.NameContent()
 	[
-		StructPropertyHandle->CreatePropertyNameWidget(NameOverride)
+		StructPropertyHandle->CreatePropertyNameWidget()
+	]
+	.ValueContent()
+	[
+		SNew(SHorizontalBox)
+		+SHorizontalBox::Slot()
+		.VAlign(VAlign_Center)
+		.MinWidth(120.0f)
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("ExpressionEd_ConditionHeaderText", "3 Condition elements"))
+			.Font(IDetailLayoutBuilder::GetDetailFont())
+		]
+		+SHorizontalBox::Slot()
+		.Padding(4.0f, 1.0f, 0.0f, 1.0f)
+		.HAlign(HAlign_Left)
+		.VAlign(VAlign_Center)
+		.AutoWidth()
+		[
+			PropertyCustomizationHelpers::MakeAddButton(FSimpleDelegate::CreateSP(this, &FActorIOScriptConditionCustomization::OnClick_AddCondition),
+				LOCTEXT("ExpressionEd_AddCondition", "Add Condition"))
+		]
+		+ SHorizontalBox::Slot()
+		.Padding(4.0f, 1.0f, 0.0f, 1.0f)
+		.HAlign(HAlign_Left)
+		.VAlign(VAlign_Center)
+		.AutoWidth()
+		[
+			PropertyCustomizationHelpers::MakeDeleteButton(FSimpleDelegate::CreateSP(this, &FActorIOScriptConditionCustomization::OnClick_ResetConditions),
+				LOCTEXT("ExpressionEd_ResetConditions", "Remove All Conditions"))
+		]
 	];
 }
 
-void FActorIOFunctionExpressionCustomization::CustomizeChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
+void FActorIOScriptConditionCustomization::CustomizeChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
 {
-	UFunction* FunctionPtr = GetReferencedFunction();
-	if (!FunctionPtr)
+	if (Struct)
 	{
-		StructBuilder.AddProperty(PropClass.ToSharedRef());
-		StructBuilder.AddProperty(PropFunctionId.ToSharedRef());
+		for (FActorIOExpressionBase* Arg : Struct->Expression.Args)
+		{
+			if (!Arg) continue;
+
+			FActorIOExpressionBuilderParams BuilderParams;
+			BuilderParams.Expr = Arg;
+			StructBuilder.AddCustomBuilder(FActorIODetailCustomizationHelper::GenerateExpressionDetailRow(BuilderParams));
+		}
+	}
+}
+
+void FActorIOScriptConditionCustomization::OnClick_AddCondition()
+{
+	FActorIOGroupExpression* NewExpression = new FActorIOGroupExpression();
+	Struct->Expression.AddArgument(NewExpression);
+	PropUtilities->RequestForceRefresh();
+}
+
+void FActorIOScriptConditionCustomization::OnClick_ResetConditions()
+{
+	Struct->Expression.ResetArguments();
+	PropUtilities->RequestForceRefresh();
+}
+
+//=======================================================
+//~ Begin FActorIOLiteralExpressionBuilder
+//=======================================================
+
+FActorIOLiteralExpressionBuilder::FActorIOLiteralExpressionBuilder(const FActorIOExpressionBuilderParams& InParams)
+{
+	Params = InParams;
+	Expr = static_cast<FActorIOLiteralExpression*>(InParams.Expr);
+}
+
+void FActorIOLiteralExpressionBuilder::GenerateHeaderRowContent(FDetailWidgetRow& NodeRow)
+{
+	TSharedPtr<SHorizontalBox> HeaderBox = nullptr;
+
+	NodeRow
+	.NameContent()
+	[
+		SNew(SBox)
+		.VAlign(VAlign_Center)
+		[
+			SAssignNew(HeaderText, STextBlock)
+			.Font(IDetailLayoutBuilder::GetDetailFont())
+			.OverflowPolicy(ETextOverflowPolicy::Ellipsis)
+		]
+	]
+	.ValueContent()
+	[
+		SAssignNew(HeaderBox, SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.FillWidth(1.0f)
+		[
+			SNew(SEditableTextBox)
+		]
+	];
+
+	UpdateHeaderText();
+
+	if (Params.bCanRemoveExpression)
+	{
+		HeaderBox->AddSlot()
+		.Padding(4.0f, 1.0f, 0.0f, 1.0f)
+		.HAlign(HAlign_Left)
+		.VAlign(VAlign_Center)
+		.AutoWidth()
+		[
+			PropertyCustomizationHelpers::MakeCustomButton(FCoreStyle::Get().GetBrush("EditableComboBox.Delete"), FSimpleDelegate::CreateSP(this, &FActorIOLiteralExpressionBuilder::OnClick_Remove),
+				LOCTEXT("ExpressionEd_RemoveExpression", "Remove Expression"))
+		];
+	}
+}
+
+void FActorIOLiteralExpressionBuilder::UpdateHeaderText()
+{
+	if (!Params.HeaderNameOverrideText.IsEmpty())
+	{
+		HeaderText->SetText(Params.HeaderNameOverrideText);
 		return;
 	}
 
-	TArray<FProperty*> FunctionParams = GetFunctionParams(FunctionPtr);
+	HeaderText->SetText(LOCTEXT("ExpressionEd_LiteralValue", "Value"));
+}
 
-	uint32 NumArgs = 0;
-	PropArgs->GetNumElements(NumArgs);
-	if (NumArgs != (uint32)FunctionParams.Num())
+void FActorIOLiteralExpressionBuilder::OnClick_Remove()
+{
+	// #todo: use CustomizationUtils->GetPropertyUtilities()->EnqueueDeferredAction?
+
+	if (Expr)
 	{
-		ensureAlwaysMsgf(false, TEXT("Invalid argument count for the referenced function!"));
+		FActorIOExpressionBase* ParentExpr = Expr->GetParent();
+		if (ParentExpr->GetType() == EActorIOExpressionType::Function)
+		{
+			FActorIOFunctionExpressionBase* FunctionExpr = static_cast<FActorIOFunctionExpressionBase*>(ParentExpr);
+			FunctionExpr->RemoveArgument(Expr);
+		}
+	}
+}
+
+//=======================================================
+//~ Begin FActorIOKismetFunctionExpressionBuilder
+//=======================================================
+
+FActorIOKismetFunctionExpressionBuilder::FActorIOKismetFunctionExpressionBuilder(const FActorIOExpressionBuilderParams& InParams)
+{
+	Params = InParams;
+	Expr = static_cast<FActorIOKismetFunctionExpression*>(InParams.Expr);
+}
+
+void FActorIOKismetFunctionExpressionBuilder::GenerateHeaderRowContent(FDetailWidgetRow& NodeRow)
+{
+	TSharedPtr<SHorizontalBox> HeaderBox = nullptr;
+
+	NodeRow
+	.WholeRowContent()
+	[
+		SAssignNew(HeaderBox, SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.VAlign(VAlign_Center)
+		.FillWidth(1.0f)
+		[
+			SAssignNew(HeaderText, STextBlock)
+			.Font(IDetailLayoutBuilder::GetDetailFont())
+			.OverflowPolicy(ETextOverflowPolicy::Ellipsis)
+		]
+	];
+
+	ReferencedFunction = Expr ? Expr->GetUFunction() : nullptr;
+	UpdateHeaderText();
+
+	if (Params.bCanRemoveExpression)
+	{
+		HeaderBox->AddSlot()
+		.Padding(4.0f, 1.0f, 0.0f, 1.0f)
+		.HAlign(HAlign_Left)
+		.VAlign(VAlign_Center)
+		.AutoWidth()
+		[
+			PropertyCustomizationHelpers::MakeCustomButton(FCoreStyle::Get().GetBrush("EditableComboBox.Delete"), FSimpleDelegate::CreateSP(this, &FActorIOKismetFunctionExpressionBuilder::OnClick_Remove),
+				LOCTEXT("ExpressionEd_RemoveExpression", "Remove Expression"))
+		];
+	}
+}
+
+void FActorIOKismetFunctionExpressionBuilder::GenerateChildContent(IDetailChildrenBuilder& ChildrenBuilder)
+{
+	if (Expr && ReferencedFunction)
+	{
+		TArray<FProperty*> FunctionParams = Expr->GetUFunctionParams();
+		for (int32 ArgIdx = 0; ArgIdx != Expr->Args.Num(); ++ArgIdx)
+		{
+			if (!Expr->Args[ArgIdx]) continue;
+
+			FActorIOExpressionBuilderParams BuilderParams;
+			BuilderParams.Expr = Expr->Args[ArgIdx];
+			BuilderParams.HeaderNameOverrideText = FunctionParams[ArgIdx]->GetDisplayNameText();
+			BuilderParams.bCanRemoveExpression = false;
+			ChildrenBuilder.AddCustomBuilder(FActorIODetailCustomizationHelper::GenerateExpressionDetailRow(BuilderParams));
+		}
+	}
+	else
+	{
+		ChildrenBuilder.AddCustomRow(LOCTEXT("ExpressionEd_SelectFuncClassSearchText", "Class"))
+		.NameContent()
+		[
+			SNew(SBox)
+			.VAlign(VAlign_Center)
+			[
+				SNew(STextBlock)
+				.Text(LOCTEXT("ExpressionEd_SelectFuncClass", "Class"))
+				.Font(IDetailLayoutBuilder::GetDetailFont())
+				.OverflowPolicy(ETextOverflowPolicy::Ellipsis)
+			]
+		]
+		.ValueContent()
+		[
+			SNew(SClassPropertyEntryBox)
+			.MetaClass(UBlueprintFunctionLibrary::StaticClass())
+			.AllowNone(false)
+			.AllowAbstract(false)
+			.SelectedClass(this, &FActorIOKismetFunctionExpressionBuilder::OnGetFunctionClass)
+			.OnSetClass(this, &FActorIOKismetFunctionExpressionBuilder::OnSetFunctionClass)
+		];
+
+		ChildrenBuilder.AddCustomRow(LOCTEXT("ExpressionEd_SelectFuncNameSearchText", "Function"))
+		.NameContent()
+		[
+			SNew(SBox)
+			.VAlign(VAlign_Center)
+			[
+				SNew(STextBlock)
+				.Text(LOCTEXT("ExpressionEd_SelectFuncName", "Function"))
+				.Font(IDetailLayoutBuilder::GetDetailFont())
+				.OverflowPolicy(ETextOverflowPolicy::Ellipsis)
+			]
+		]
+		.ValueContent()
+		[
+			SNew(SEditableTextBox)
+			.OnTextCommitted(this, &FActorIOKismetFunctionExpressionBuilder::OnSetFunctionId)
+		];
+	}
+}
+
+const UClass* FActorIOKismetFunctionExpressionBuilder::OnGetFunctionClass() const
+{
+	return Expr ? Expr->ClassPtr : nullptr;
+}
+
+void FActorIOKismetFunctionExpressionBuilder::OnSetFunctionClass(const UClass* SelectedClass)
+{
+	UFunction* NewFunctionPtr = nullptr;
+	if (Expr)
+	{
+		Expr->SetFunctionClass(const_cast<UClass*>(SelectedClass));
+		NewFunctionPtr = Expr->GetUFunction();
+	}
+
+	if (NewFunctionPtr != ReferencedFunction)
+	{
+		ReferencedFunction = NewFunctionPtr;
+		OnReferencedFunctionChanged();
+	}
+	else
+	{
+		// Rebuild child rows even if nothing changed because the value we set in
+		// the expression may not be the same as what is currently displayed in the UI.
+		OnRebuildChildren.ExecuteIfBound();
+	}
+}
+
+FName FActorIOKismetFunctionExpressionBuilder::OnGetFunctionId()
+{
+	return Expr ? Expr->FunctionId : NAME_None;
+}
+
+void FActorIOKismetFunctionExpressionBuilder::OnSetFunctionId(const FText& NewText, ETextCommit::Type CommitInfo)
+{
+	UFunction* NewFunctionPtr = nullptr;
+	if (Expr)
+	{
+		Expr->SetFunctionId(FName(NewText.ToString(), EFindName::FNAME_Find));
+		NewFunctionPtr = Expr->GetUFunction();
+	}
+
+	if (NewFunctionPtr != ReferencedFunction)
+	{
+		ReferencedFunction = NewFunctionPtr;
+		OnReferencedFunctionChanged();
+	}
+	else
+	{
+		// Rebuild child rows even if nothing changed because the value we set in
+		// the expression may not be the same as what is currently displayed in the UI.
+		OnRebuildChildren.ExecuteIfBound();
+	}
+}
+
+void FActorIOKismetFunctionExpressionBuilder::OnReferencedFunctionChanged()
+{
+	UpdateHeaderText();
+
+	// Rebuild child rows to match the new arguments.
+	OnRebuildChildren.ExecuteIfBound();
+}
+
+void FActorIOKismetFunctionExpressionBuilder::UpdateHeaderText()
+{
+	if (!Params.HeaderNameOverrideText.IsEmpty())
+	{
+		HeaderText->SetText(Params.HeaderNameOverrideText);
 		return;
 	}
 
-	for (int32 ArgIdx = 0; ArgIdx != FunctionParams.Num(); ++ArgIdx)
+	if (ReferencedFunction)
 	{
-		TSharedRef<IPropertyHandle> PropArg = PropArgs->GetElement(ArgIdx);
-		IDetailPropertyRow& Row = StructBuilder.AddProperty(PropArg);
-
-		FString ParamName = FunctionParams[ArgIdx]->GetAuthoredName();
-		Row.DisplayName(FText::FromString(ParamName));
-
-		FText ParamTooltip = FunctionParams[ArgIdx]->GetToolTipText();
-		Row.ToolTip(ParamTooltip);
+		HeaderText->SetText(ReferencedFunction->GetDisplayNameText());
 	}
-
-	//TSharedPtr<IPropertyHandle> PropArgs2 = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FActorIOFunctionExpression, Args));
-	//StructBuilder.AddProperty(PropArgs2.ToSharedRef());
-}
-
-void FActorIOFunctionExpressionCustomization::OnFunctionReferenceChanged()
-{
-	UFunction* FunctionPtr = GetReferencedFunction();
-	TArray<FProperty*> FunctionParams = GetFunctionParams(FunctionPtr);
-	SetArgsCount(FunctionParams.Num());
-
-	if (PropUtilities.IsValid())
+	else
 	{
-		PropUtilities->RequestForceRefresh();
+		HeaderText->SetText(LOCTEXT("ExpressionEd_SelectFunc", "Select a function..."));
 	}
 }
 
-void FActorIOFunctionExpressionCustomization::SetArgsCount(int32 InCount)
+void FActorIOKismetFunctionExpressionBuilder::OnClick_Remove()
 {
-	if (PropArgs.IsValid())
+	// #todo: use CustomizationUtils->GetPropertyUtilities()->EnqueueDeferredAction?
+
+	if (Expr)
 	{
-		PropArgs->EmptyArray();
-		for (int32 ArgIdx = 0; ArgIdx != InCount; ++ArgIdx)
+		FActorIOExpressionBase* ParentExpr = Expr->GetParent();
+		if (ParentExpr->GetType() == EActorIOExpressionType::Function)
 		{
-			PropArgs->AddItem();
+			FActorIOFunctionExpressionBase* FunctionExpr = static_cast<FActorIOFunctionExpressionBase*>(ParentExpr);
+			FunctionExpr->RemoveArgument(Expr);
 		}
 	}
 }
 
-UFunction* FActorIOFunctionExpressionCustomization::GetReferencedFunction()
+//=======================================================
+//~ Begin FActorIOGroupExpressionBuilder
+//=======================================================
+
+FActorIOGroupExpressionBuilder::FActorIOGroupExpressionBuilder(const FActorIOExpressionBuilderParams& InParams)
 {
-	UClass* ClassPtr = nullptr;
-	UObject* ClassObject = nullptr;
-	if (PropClass.IsValid() && PropClass->GetValue(ClassObject) == FPropertyAccess::Success)
-	{
-		ClassPtr = Cast<UClass>(ClassObject);
-	}
-
-	FName FuncName = NAME_None;
-	if (PropFunctionId.IsValid() && PropFunctionId->GetValue(FuncName) == FPropertyAccess::Success)
-	{
-		if (ClassPtr && FuncName != NAME_None)
-		{
-			return ClassPtr->FindFunctionByName(FuncName);
-		}
-	}
-
-	return nullptr;
+	Params = InParams;
+	Expr = static_cast<FActorIOGroupExpression*>(InParams.Expr);
 }
 
-TArray<FProperty*> FActorIOFunctionExpressionCustomization::GetFunctionParams(UFunction* InFunctionPtr)
+void FActorIOGroupExpressionBuilder::GenerateHeaderRowContent(FDetailWidgetRow& NodeRow)
 {
-	TArray<FProperty*> OutParams;
+	NodeRow
+	.WholeRowContent()
+	[
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.FillWidth(1.0f)
+		[
+			SNew(SBox)
+			.VAlign(VAlign_Center)
+			[
+				SNew(STextBlock)
+				.Text(LOCTEXT("ExpressionEd_GroupName", "If all of the following is TRUE:"))
+				.Font(IDetailLayoutBuilder::GetDetailFont())
+				.OverflowPolicy(ETextOverflowPolicy::Ellipsis)
+			]
+		]
+		+ SHorizontalBox::Slot()
+		.AutoWidth()
+		.Padding(2.0f)
+		[
+			SNew(SButton)
+			.OnClicked(FOnClicked::CreateSP(this, &FActorIOGroupExpressionBuilder::OnAddFunctionClicked))
+			[
+				SNew(STextBlock)
+				.Text(INVTEXT("Add Expression"))
+			]
+		]
+		+ SHorizontalBox::Slot()
+		.AutoWidth()
+		.Padding(0.0f, 2.0f)
+		[
+			SNew(SButton)
+			.OnClicked(FOnClicked::CreateSP(this, &FActorIOGroupExpressionBuilder::OnAddGroupClicked))
+			[
+				SNew(STextBlock)
+				.Text(INVTEXT("Add Group"))
+			]
+		]
+		+ SHorizontalBox::Slot()
+		.Padding(4.0f, 1.0f, 0.0f, 1.0f)
+		.HAlign(HAlign_Left)
+		.VAlign(VAlign_Center)
+		.AutoWidth()
+		[
+			PropertyCustomizationHelpers::MakeCustomButton(FCoreStyle::Get().GetBrush("EditableComboBox.Delete"), FSimpleDelegate::CreateSP(this, &FActorIOGroupExpressionBuilder::OnClick_Remove),
+				LOCTEXT("ExpressionEd_RemoveExpression", "Remove Expression"))
+		]
+	];
+}
 
-	if (InFunctionPtr)
+void FActorIOGroupExpressionBuilder::GenerateChildContent(IDetailChildrenBuilder& ChildrenBuilder)
+{
+	for (FActorIOExpressionBase* Arg : Expr->Args)
 	{
-		for (TFieldIterator<FProperty> It(InFunctionPtr); It && It->HasAnyPropertyFlags(CPF_Parm); ++It)
+		if (!Arg) continue;
+
+		FActorIOExpressionBuilderParams BuilderParams;
+		BuilderParams.Expr = Arg;
+		ChildrenBuilder.AddCustomBuilder(FActorIODetailCustomizationHelper::GenerateExpressionDetailRow(BuilderParams));
+	}
+}
+
+FReply FActorIOGroupExpressionBuilder::OnAddFunctionClicked()
+{
+	FActorIOKismetFunctionExpression* NewExpression = new FActorIOKismetFunctionExpression();
+	Expr->AddArgument(NewExpression);
+
+	OnRebuildChildren.ExecuteIfBound();
+	return FReply::Handled();
+}
+
+FReply FActorIOGroupExpressionBuilder::OnAddGroupClicked()
+{
+	FActorIOGroupExpression* NewExpression = new FActorIOGroupExpression();
+	Expr->AddArgument(NewExpression);
+
+	OnRebuildChildren.ExecuteIfBound();
+	return FReply::Handled();
+}
+
+void FActorIOGroupExpressionBuilder::OnClick_Remove()
+{
+	// #todo: use CustomizationUtils->GetPropertyUtilities()->EnqueueDeferredAction?
+
+	if (Expr)
+	{
+		FActorIOExpressionBase* ParentExpr = Expr->GetParent();
+		if (ParentExpr->GetType() == EActorIOExpressionType::Function)
 		{
-			FProperty* FunctionProp = *It;
-			checkSlow(FunctionProp);
-
-			// Do not create widget for return property.
-			if (FunctionProp->HasAnyPropertyFlags(CPF_ReturnParm))
-			{
-				continue;
-			}
-
-			// Do not create widget for output params, but only if they are not passed by ref
-			// since in that case the value is also an input param.
-			if (FunctionProp->HasAnyPropertyFlags(CPF_OutParm) && !FunctionProp->HasAnyPropertyFlags(CPF_ReferenceParm))
-			{
-				continue;
-			}
-
-			// Skip blueprint generated '__WorldContext' property.
-			// The value for this will be auto initialized for us by the 'ActorIO::ExecuteCommand' function.
-			if (FunctionProp->GetName() == TEXT("__WorldContext"))
-			{
-				continue;
-			}
-
-			OutParams.Add(FunctionProp);
+			FActorIOFunctionExpressionBase* FunctionExpr = static_cast<FActorIOFunctionExpressionBase*>(ParentExpr);
+			FunctionExpr->RemoveArgument(Expr);
 		}
 	}
+}
 
-	return OutParams;
+//=======================================================
+//~ Begin FActorIOInvalidExpressionBuilder
+//=======================================================
+
+FActorIOInvalidExpressionBuilder::FActorIOInvalidExpressionBuilder(const FActorIOExpressionBuilderParams& InParams)
+{
+	Params = InParams;
+}
+
+void FActorIOInvalidExpressionBuilder::GenerateHeaderRowContent(FDetailWidgetRow& NodeRow)
+{
+	NodeRow
+	.WholeRowContent()
+	[
+		SNew(SBox)
+		[
+			SNew(STextBlock)
+			.Text(INVTEXT("Unknown Expression!"))
+			.Font(IDetailLayoutBuilder::GetDetailFont())
+			.ColorAndOpacity(FStyleColors::Error)
+		]
+	];
 }
 
 #undef LOCTEXT_NAMESPACE

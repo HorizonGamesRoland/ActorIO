@@ -33,7 +33,7 @@ public:
 protected:
 
 	UPROPERTY(EditInstanceOnly)
-	FActorIOExpressionConditionProperty Condition;
+	FActorIOScriptCondition Condition;
 
 public:
 
