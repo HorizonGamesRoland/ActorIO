@@ -2,9 +2,29 @@
 
 #include "ActorIOExpression.h"
 #include "ActorIOSubsystemBase.h"
+#include "ActorIOVersions.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Engine/Engine.h"
+#include "Serialization/NameAsStringProxyArchive.h"
+#include "Serialization/Formatters/BinaryArchiveFormatter.h"
 #include "Misc/OutputDeviceNull.h"
+
+//=======================================================
+//~ Begin FActorIOExpressionBase
+//=======================================================
+
+FActorIOExpressionBase::FActorIOExpressionBase()
+{
+	ParentExpr = nullptr;
+}
+
+void FActorIOExpressionBase::Serialize(FArchive& Ar)
+{
+	EActorIOExpressionType Type = GetType();
+	FString SubType = GetSubType().ToString(); // can't serialize FNames directly
+	Ar << Type;
+	Ar << SubType;
+}
 
 //=======================================================
 //~ Begin FActorIOLiteralExpression
@@ -16,9 +36,89 @@ bool FActorIOLiteralExpression::Evaluate(FString& OutResult)
 	return true;
 }
 
+void FActorIOLiteralExpression::Serialize(FArchive& Ar)
+{
+	FActorIOExpressionBase::Serialize(Ar);
+	Ar << LiteralValue;
+}
+
 //=======================================================
 //~ Begin FActorIOFunctionExpressionBase
 //=======================================================
+
+FActorIOFunctionExpressionBase::~FActorIOFunctionExpressionBase()
+{
+	Args.Empty();
+}
+
+void FActorIOFunctionExpressionBase::Serialize(FArchive& Ar)
+{
+	FActorIOExpressionBase::Serialize(Ar);
+
+	if (Ar.IsLoading() && !Args.IsEmpty())
+	{
+		Args.Empty();
+	}
+
+	int32 NumArgs = Args.Num();
+	Ar << NumArgs;
+
+	for (int32 ArgIdx = 0; ArgIdx != NumArgs; ++ArgIdx)
+	{
+		const int64 DataSizePosition = Ar.Tell();
+		int64 DataSize = 0;
+
+		// Pre-serialize the data size. We'll rewrite this after serializing the expression.
+		Ar << DataSize;
+
+		const int64 BeginDataPosition = Ar.Tell();
+
+		if (Ar.IsLoading())
+		{
+			// Skip if no data was serialized for this expression.
+			if (DataSize <= 0) continue;
+
+			EActorIOExpressionType Type = EActorIOExpressionType::Invalid;
+			FString SubType;
+			Ar << Type;
+			Ar << SubType;
+
+			FActorIOExpressionBase* NewArg = FActorIOExpresionHelper::CreateExpressionFromType(Type, FName(SubType));
+			UE_CLOG(!NewArg, LogActorIO, Warning, TEXT("Could not create expression from type '%s:%s'."), *UEnum::GetValueAsString(Type), *SubType);
+
+			// Go back to the start before attempting to serialize the expression.
+			Ar.Seek(BeginDataPosition);
+
+			if (NewArg)
+			{
+				AddArgument(NewArg);
+				NewArg->Serialize(Ar);
+			}
+
+			// Not sure how to recover from this.
+			checkf(Ar.Tell() <= BeginDataPosition + DataSize, TEXT("Serialized more data then expected when loading an expression!"));
+
+			// Seek to the end of the data block in case we serialized less.
+			Ar.Seek(BeginDataPosition + DataSize);
+		}
+		else if (Ar.IsSaving())
+		{
+			FActorIOExpressionBase* Arg = Args[ArgIdx];
+			if (Arg)
+			{
+				Arg->Serialize(Ar);
+			}
+
+			// Seek back and re-write the data size with the actual size.
+			const int64 EndDataPosition = Ar.Tell();
+			DataSize = EndDataPosition - BeginDataPosition;
+
+			Ar.Seek(DataSizePosition);
+			Ar << DataSize;
+			Ar.Seek(EndDataPosition);
+		}
+	}
+}
 
 void FActorIOFunctionExpressionBase::AddArgument(FActorIOExpressionBase* InExpr)
 {
@@ -81,7 +181,7 @@ bool FActorIOKismetFunctionExpression::Evaluate(FString& OutResult)
 {
 	OutResult.Empty();
 
-	if (!ClassPtr)
+	if (!ClassPtr.IsValid())
 	{
 		// #TODO: log error
 		return false;
@@ -104,7 +204,34 @@ bool FActorIOKismetFunctionExpression::Evaluate(FString& OutResult)
 	check(IOSubsystem);
 
 	FOutputDeviceNull Ar;
-	return IOSubsystem->ExecuteCommand(ClassPtr->GetDefaultObject(), *Cmd, Ar, IOSubsystem, &OutResult);
+	return IOSubsystem->ExecuteCommand(ClassPtr.Pin().Get()->GetDefaultObject(), *Cmd, Ar, IOSubsystem, &OutResult);
+}
+
+void FActorIOKismetFunctionExpression::Serialize(FArchive& Ar)
+{
+	FActorIOFunctionExpressionBase::Serialize(Ar);
+
+	FSoftObjectPath ClassPath;
+	if (Ar.IsSaving() && ClassPtr.IsValid())
+	{
+		ClassPath = ClassPtr.Pin().Get();
+	}
+
+	Ar << ClassPath;
+	Ar << FunctionId;
+
+	if (Ar.IsLoading())
+	{
+		ClassPath.FixupCoreRedirects();
+		if (ClassPath.IsValid())
+		{
+			UClass* ResolvedClass = Cast<UClass>(ClassPath.ResolveObject());
+			if (ResolvedClass)
+			{
+				ClassPtr = ResolvedClass;
+			}
+		}
+	}
 }
 
 void FActorIOKismetFunctionExpression::SetFunctionClass(UClass* InClassPtr)
@@ -139,9 +266,9 @@ void FActorIOKismetFunctionExpression::UpdateArguments()
 
 UFunction* FActorIOKismetFunctionExpression::GetUFunction()
 {
-	if (ClassPtr && FunctionId != NAME_None)
+	if (ClassPtr.IsValid() && FunctionId != NAME_None)
 	{
-		return ClassPtr->FindFunctionByName(FunctionId);
+		return ClassPtr.Pin().Get()->FindFunctionByName(FunctionId);
 	}
 
 	return nullptr;
@@ -207,4 +334,45 @@ bool FActorIOGroupExpression::Evaluate(FString& OutResult)
 	}
 
 	return true;
+}
+
+//=======================================================
+//~ Begin FActorIOScriptCondition
+//=======================================================
+
+bool FActorIOScriptCondition::Serialize(FArchive& Ar)
+{
+	Ar.UsingCustomVersion(FActorIOExpressionVersion::GUID);
+
+	int32 Version = Ar.CustomVer(FActorIOExpressionVersion::GUID);
+	Ar << Version;
+
+	if (Ar.IsLoading())
+	{
+		Ar.SetCustomVersion(FActorIOExpressionVersion::GUID, Version, TEXT("ActorIOExpressionVer"));
+	}
+
+	Expr.Serialize(Ar);
+	return true;
+}
+
+FActorIOExpressionBase* FActorIOExpresionHelper::CreateExpressionFromType(EActorIOExpressionType InType, FName InSubType)
+{
+	if (InType == EActorIOExpressionType::Literal)
+	{
+		return new FActorIOLiteralExpression();
+	}
+	else if (InType == EActorIOExpressionType::Function)
+	{
+		if (InSubType == FName("KismetFunction"))
+		{
+			return new FActorIOKismetFunctionExpression();
+		}
+		else if (InSubType == FName("Group"))
+		{
+			return new FActorIOGroupExpression();
+		}
+	}
+
+	return nullptr;
 }

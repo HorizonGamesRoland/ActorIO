@@ -33,10 +33,24 @@ void ALogicCondition::RegisterIOFunctions(FActorIOFunctionList& FunctionRegistry
 		.SetFunction(TEXT("Test")));
 }
 
+void ALogicCondition::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	//Condition.Serialize(Ar); - disabled to avoid users bricking their maps
+}
+
+void ALogicCondition::Serialize(FStructuredArchive::FRecord Record)
+{
+	Super::Serialize(Record);
+
+	//Condition.Serialize(Record.GetUnderlyingArchive());  - disabled to avoid users bricking their maps
+}
+
 void ALogicCondition::Test()
 {
 	FString Result;
-	bool bSuccess = Condition.Expression.Evaluate(Result);
+	bool bSuccess = Condition.Expr.Evaluate(Result);
 
 	if (Result == TEXT("1") || Result == TEXT("True"))
 	{

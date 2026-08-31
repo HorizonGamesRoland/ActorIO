@@ -47,3 +47,25 @@ struct FActorIOSubsystemVersion
 	/** Not instantiable */
 	FActorIOSubsystemVersion() = delete;
 };
+
+/**
+ * Custom serialization version for I/O expressions.
+ */
+struct FActorIOExpressionVersion
+{
+	enum Type
+	{
+		// Before any version changes were made.
+		InitialVersion = 0,
+
+		// -----<new versions can be added above this line>-------------------------------------------------
+		VersionPlusOne,
+		LatestVersion = VersionPlusOne - 1
+	};
+
+	/** The GUID for this custom version number. */
+	ACTORIO_API const static FGuid GUID;
+
+	/** Not instantiable */
+	FActorIOExpressionVersion() = delete;
+};

@@ -8,6 +8,7 @@
 
 class IPropertyHandle;
 class IPropertyUtilities;
+class IDetailLayoutBuilder;
 class FReply;
 
 struct ACTORIOEDITOR_API FActorIOExpressionBuilderParams
@@ -28,6 +29,8 @@ struct ACTORIOEDITOR_API FActorIOExpressionBuilderParams
 class ACTORIOEDITOR_API FActorIODetailCustomizationHelper
 {
 public:
+
+	// #todo: create registry similar to PropertyModule.RegisterCustomClassLayout
 
 	static TSharedRef<IDetailCustomNodeBuilder> GenerateExpressionDetailRow(const FActorIOExpressionBuilderParams& InParams);
 };
@@ -85,6 +88,8 @@ protected:
 
 	void UpdateHeaderText();
 
+	void OnValueCommitted(const FText& InText, ETextCommit::Type InCommitType);
+
 	void OnClick_Remove();
 };
 
@@ -113,6 +118,8 @@ protected:
 	UFunction* ReferencedFunction;
 
 	FSimpleDelegate OnRebuildChildren;
+
+	IDetailLayoutBuilder* LayoutBuilder;
 
 	TSharedPtr<class STextBlock> HeaderText;
 

@@ -18,3 +18,11 @@ FCustomVersionRegistration GRegisterActorIOActionVersion(FActorIOActionVersion::
 const FGuid FActorIOSubsystemVersion::GUID(0x8E6E2EE1, 0x5BCF45F7, 0xBA2DB375, 0x03F86D40);
 
 FCustomVersionRegistration GRegisterActorIOMessageVersion(FActorIOSubsystemVersion::GUID, FActorIOSubsystemVersion::LatestVersion, TEXT("ActorIOSubsystemVer"));
+
+//==================================
+//~ Begin FActorIOExpressionVersion
+//==================================
+
+const FGuid FActorIOExpressionVersion::GUID(0x8A161671, 0x48FBF27B, 0xA36F57BF, 0x4AEEB8B7); //#todo
+
+FCustomVersionRegistration GRegisterActorIOExpressionVersion(FActorIOExpressionVersion::GUID, FActorIOExpressionVersion::LatestVersion, TEXT("ActorIOExpressionVer"));
