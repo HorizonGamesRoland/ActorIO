@@ -22,9 +22,11 @@ public:
 	virtual ~FActorIOExpressionBase() = default;
 
 	virtual EActorIOExpressionType GetType() const { return EActorIOExpressionType::Invalid; }
-	virtual FName GetSubType() const { return NAME_None; }
+	virtual FName GetTypeName() const { return NAME_None; }
 	virtual bool Evaluate(FString& OutResult) { return false; }
-	virtual void Serialize(FArchive& Ar);
+
+	virtual bool ExportText(FString& Str) const { return false; }
+	virtual bool ImportText(const FString& Str) { return false; }
 
 	void SetParent(FActorIOExpressionBase* InExpr) { ParentExpr = InExpr; }
 	FActorIOExpressionBase* GetParent() const { return ParentExpr; }
@@ -39,8 +41,10 @@ class ACTORIO_API FActorIOLiteralExpression : public FActorIOExpressionBase
 public:
 
 	virtual EActorIOExpressionType GetType() const override { return EActorIOExpressionType::Literal; }
+	virtual FName GetTypeName() const override { return FName("Literal"); }
 	virtual bool Evaluate(FString& OutResult) override;
-	virtual void Serialize(FArchive& Ar) override;
+	virtual bool ExportText(FString& Str) const override;
+	virtual bool ImportText(const FString& Str) override;
 
 	void SetLiteralValue(const FString& InValue) { LiteralValue = InValue; }
 	const FString& GetLiteralValue() const { return LiteralValue; }
@@ -57,7 +61,6 @@ public:
 	virtual ~FActorIOFunctionExpressionBase();
 
 	virtual EActorIOExpressionType GetType() const override { return EActorIOExpressionType::Function; }
-	virtual void Serialize(FArchive& Ar) override;
 
 	void AddArgument(FActorIOExpressionBase* InExpr);
 	void RemoveArgument(FActorIOExpressionBase* InExpr);
@@ -69,6 +72,9 @@ public:
 
 protected:
 
+	bool ImportArgumentsText(const FString& Str);
+	bool ExportArgumentsText(FString& Str) const;
+
 	TArray<FActorIOExpressionBase*> Args;
 };
 
@@ -76,9 +82,10 @@ class ACTORIO_API FActorIOKismetFunctionExpression : public FActorIOFunctionExpr
 {
 public:
 
-	virtual FName GetSubType() const { return FName("KismetFunction"); }
+	virtual FName GetTypeName() const override { return FName("KismetFunction"); }
 	virtual bool Evaluate(FString& OutResult) override;
-	virtual void Serialize(FArchive& Ar) override;
+	virtual bool ExportText(FString& Str) const override;
+	virtual bool ImportText(const FString& Str) override;
 
 	void SetFunctionClass(UClass* InClassPtr);
 	void SetFunctionId(FName InFunctionId);
@@ -101,8 +108,10 @@ class ACTORIO_API FActorIOGroupExpression : public FActorIOFunctionExpressionBas
 {
 public:
 
-	virtual FName GetSubType() const { return FName("Group"); }
+	virtual FName GetTypeName() const override { return FName("Group"); }
 	virtual bool Evaluate(FString& OutResult) override;
+	virtual bool ExportText(FString& Str) const override;
+	virtual bool ImportText(const FString& Str) override;
 };
 
 USTRUCT()
@@ -112,9 +121,11 @@ struct ACTORIO_API FActorIOScriptCondition
 
 	FActorIOGroupExpression Expr;
 
-	//bool operator==(const FActorIOScriptCondition& Other) const = default;
+	bool operator==(const FActorIOScriptCondition& Other) const;
 
 	bool Serialize(FArchive& Ar);
+	bool ExportTextItem(FString& ValueStr, FActorIOScriptCondition const& DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope) const;
+	bool ImportTextItem(const TCHAR*& Buffer, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText);
 };
 
 template<>
@@ -123,13 +134,17 @@ struct TStructOpsTypeTraits<FActorIOScriptCondition> : public TStructOpsTypeTrai
 	enum
 	{
 		WithSerializer = true,
+		WithExportTextItem = true,
+		WithImportTextItem = true,
 		//WithIdenticalViaEquality = true
 	};
 };
 
-class ACTORIO_API FActorIOExpresionHelper
+class ACTORIO_API FActorIOExpresionParser
 {
 public:
 
-	static FActorIOExpressionBase* CreateExpressionFromType(EActorIOExpressionType InType, FName InSubType);
+	static FActorIOExpressionBase* CreateExpressionFromTypeString(const FString& Str);
+
+	static bool ParseNextBracket(const FString& Str, FString& OutPrefix, FString& OutData);
 };

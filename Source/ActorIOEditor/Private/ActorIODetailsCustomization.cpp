@@ -24,25 +24,20 @@
 
 TSharedRef<IDetailCustomNodeBuilder> FActorIODetailCustomizationHelper::GenerateExpressionDetailRow(const FActorIOExpressionBuilderParams& InParams)
 {
-	const EActorIOExpressionType ExprType = InParams.Expr->GetType();
-	const FName ExprSubType = InParams.Expr->GetSubType();
-
-	if (ExprType == EActorIOExpressionType::Literal)
+	const FName ExprTypeName = InParams.Expr->GetTypeName();
+	if (ExprTypeName == FName("Literal"))
 	{
 		return MakeShared<FActorIOLiteralExpressionBuilder>(InParams);
 	}
-	else if (ExprType == EActorIOExpressionType::Function)
+	else if (ExprTypeName == FName("KismetFunction"))
 	{
-		if (ExprSubType == TEXT("KismetFunction"))
-		{
-			return MakeShared<FActorIOKismetFunctionExpressionBuilder>(InParams);
-		}
-		else if (ExprSubType == TEXT("Group"))
-		{
-			return MakeShared<FActorIOGroupExpressionBuilder>(InParams);
-		}
+		return MakeShared<FActorIOKismetFunctionExpressionBuilder>(InParams);
 	}
-
+	else if (ExprTypeName == FName("Group"))
+	{
+		return MakeShared<FActorIOGroupExpressionBuilder>(InParams);
+	}
+	
 	return MakeShared<FActorIOInvalidExpressionBuilder>(InParams);
 }
 
