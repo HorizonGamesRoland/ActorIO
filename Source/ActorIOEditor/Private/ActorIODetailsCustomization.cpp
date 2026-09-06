@@ -99,9 +99,9 @@ void FActorIOScriptConditionCustomization::CustomizeHeader(TSharedRef<IPropertyH
 
 void FActorIOScriptConditionCustomization::CustomizeChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
 {
-	if (Struct)
+	if (Struct && Struct->GetExpression())
 	{
-		for (FActorIOExpressionBase* Arg : Struct->Expr.GetArguments())
+		for (FActorIOExpressionBase* Arg : Struct->GetExpression()->GetArguments())
 		{
 			if (!Arg) continue;
 
@@ -114,15 +114,21 @@ void FActorIOScriptConditionCustomization::CustomizeChildren(TSharedRef<IPropert
 
 void FActorIOScriptConditionCustomization::OnClick_AddCondition()
 {
-	FActorIOGroupExpression* NewExpression = new FActorIOGroupExpression();
-	Struct->Expr.AddArgument(NewExpression);
-	PropUtilities->RequestForceRefresh();
+	if (Struct && Struct->GetExpression())
+	{
+		FActorIOGroupExpression* NewExpression = new FActorIOGroupExpression();
+		Struct->GetExpression()->AddArgument(NewExpression);
+		PropUtilities->RequestForceRefresh();
+	}
 }
 
 void FActorIOScriptConditionCustomization::OnClick_ResetConditions()
 {
-	Struct->Expr.ResetArguments();
-	PropUtilities->RequestForceRefresh();
+	if (Struct && Struct->GetExpression())
+	{
+		Struct->GetExpression()->ResetArguments();
+		PropUtilities->RequestForceRefresh();
+	}
 }
 
 //=======================================================

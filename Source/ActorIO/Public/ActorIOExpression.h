@@ -26,12 +26,12 @@ public:
 	virtual bool Evaluate(FString& OutResult) { return false; }
 
 	virtual bool ExportText(FString& Str) const { return false; }
-	virtual bool ImportText(const FString& Str) { return false; }
+	virtual bool ImportText(const FString& Str, int32 Version) { return false; }
 
 	void SetParent(FActorIOExpressionBase* InExpr) { ParentExpr = InExpr; }
 	FActorIOExpressionBase* GetParent() const { return ParentExpr; }
 
-protected:
+private:
 
 	FActorIOExpressionBase* ParentExpr;
 };
@@ -44,7 +44,7 @@ public:
 	virtual FName GetTypeName() const override { return FName("Literal"); }
 	virtual bool Evaluate(FString& OutResult) override;
 	virtual bool ExportText(FString& Str) const override;
-	virtual bool ImportText(const FString& Str) override;
+	virtual bool ImportText(const FString& Str, int32 Version) override;
 
 	void SetLiteralValue(const FString& InValue) { LiteralValue = InValue; }
 	const FString& GetLiteralValue() const { return LiteralValue; }
@@ -58,6 +58,7 @@ class ACTORIO_API FActorIOFunctionExpressionBase: public FActorIOExpressionBase
 {
 public:
 
+	FActorIOFunctionExpressionBase();
 	virtual ~FActorIOFunctionExpressionBase();
 
 	virtual EActorIOExpressionType GetType() const override { return EActorIOExpressionType::Function; }
@@ -70,12 +71,17 @@ public:
 	const TArray<FActorIOExpressionBase*>& GetArguments() const { return Args; }
 	FActorIOExpressionBase* GetArgumentAt(int32 Index) const;
 
+	void SetNegated(bool bEnabled) { bNegated = bEnabled; }
+	bool IsNegated() const { return bNegated; }
+
 protected:
 
-	bool ImportArgumentsText(const FString& Str);
-	bool ExportArgumentsText(FString& Str) const;
+	virtual bool ImportArgumentsText(const FString& Str, int32 Version);
+	virtual bool ExportArgumentsText(FString& Str) const;
 
 	TArray<FActorIOExpressionBase*> Args;
+
+	bool bNegated;
 };
 
 class ACTORIO_API FActorIOKismetFunctionExpression : public FActorIOFunctionExpressionBase
@@ -85,7 +91,7 @@ public:
 	virtual FName GetTypeName() const override { return FName("KismetFunction"); }
 	virtual bool Evaluate(FString& OutResult) override;
 	virtual bool ExportText(FString& Str) const override;
-	virtual bool ImportText(const FString& Str) override;
+	virtual bool ImportText(const FString& Str, int32 Version) override;
 
 	void SetFunctionClass(UClass* InClassPtr);
 	void SetFunctionId(FName InFunctionId);
@@ -111,7 +117,7 @@ public:
 	virtual FName GetTypeName() const override { return FName("Group"); }
 	virtual bool Evaluate(FString& OutResult) override;
 	virtual bool ExportText(FString& Str) const override;
-	virtual bool ImportText(const FString& Str) override;
+	virtual bool ImportText(const FString& Str, int32 Version) override;
 };
 
 USTRUCT()
@@ -119,13 +125,23 @@ struct ACTORIO_API FActorIOScriptCondition
 {
 	GENERATED_BODY()
 
-	FActorIOGroupExpression Expr;
+public:
+	
+	FActorIOScriptCondition();
+	~FActorIOScriptCondition();
 
 	bool operator==(const FActorIOScriptCondition& Other) const;
+	bool operator!=(const FActorIOScriptCondition& Other) const { return !(*this == Other); }
 
 	bool Serialize(FArchive& Ar);
 	bool ExportTextItem(FString& ValueStr, FActorIOScriptCondition const& DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope) const;
 	bool ImportTextItem(const TCHAR*& Buffer, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText);
+
+	FActorIOGroupExpression* GetExpression() const { return Expr; }
+
+protected:
+
+	FActorIOGroupExpression* Expr;
 };
 
 template<>
@@ -136,7 +152,7 @@ struct TStructOpsTypeTraits<FActorIOScriptCondition> : public TStructOpsTypeTrai
 		WithSerializer = true,
 		WithExportTextItem = true,
 		WithImportTextItem = true,
-		//WithIdenticalViaEquality = true
+		//WithIdenticalViaEquality = true - disabled to avoid users bricking their maps
 	};
 };
 
@@ -144,7 +160,9 @@ class ACTORIO_API FActorIOExpresionParser
 {
 public:
 
-	static FActorIOExpressionBase* CreateExpressionFromTypeString(const FString& Str);
+	static FActorIOExpressionBase* NewExpressionFromString(const FString& Str, int32 Version = INDEX_NONE);
 
-	static bool ParseNextBracket(const FString& Str, FString& OutPrefix, FString& OutData);
+	static FActorIOExpressionBase* NewExpressionOfType(FName TypeName);
+
+	static bool ParseBracket(const FString& Str, FString& OutPrefix, FString& OutData);
 };

@@ -40,8 +40,6 @@ public:
 	//~ Begin ALogicActorBase Interface
 	virtual void RegisterIOEvents(FActorIOEventList& EventRegistry) override;
 	virtual void RegisterIOFunctions(FActorIOFunctionList& FunctionRegistry) override;
-	virtual void Serialize(FArchive& Ar) override;
-	virtual void Serialize(FStructuredArchive::FRecord Record) override;
 	//~ End ALogicActorBase Interface
 
 public:
