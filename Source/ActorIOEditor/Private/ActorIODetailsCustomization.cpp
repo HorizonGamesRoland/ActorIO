@@ -3,11 +3,12 @@
 #include "ActorIODetailsCustomization.h"
 #include "ActorIOEditorStyle.h"
 #include "Widgets/SBoxPanel.h"
-#include "Widgets/Images/SImage.h"
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/Input/SButton.h"
+#include "Widgets/Input/SComboBox.h"
 #include "Widgets/Input/SEditableTextBox.h"
 #include "Widgets/Text/STextBlock.h"
+#include "Widgets/Images/SImage.h"
 #include "PropertyHandle.h"
 #include "PropertyCustomizationHelpers.h"
 #include "DetailWidgetRow.h"
@@ -15,134 +16,44 @@
 #include "IDetailChildrenBuilder.h"
 #include "IPropertyUtilities.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
+#include "Misc/NotifyHook.h"
+#include "ScopedTransaction.h"
 
 #define LOCTEXT_NAMESPACE "ActorIOEditor"
 
 //=======================================================
-//~ Begin FActorIODetailCustomizationHelper
+//~ Begin FActorIOExpressionDetailBuilder
 //=======================================================
 
-TSharedRef<IDetailCustomNodeBuilder> FActorIODetailCustomizationHelper::GenerateExpressionDetailRow(const FActorIOExpressionBuilderParams& InParams)
+FActorIOExpressionDetailBuilder::FActorIOExpressionDetailBuilder()
 {
-	const FName ExprTypeName = InParams.Expr->GetTypeName();
-	if (ExprTypeName == FName("Literal"))
-	{
-		return MakeShared<FActorIOLiteralExpressionBuilder>(InParams);
-	}
-	else if (ExprTypeName == FName("KismetFunction"))
-	{
-		return MakeShared<FActorIOKismetFunctionExpressionBuilder>(InParams);
-	}
-	else if (ExprTypeName == FName("Group"))
-	{
-		return MakeShared<FActorIOGroupExpressionBuilder>(InParams);
-	}
-	
-	return MakeShared<FActorIOInvalidExpressionBuilder>(InParams);
+	Expr = nullptr;
+	NameOverrideText = FText::GetEmpty();
+	bAllowRemove = true;
 }
 
-//=======================================================
-//~ Begin FActorIOScriptConditionCustomization
-//=======================================================
-
-TSharedRef<IPropertyTypeCustomization> FActorIOScriptConditionCustomization::MakeInstance()
+void FActorIOExpressionDetailBuilder::GenerateHeaderRowContent(FDetailWidgetRow& NodeRow)
 {
-	return MakeShareable(new FActorIOScriptConditionCustomization);
 }
 
-void FActorIOScriptConditionCustomization::CustomizeHeader(TSharedRef<IPropertyHandle> StructPropertyHandle, FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
+void FActorIOExpressionDetailBuilder::GenerateChildContent(IDetailChildrenBuilder& ChildrenBuilder)
 {
-	void* RawData = nullptr;
-	if (StructPropertyHandle->GetValueData(RawData) == FPropertyAccess::Success)
-	{
-		Struct = static_cast<FActorIOScriptCondition*>(RawData);
-	}
-
-	PropUtilities = StructCustomizationUtils.GetPropertyUtilities();
-
-	HeaderRow
-	.NameContent()
-	[
-		StructPropertyHandle->CreatePropertyNameWidget()
-	]
-	.ValueContent()
-	[
-		SNew(SHorizontalBox)
-		+SHorizontalBox::Slot()
-		.VAlign(VAlign_Center)
-		.MinWidth(120.0f)
-		[
-			SNew(STextBlock)
-			.Text(LOCTEXT("ExpressionEd_ConditionHeaderText", "3 Condition elements"))
-			.Font(IDetailLayoutBuilder::GetDetailFont())
-		]
-		+SHorizontalBox::Slot()
-		.Padding(4.0f, 1.0f, 0.0f, 1.0f)
-		.HAlign(HAlign_Left)
-		.VAlign(VAlign_Center)
-		.AutoWidth()
-		[
-			PropertyCustomizationHelpers::MakeAddButton(FSimpleDelegate::CreateSP(this, &FActorIOScriptConditionCustomization::OnClick_AddCondition),
-				LOCTEXT("ExpressionEd_AddCondition", "Add Condition"))
-		]
-		+ SHorizontalBox::Slot()
-		.Padding(4.0f, 1.0f, 0.0f, 1.0f)
-		.HAlign(HAlign_Left)
-		.VAlign(VAlign_Center)
-		.AutoWidth()
-		[
-			PropertyCustomizationHelpers::MakeDeleteButton(FSimpleDelegate::CreateSP(this, &FActorIOScriptConditionCustomization::OnClick_ResetConditions),
-				LOCTEXT("ExpressionEd_ResetConditions", "Remove All Conditions"))
-		]
-	];
-}
-
-void FActorIOScriptConditionCustomization::CustomizeChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
-{
-	if (Struct && Struct->GetExpression())
-	{
-		for (FActorIOExpressionBase* Arg : Struct->GetExpression()->GetArguments())
-		{
-			if (!Arg) continue;
-
-			FActorIOExpressionBuilderParams BuilderParams;
-			BuilderParams.Expr = Arg;
-			StructBuilder.AddCustomBuilder(FActorIODetailCustomizationHelper::GenerateExpressionDetailRow(BuilderParams));
-		}
-	}
-}
-
-void FActorIOScriptConditionCustomization::OnClick_AddCondition()
-{
-	if (Struct && Struct->GetExpression())
-	{
-		FActorIOGroupExpression* NewExpression = new FActorIOGroupExpression();
-		Struct->GetExpression()->AddArgument(NewExpression);
-		PropUtilities->RequestForceRefresh();
-	}
-}
-
-void FActorIOScriptConditionCustomization::OnClick_ResetConditions()
-{
-	if (Struct && Struct->GetExpression())
-	{
-		Struct->GetExpression()->ResetArguments();
-		PropUtilities->RequestForceRefresh();
-	}
+	LayoutBuilder = &ChildrenBuilder.GetParentCategory().GetParentLayout();
 }
 
 //=======================================================
 //~ Begin FActorIOLiteralExpressionBuilder
 //=======================================================
 
-FActorIOLiteralExpressionBuilder::FActorIOLiteralExpressionBuilder(const FActorIOExpressionBuilderParams& InParams)
+TSharedRef<FActorIOExpressionDetailBuilder> FActorIOLiteralExpressionBuilder::MakeInstance()
 {
-	Params = InParams;
-	Expr = static_cast<FActorIOLiteralExpression*>(InParams.Expr);
+	return MakeShareable(new FActorIOLiteralExpressionBuilder);
 }
 
 void FActorIOLiteralExpressionBuilder::GenerateHeaderRowContent(FDetailWidgetRow& NodeRow)
 {
+	FActorIOExpressionDetailBuilder::GenerateHeaderRowContent(NodeRow);
+
 	TSharedPtr<SHorizontalBox> HeaderBox = nullptr;
 
 	NodeRow
@@ -163,14 +74,14 @@ void FActorIOLiteralExpressionBuilder::GenerateHeaderRowContent(FDetailWidgetRow
 		.FillWidth(1.0f)
 		[
 			SNew(SEditableTextBox)
-			.Text(Expr ? FText::FromString(Expr->GetLiteralValue()) : FText::GetEmpty())
+			.Text(OnGetValueText())
 			.OnTextCommitted(FOnTextCommitted::CreateSP(this, &FActorIOLiteralExpressionBuilder::OnValueCommitted))
 		]
 	];
 
 	UpdateHeaderText();
 
-	if (Params.bCanRemoveExpression)
+	if (bAllowRemove)
 	{
 		HeaderBox->AddSlot()
 		.Padding(4.0f, 1.0f, 0.0f, 1.0f)
@@ -186,20 +97,32 @@ void FActorIOLiteralExpressionBuilder::GenerateHeaderRowContent(FDetailWidgetRow
 
 void FActorIOLiteralExpressionBuilder::UpdateHeaderText()
 {
-	if (!Params.HeaderNameOverrideText.IsEmpty())
+	if (!NameOverrideText.IsEmpty())
 	{
-		HeaderText->SetText(Params.HeaderNameOverrideText);
+		HeaderText->SetText(NameOverrideText);
 		return;
 	}
 
 	HeaderText->SetText(LOCTEXT("ExpressionEd_LiteralValue", "Value"));
 }
 
+FText FActorIOLiteralExpressionBuilder::OnGetValueText()
+{
+	FActorIOLiteralExpression* LiteralExpr = GetExpression<FActorIOLiteralExpression>();
+	if (LiteralExpr)
+	{
+		return FText::FromString(LiteralExpr->GetLiteralValue());
+	}
+
+	return FText::GetEmpty();
+}
+
 void FActorIOLiteralExpressionBuilder::OnValueCommitted(const FText& InText, ETextCommit::Type InCommitType)
 {
-	if (Expr)
+	FActorIOLiteralExpression* LiteralExpr = GetExpression<FActorIOLiteralExpression>();
+	if (LiteralExpr)
 	{
-		Expr->SetLiteralValue(InText.ToString());
+		LiteralExpr->SetLiteralValue(InText.ToString());
 	}
 }
 
@@ -214,6 +137,8 @@ void FActorIOLiteralExpressionBuilder::OnClick_Remove()
 		{
 			FActorIOFunctionExpressionBase* FunctionExpr = static_cast<FActorIOFunctionExpressionBase*>(ParentExpr);
 			FunctionExpr->RemoveArgument(Expr);
+
+			LayoutBuilder->ForceRefreshDetails();
 		}
 	}
 }
@@ -222,14 +147,18 @@ void FActorIOLiteralExpressionBuilder::OnClick_Remove()
 //~ Begin FActorIOKismetFunctionExpressionBuilder
 //=======================================================
 
-FActorIOKismetFunctionExpressionBuilder::FActorIOKismetFunctionExpressionBuilder(const FActorIOExpressionBuilderParams& InParams)
+TSharedRef<FActorIOExpressionDetailBuilder> FActorIOKismetFunctionExpressionBuilder::MakeInstance()
 {
-	Params = InParams;
-	Expr = static_cast<FActorIOKismetFunctionExpression*>(InParams.Expr);
+	return MakeShareable(new FActorIOKismetFunctionExpressionBuilder);
 }
 
 void FActorIOKismetFunctionExpressionBuilder::GenerateHeaderRowContent(FDetailWidgetRow& NodeRow)
 {
+	FActorIOExpressionDetailBuilder::GenerateHeaderRowContent(NodeRow);
+
+	FActorIOKismetFunctionExpression* FunctionExpr = GetExpression<FActorIOKismetFunctionExpression>();
+	ReferencedFunction = FunctionExpr ? FunctionExpr->GetUFunction() : nullptr;
+
 	TSharedPtr<SHorizontalBox> HeaderBox = nullptr;
 
 	NodeRow
@@ -244,12 +173,24 @@ void FActorIOKismetFunctionExpressionBuilder::GenerateHeaderRowContent(FDetailWi
 			.Font(IDetailLayoutBuilder::GetDetailFont())
 			.OverflowPolicy(ETextOverflowPolicy::Ellipsis)
 		]
+		+ SHorizontalBox::Slot()
+		.Padding(4.0f, 1.0f, 0.0f, 1.0f)
+		.HAlign(HAlign_Left)
+		.VAlign(VAlign_Center)
+		.AutoWidth()
+		[
+			SNew(SBox)
+			.Visibility(ReferencedFunction ? EVisibility::Visible : EVisibility::Collapsed)
+			[
+				PropertyCustomizationHelpers::MakeCustomButton(FCoreStyle::Get().GetBrush("Icons.Rotate180"), FSimpleDelegate::CreateSP(this, &FActorIOKismetFunctionExpressionBuilder::OnClick_Negate),
+					LOCTEXT("ExpressionEd_ToggleNegate", "Toggle Negate"))
+			]
+		]
 	];
 
-	ReferencedFunction = Expr ? Expr->GetUFunction() : nullptr;
 	UpdateHeaderText();
 
-	if (Params.bCanRemoveExpression)
+	if (bAllowRemove)
 	{
 		HeaderBox->AddSlot()
 		.Padding(4.0f, 1.0f, 0.0f, 1.0f)
@@ -265,21 +206,24 @@ void FActorIOKismetFunctionExpressionBuilder::GenerateHeaderRowContent(FDetailWi
 
 void FActorIOKismetFunctionExpressionBuilder::GenerateChildContent(IDetailChildrenBuilder& ChildrenBuilder)
 {
-	LayoutBuilder = &ChildrenBuilder.GetParentCategory().GetParentLayout();
+	FActorIOExpressionDetailBuilder::GenerateChildContent(ChildrenBuilder);
 
-	if (Expr && ReferencedFunction)
+	FActorIOKismetFunctionExpression* FunctionExpr = GetExpression<FActorIOKismetFunctionExpression>();
+	if (!FunctionExpr) return;
+
+	if (ReferencedFunction)
 	{
-		TArray<FProperty*> FunctionParams = Expr->GetUFunctionParams();
-		for (int32 ArgIdx = 0; ArgIdx != Expr->GetArguments().Num(); ++ArgIdx)
+		TArray<FProperty*> FunctionParams = FunctionExpr->GetUFunctionParams();
+		for (int32 ArgIdx = 0; ArgIdx != FunctionExpr->GetArguments().Num(); ++ArgIdx)
 		{
-			FActorIOExpressionBase* Arg = Expr->GetArgumentAt(ArgIdx);
+			FActorIOExpressionBase* Arg = FunctionExpr->GetArgumentAt(ArgIdx);
 			if (!Arg) continue;
 
-			FActorIOExpressionBuilderParams BuilderParams;
-			BuilderParams.Expr = Arg;
-			BuilderParams.HeaderNameOverrideText = FunctionParams[ArgIdx]->GetDisplayNameText();
-			BuilderParams.bCanRemoveExpression = false;
-			ChildrenBuilder.AddCustomBuilder(FActorIODetailCustomizationHelper::GenerateExpressionDetailRow(BuilderParams));
+			TSharedRef<FActorIOExpressionDetailBuilder> Builder = FActorIODetailCustomizationHelper::NewExpressionDetailBuilderOfType(Arg->GetTypeName());
+			Builder->SetExpression(Arg);
+			Builder->SetNameOverrideText(FunctionParams[ArgIdx]->GetDisplayNameText());
+			Builder->SetAllowRemove(false);
+			ChildrenBuilder.AddCustomBuilder(Builder);
 		}
 	}
 	else
@@ -320,24 +264,37 @@ void FActorIOKismetFunctionExpressionBuilder::GenerateChildContent(IDetailChildr
 		]
 		.ValueContent()
 		[
-			SNew(SEditableTextBox)
-			.OnTextCommitted(this, &FActorIOKismetFunctionExpressionBuilder::OnSetFunctionId)
+			SNew(SComboBox<FName>)
+			.OptionsSource(&SelectableFunctionIds)
+			.OnGenerateWidget(this, &FActorIOKismetFunctionExpressionBuilder::OnGenerateFunctionComboBoxWidget)
+			.OnComboBoxOpening(this, &FActorIOKismetFunctionExpressionBuilder::OnFunctionComboBoxOpening)
+			.OnSelectionChanged(this, &FActorIOKismetFunctionExpressionBuilder::OnFunctionComboBoxSelectionChanged)
+			[
+				SNew(STextBlock)
+				.Font(IDetailLayoutBuilder::GetDetailFont())
+				.Text(GetFunctionDisplayName(FunctionExpr->GetFunctionId()))
+				.ToolTipText(GetFunctionTooltip(FunctionExpr->GetFunctionId()))
+				.ColorAndOpacity(GetFunctionDisplayColor(FunctionExpr->GetFunctionId()))
+			]
 		];
 	}
 }
 
 const UClass* FActorIOKismetFunctionExpressionBuilder::OnGetFunctionClass() const
 {
-	return Expr ? Expr->GetClass().Pin().Get() : nullptr;
+	FActorIOKismetFunctionExpression* FunctionExpr = GetExpression<FActorIOKismetFunctionExpression>();
+	return FunctionExpr ? FunctionExpr->GetClass().Pin().Get() : nullptr;
 }
 
 void FActorIOKismetFunctionExpressionBuilder::OnSetFunctionClass(const UClass* SelectedClass)
 {
 	UFunction* NewFunctionPtr = nullptr;
-	if (Expr)
+
+	FActorIOKismetFunctionExpression* FunctionExpr = GetExpression<FActorIOKismetFunctionExpression>();
+	if (FunctionExpr)
 	{
-		Expr->SetFunctionClass(const_cast<UClass*>(SelectedClass));
-		NewFunctionPtr = Expr->GetUFunction();
+		FunctionExpr->SetFunctionClass(const_cast<UClass*>(SelectedClass));
+		NewFunctionPtr = FunctionExpr->GetUFunction();
 	}
 
 	if (NewFunctionPtr != ReferencedFunction)
@@ -353,18 +310,28 @@ void FActorIOKismetFunctionExpressionBuilder::OnSetFunctionClass(const UClass* S
 	}
 }
 
-FName FActorIOKismetFunctionExpressionBuilder::OnGetFunctionId()
+TSharedRef<SWidget> FActorIOKismetFunctionExpressionBuilder::OnGenerateFunctionComboBoxWidget(FName InName)
 {
-	return Expr ? Expr->GetFunctionId() : NAME_None;
+	return SNew(STextBlock)
+		.Font(IDetailLayoutBuilder::GetDetailFont())
+		.Text(GetFunctionDisplayName(InName))
+		.ToolTipText(GetFunctionTooltip(InName));
 }
 
-void FActorIOKismetFunctionExpressionBuilder::OnSetFunctionId(const FText& NewText, ETextCommit::Type CommitInfo)
+void FActorIOKismetFunctionExpressionBuilder::OnFunctionComboBoxOpening()
+{
+	UpdateSelectableFunctions();
+}
+
+void FActorIOKismetFunctionExpressionBuilder::OnFunctionComboBoxSelectionChanged(FName InName, ESelectInfo::Type InSelectType)
 {
 	UFunction* NewFunctionPtr = nullptr;
-	if (Expr)
+
+	FActorIOKismetFunctionExpression* FunctionExpr = GetExpression<FActorIOKismetFunctionExpression>();
+	if (FunctionExpr)
 	{
-		Expr->SetFunctionId(FName(NewText.ToString(), EFindName::FNAME_Find));
-		NewFunctionPtr = Expr->GetUFunction();
+		FunctionExpr->SetFunctionId(InName);
+		NewFunctionPtr = FunctionExpr->GetUFunction();
 	}
 
 	if (NewFunctionPtr != ReferencedFunction)
@@ -378,6 +345,21 @@ void FActorIOKismetFunctionExpressionBuilder::OnSetFunctionId(const FText& NewTe
 		// the expression may not be the same as what is currently displayed in the UI.
 		OnRebuildChildren.ExecuteIfBound();
 	}
+}
+
+FText FActorIOKismetFunctionExpressionBuilder::GetFunctionDisplayName(FName InFunctionId) const
+{
+	return FText::FromName(InFunctionId);
+}
+
+FSlateColor FActorIOKismetFunctionExpressionBuilder::GetFunctionDisplayColor(FName InFunctionId) const
+{
+	return FSlateColor::UseForeground();
+}
+
+FText FActorIOKismetFunctionExpressionBuilder::GetFunctionTooltip(FName InFunctionId)
+{
+	return FText::GetEmpty();
 }
 
 void FActorIOKismetFunctionExpressionBuilder::OnReferencedFunctionChanged()
@@ -390,20 +372,74 @@ void FActorIOKismetFunctionExpressionBuilder::OnReferencedFunctionChanged()
 
 void FActorIOKismetFunctionExpressionBuilder::UpdateHeaderText()
 {
-	if (!Params.HeaderNameOverrideText.IsEmpty())
+	if (!NameOverrideText.IsEmpty())
 	{
-		HeaderText->SetText(Params.HeaderNameOverrideText);
+		HeaderText->SetText(NameOverrideText);
 		return;
 	}
 
-	if (ReferencedFunction)
+	FActorIOKismetFunctionExpression* FunctionExpr = GetExpression<FActorIOKismetFunctionExpression>();
+	if (FunctionExpr && ReferencedFunction)
 	{
-		HeaderText->SetText(ReferencedFunction->GetDisplayNameText());
+		FText FuncDisplayName = ReferencedFunction->GetDisplayNameText();
+		FText ClassDisplayName = FunctionExpr->GetClass().Pin()->GetDisplayNameText();
+		if (FunctionExpr->IsNegated())
+		{
+			HeaderText->SetText(FText::Format(LOCTEXT("ExpressionEd_FuncNameNegated", "{0} ({1}) [NOT]"), FuncDisplayName, ClassDisplayName));
+		}
+		else
+		{
+			HeaderText->SetText(FText::Format(LOCTEXT("ExpressionEd_FuncName", "{0} ({1})"), FuncDisplayName, ClassDisplayName));
+		}
 	}
 	else
 	{
 		HeaderText->SetText(LOCTEXT("ExpressionEd_SelectFunc", "Select a function..."));
 	}
+}
+
+void FActorIOKismetFunctionExpressionBuilder::UpdateSelectableFunctions()
+{
+	SelectableFunctionIds.Reset();
+
+	FActorIOKismetFunctionExpression* FunctionExpr = GetExpression<FActorIOKismetFunctionExpression>();
+	if (FunctionExpr && FunctionExpr->GetClass().IsValid())
+	{
+		TStrongObjectPtr<UClass> SelectedClass = FunctionExpr->GetClass().Pin();
+		for (TFieldIterator<UFunction> FunctIt(SelectedClass.Get(), EFieldIteratorFlags::IncludeSuper); FunctIt; ++FunctIt)
+		{
+			UFunction* Function = *FunctIt;
+			FProperty* ReturnProp = Function->GetReturnProperty();
+
+			// If no return property is found, try to infer from out params (blueprint version of return values).
+			// The check for NumParms == 2 will in reality check if there's only one user defined param due to a default param existing.
+			if (!ReturnProp && Function->HasAnyFunctionFlags(FUNC_HasOutParms) && Function->NumParms == 2)
+			{
+				for (TFieldIterator<FProperty> It(Function); It && (It->PropertyFlags & CPF_OutParm); ++It)
+				{
+					ReturnProp = *It;
+				}
+			}
+
+			// Only accept bool as return value for condition functions.
+			if (CastField<FBoolProperty>(ReturnProp))
+			{
+				SelectableFunctionIds.AddUnique(Function->GetFName());
+			}
+		}
+	}
+}
+
+void FActorIOKismetFunctionExpressionBuilder::OnClick_Negate()
+{
+	FActorIOGroupExpression* GroupExpr = GetExpression<FActorIOGroupExpression>();
+	if (GroupExpr)
+	{
+		bool bNegate = !GroupExpr->IsNegated();
+		GroupExpr->SetNegated(bNegate);
+	}
+
+	UpdateHeaderText();
 }
 
 void FActorIOKismetFunctionExpressionBuilder::OnClick_Remove()
@@ -415,8 +451,8 @@ void FActorIOKismetFunctionExpressionBuilder::OnClick_Remove()
 		FActorIOExpressionBase* ParentExpr = Expr->GetParent();
 		if (ParentExpr->GetType() == EActorIOExpressionType::Function)
 		{
-			FActorIOFunctionExpressionBase* FunctionExpr = static_cast<FActorIOFunctionExpressionBase*>(ParentExpr);
-			FunctionExpr->RemoveArgument(Expr);
+			FActorIOFunctionExpressionBase* ParentFunctionExpr = static_cast<FActorIOFunctionExpressionBase*>(ParentExpr);
+			ParentFunctionExpr->RemoveArgument(Expr);
 
 			LayoutBuilder->ForceRefreshDetails();
 		}
@@ -427,51 +463,44 @@ void FActorIOKismetFunctionExpressionBuilder::OnClick_Remove()
 //~ Begin FActorIOGroupExpressionBuilder
 //=======================================================
 
-FActorIOGroupExpressionBuilder::FActorIOGroupExpressionBuilder(const FActorIOExpressionBuilderParams& InParams)
+TSharedRef<FActorIOExpressionDetailBuilder> FActorIOGroupExpressionBuilder::MakeInstance()
 {
-	Params = InParams;
-	Expr = static_cast<FActorIOGroupExpression*>(InParams.Expr);
+	return MakeShareable(new FActorIOGroupExpressionBuilder);
 }
 
 void FActorIOGroupExpressionBuilder::GenerateHeaderRowContent(FDetailWidgetRow& NodeRow)
 {
+	FActorIOExpressionDetailBuilder::GenerateHeaderRowContent(NodeRow);
+
 	NodeRow
 	.WholeRowContent()
 	[
 		SNew(SHorizontalBox)
 		+ SHorizontalBox::Slot()
 		.FillWidth(1.0f)
+		.VAlign(VAlign_Center)
 		[
-			SNew(SBox)
-			.VAlign(VAlign_Center)
-			[
-				SNew(STextBlock)
-				.Text(LOCTEXT("ExpressionEd_GroupName", "If all of the following is TRUE:"))
-				.Font(IDetailLayoutBuilder::GetDetailFont())
-				.OverflowPolicy(ETextOverflowPolicy::Ellipsis)
-			]
+			SAssignNew(HeaderText, STextBlock)
+			.Font(IDetailLayoutBuilder::GetDetailFont())
+			.OverflowPolicy(ETextOverflowPolicy::Ellipsis)
 		]
 		+ SHorizontalBox::Slot()
+		.Padding(4.0f, 1.0f, 0.0f, 1.0f)
+		.HAlign(HAlign_Left)
+		.VAlign(VAlign_Center)
 		.AutoWidth()
-		.Padding(2.0f)
 		[
-			SNew(SButton)
-			.OnClicked(FOnClicked::CreateSP(this, &FActorIOGroupExpressionBuilder::OnAddFunctionClicked))
-			[
-				SNew(STextBlock)
-				.Text(INVTEXT("Add Expression"))
-			]
+			PropertyCustomizationHelpers::MakeAddButton(FSimpleDelegate::CreateSP(this, &FActorIOGroupExpressionBuilder::OnClick_AddCondition),
+				LOCTEXT("ExpressionEd_AddCondition", "Add Condition"))
 		]
 		+ SHorizontalBox::Slot()
+		.Padding(4.0f, 1.0f, 0.0f, 1.0f)
+		.HAlign(HAlign_Left)
+		.VAlign(VAlign_Center)
 		.AutoWidth()
-		.Padding(0.0f, 2.0f)
 		[
-			SNew(SButton)
-			.OnClicked(FOnClicked::CreateSP(this, &FActorIOGroupExpressionBuilder::OnAddGroupClicked))
-			[
-				SNew(STextBlock)
-				.Text(INVTEXT("Add Group"))
-			]
+			PropertyCustomizationHelpers::MakeCustomButton(FCoreStyle::Get().GetBrush("Icons.Rotate180"), FSimpleDelegate::CreateSP(this, &FActorIOGroupExpressionBuilder::OnClick_Negate),
+				LOCTEXT("ExpressionEd_ToggleNegate", "Toggle Negate"))
 		]
 		+ SHorizontalBox::Slot()
 		.Padding(4.0f, 1.0f, 0.0f, 1.0f)
@@ -483,36 +512,49 @@ void FActorIOGroupExpressionBuilder::GenerateHeaderRowContent(FDetailWidgetRow& 
 				LOCTEXT("ExpressionEd_RemoveExpression", "Remove Expression"))
 		]
 	];
+
+	UpdateHeaderText();
 }
 
 void FActorIOGroupExpressionBuilder::GenerateChildContent(IDetailChildrenBuilder& ChildrenBuilder)
 {
-	for (FActorIOExpressionBase* Arg : Expr->GetArguments())
+	FActorIOExpressionDetailBuilder::GenerateChildContent(ChildrenBuilder);
+
+	FActorIOGroupExpression* GroupExpr = GetExpression<FActorIOGroupExpression>();
+	if (!GroupExpr) return;
+
+	for (FActorIOExpressionBase* Arg : GroupExpr->GetArguments())
 	{
 		if (!Arg) continue;
 
-		FActorIOExpressionBuilderParams BuilderParams;
-		BuilderParams.Expr = Arg;
-		ChildrenBuilder.AddCustomBuilder(FActorIODetailCustomizationHelper::GenerateExpressionDetailRow(BuilderParams));
+		TSharedRef<FActorIOExpressionDetailBuilder> Builder = FActorIODetailCustomizationHelper::NewExpressionDetailBuilderOfType(Arg->GetTypeName());
+		Builder->SetExpression(Arg);
+		ChildrenBuilder.AddCustomBuilder(Builder);
 	}
 }
 
-FReply FActorIOGroupExpressionBuilder::OnAddFunctionClicked()
+void FActorIOGroupExpressionBuilder::OnClick_AddCondition()
 {
-	FActorIOKismetFunctionExpression* NewExpression = new FActorIOKismetFunctionExpression();
-	Expr->AddArgument(NewExpression);
+	FActorIOGroupExpression* GroupExpr = GetExpression<FActorIOGroupExpression>();
+	if (GroupExpr)
+	{
+		FActorIOKismetFunctionExpression* NewExpression = new FActorIOKismetFunctionExpression();
+		GroupExpr->AddArgument(NewExpression);
 
-	OnRebuildChildren.ExecuteIfBound();
-	return FReply::Handled();
+		LayoutBuilder->ForceRefreshDetails();
+	}
 }
 
-FReply FActorIOGroupExpressionBuilder::OnAddGroupClicked()
+void FActorIOGroupExpressionBuilder::OnClick_Negate()
 {
-	FActorIOGroupExpression* NewExpression = new FActorIOGroupExpression();
-	Expr->AddArgument(NewExpression);
+	FActorIOGroupExpression* GroupExpr = GetExpression<FActorIOGroupExpression>();
+	if (GroupExpr)
+	{
+		bool bNegate = !GroupExpr->IsNegated();
+		GroupExpr->SetNegated(bNegate);
+	}
 
-	OnRebuildChildren.ExecuteIfBound();
-	return FReply::Handled();
+	UpdateHeaderText();
 }
 
 void FActorIOGroupExpressionBuilder::OnClick_Remove()
@@ -524,9 +566,30 @@ void FActorIOGroupExpressionBuilder::OnClick_Remove()
 		FActorIOExpressionBase* ParentExpr = Expr->GetParent();
 		if (ParentExpr->GetType() == EActorIOExpressionType::Function)
 		{
-			FActorIOFunctionExpressionBase* FunctionExpr = static_cast<FActorIOFunctionExpressionBase*>(ParentExpr);
-			FunctionExpr->RemoveArgument(Expr);
+			FActorIOFunctionExpressionBase* ParentFunctionExpr = static_cast<FActorIOFunctionExpressionBase*>(ParentExpr);
+			ParentFunctionExpr->RemoveArgument(Expr);
+
+			LayoutBuilder->ForceRefreshDetails();
 		}
+	}
+}
+
+void FActorIOGroupExpressionBuilder::UpdateHeaderText()
+{
+	if (!NameOverrideText.IsEmpty())
+	{
+		HeaderText->SetText(NameOverrideText);
+		return;
+	}
+
+	FActorIOGroupExpression* GroupExpr = GetExpression<FActorIOGroupExpression>();
+	if (GroupExpr && GroupExpr->IsNegated())
+	{
+		HeaderText->SetText(LOCTEXT("ExpressionEd_GroupNameNegated", "OR"));
+	}
+	else
+	{
+		HeaderText->SetText(LOCTEXT("ExpressionEd_GroupName", "AND"));
 	}
 }
 
@@ -534,24 +597,177 @@ void FActorIOGroupExpressionBuilder::OnClick_Remove()
 //~ Begin FActorIOInvalidExpressionBuilder
 //=======================================================
 
-FActorIOInvalidExpressionBuilder::FActorIOInvalidExpressionBuilder(const FActorIOExpressionBuilderParams& InParams)
+TSharedRef<FActorIOExpressionDetailBuilder> FActorIOInvalidExpressionBuilder::MakeInstance()
 {
-	Params = InParams;
+	return MakeShareable(new FActorIOInvalidExpressionBuilder);
 }
 
 void FActorIOInvalidExpressionBuilder::GenerateHeaderRowContent(FDetailWidgetRow& NodeRow)
 {
+	FActorIOExpressionDetailBuilder::GenerateHeaderRowContent(NodeRow);
+
 	NodeRow
 	.WholeRowContent()
 	[
 		SNew(SBox)
 		[
 			SNew(STextBlock)
-			.Text(INVTEXT("Unknown Expression!"))
+			.Text(INVTEXT("Unknown or invalid expression!"))
 			.Font(IDetailLayoutBuilder::GetDetailFont())
 			.ColorAndOpacity(FStyleColors::Error)
 		]
 	];
+}
+
+//=======================================================
+//~ Begin FActorIOScriptConditionCustomization
+//=======================================================
+
+TSharedRef<IPropertyTypeCustomization> FActorIOScriptConditionCustomization::MakeInstance()
+{
+	return MakeShareable(new FActorIOScriptConditionCustomization);
+}
+
+void FActorIOScriptConditionCustomization::CustomizeHeader(TSharedRef<IPropertyHandle> StructPropertyHandle, FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
+{
+	PropHandle = StructPropertyHandle.ToSharedPtr();
+	PropUtilities = StructCustomizationUtils.GetPropertyUtilities();
+
+	void* RawData = nullptr;
+	if (StructPropertyHandle->GetValueData(RawData) == FPropertyAccess::Success)
+	{
+		Struct = static_cast<FActorIOScriptCondition*>(RawData);
+	}
+
+	StructPropertyHandle->SetOnPropertyValueChanged(FSimpleDelegate::CreateSP(this, &FActorIOScriptConditionCustomization::OnValueChanged));
+
+	HeaderRow
+	.NameContent()
+	[
+		StructPropertyHandle->CreatePropertyNameWidget()
+	]
+	.ValueContent()
+	[
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.VAlign(VAlign_Center)
+		.MinWidth(120.0f)
+		[
+			SNew(STextBlock)
+			.Text(GetHeaderText())
+			.Font(IDetailLayoutBuilder::GetDetailFont())
+		]
+		+ SHorizontalBox::Slot()
+		.Padding(4.0f, 1.0f, 0.0f, 1.0f)
+		.HAlign(HAlign_Left)
+		.VAlign(VAlign_Center)
+		.AutoWidth()
+		[
+			PropertyCustomizationHelpers::MakeAddButton(FSimpleDelegate::CreateSP(this, &FActorIOScriptConditionCustomization::OnClick_AddCondition),
+				LOCTEXT("ExpressionEd_AddCondition", "Add Condition"))
+		]
+		+ SHorizontalBox::Slot()
+		.Padding(4.0f, 1.0f, 0.0f, 1.0f)
+		.HAlign(HAlign_Left)
+		.VAlign(VAlign_Center)
+		.AutoWidth()
+		[
+			PropertyCustomizationHelpers::MakeDeleteButton(FSimpleDelegate::CreateSP(this, &FActorIOScriptConditionCustomization::OnClick_ResetConditions),
+				LOCTEXT("ExpressionEd_ResetConditions", "Remove All Conditions"))
+		]
+	];
+}
+
+void FActorIOScriptConditionCustomization::CustomizeChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
+{
+	if (Struct && Struct->GetExpression())
+	{
+		for (FActorIOExpressionBase* Arg : Struct->GetExpression()->GetArguments())
+		{
+			if (!Arg) continue;
+
+			TSharedRef<FActorIOExpressionDetailBuilder> Builder = FActorIODetailCustomizationHelper::NewExpressionDetailBuilderOfType(Arg->GetTypeName());
+			Builder->SetExpression(Arg);
+			StructBuilder.AddCustomBuilder(Builder);
+		}
+	}
+}
+
+FText FActorIOScriptConditionCustomization::GetHeaderText()
+{
+	int32 NumExpressions = 0;
+	if (Struct && Struct->GetExpression())
+	{
+		NumExpressions += Struct->GetExpression()->GetNumArguments(true);
+	}
+
+	return FText::Format(LOCTEXT("ExpressionEd_ConditionHeaderText", "{0} Condition elements"), FText::AsNumber(NumExpressions));
+}
+
+void FActorIOScriptConditionCustomization::OnClick_AddCondition()
+{
+	if (Struct && Struct->GetExpression())
+	{
+		const FScopedTransaction Transaction(LOCTEXT("AddActorIOExpression", "Add ActorIO Expression"));
+		TArray<TWeakObjectPtr<UObject>> ObjectsBeingCustomized = PropUtilities->GetSelectedObjects();
+		for (const TWeakObjectPtr<UObject>& ObjectBeingCustomized : ObjectsBeingCustomized)
+		{
+			ObjectBeingCustomized.Get()->Modify();
+		}
+
+		PropHandle->NotifyPreChange();
+
+		FActorIOGroupExpression* NewExpression = new FActorIOGroupExpression();
+		Struct->GetExpression()->AddArgument(NewExpression);
+		
+		PropHandle->NotifyPostChange(EPropertyChangeType::ValueSet);
+	}
+}
+
+void FActorIOScriptConditionCustomization::OnClick_ResetConditions()
+{
+	if (Struct && Struct->GetExpression())
+	{
+		const FScopedTransaction Transaction(LOCTEXT("ResetActorIOExpression", "Reset ActorIO Expressions"));
+		TArray<TWeakObjectPtr<UObject>> ObjectsBeingCustomized = PropUtilities->GetSelectedObjects();
+		for (const TWeakObjectPtr<UObject>& ObjectBeingCustomized : ObjectsBeingCustomized)
+		{
+			ObjectBeingCustomized.Get()->Modify();
+		}
+
+		PropHandle->NotifyPreChange();
+
+		Struct->GetExpression()->ResetArguments();
+
+		PropHandle->NotifyPostChange(EPropertyChangeType::ValueSet);
+	}
+}
+
+void FActorIOScriptConditionCustomization::OnValueChanged()
+{
+	PropUtilities->RequestForceRefresh();
+}
+
+//=======================================================
+//~ Begin FActorIODetailCustomizationHelper
+//=======================================================
+
+TSharedRef<FActorIOExpressionDetailBuilder> FActorIODetailCustomizationHelper::NewExpressionDetailBuilderOfType(FName TypeName)
+{
+	if (TypeName == FName("Literal"))
+	{
+		return FActorIOLiteralExpressionBuilder::MakeInstance();
+	}
+	else if (TypeName == FName("KismetFunction"))
+	{
+		return FActorIOKismetFunctionExpressionBuilder::MakeInstance();
+	}
+	else if (TypeName == FName("Group"))
+	{
+		return FActorIOGroupExpressionBuilder::MakeInstance();
+	}
+	
+	return FActorIOInvalidExpressionBuilder::MakeInstance();
 }
 
 #undef LOCTEXT_NAMESPACE

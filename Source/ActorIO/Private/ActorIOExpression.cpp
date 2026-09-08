@@ -16,6 +16,23 @@ FActorIOExpressionBase::FActorIOExpressionBase()
 	ParentExpr = nullptr;
 }
 
+FActorIOExpressionBase* FActorIOExpressionBase::GetRootExpression()
+{
+	FActorIOExpressionBase* RootExpr = this;
+	while (true)
+	{
+		FActorIOExpressionBase* Parent = RootExpr->GetParent();
+		if (!Parent)
+		{
+			break;
+		}
+
+		RootExpr = Parent;
+	}
+
+	return RootExpr;
+}
+
 //=======================================================
 //~ Begin FActorIOLiteralExpression
 //=======================================================
@@ -186,6 +203,22 @@ FActorIOExpressionBase* FActorIOFunctionExpressionBase::GetArgumentAt(int32 Inde
 	}
 
 	return nullptr;
+}
+
+int32 FActorIOFunctionExpressionBase::GetNumArguments(bool bRecursive) const
+{
+	int32 NumArgs = 0;
+	for (FActorIOExpressionBase* Arg : Args)
+	{
+		NumArgs++;
+		if (bRecursive && Arg->GetType() == EActorIOExpressionType::Function)
+		{
+			FActorIOFunctionExpressionBase* FunctionArg = static_cast<FActorIOFunctionExpressionBase*>(Arg);
+			NumArgs += FunctionArg->GetNumArguments();
+		}
+	}
+
+	return NumArgs;
 }
 
 //=======================================================

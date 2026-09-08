@@ -31,6 +31,9 @@ public:
 	void SetParent(FActorIOExpressionBase* InExpr) { ParentExpr = InExpr; }
 	FActorIOExpressionBase* GetParent() const { return ParentExpr; }
 
+	FActorIOExpressionBase* GetRootExpression();
+	bool IsRootExpression() const { return ParentExpr != nullptr; }
+
 private:
 
 	FActorIOExpressionBase* ParentExpr;
@@ -70,6 +73,7 @@ public:
 
 	const TArray<FActorIOExpressionBase*>& GetArguments() const { return Args; }
 	FActorIOExpressionBase* GetArgumentAt(int32 Index) const;
+	int32 GetNumArguments(bool bRecursive = false) const;
 
 	void SetNegated(bool bEnabled) { bNegated = bEnabled; }
 	bool IsNegated() const { return bNegated; }

@@ -282,7 +282,7 @@ void SActorIOActionListView::OnColumnWidthChanged(const float InSize, const FNam
 //~ Begin SActorIOActionListViewRow
 //=======================================================
 
-FName SActorIOActionListViewRow::NAME_ClearComboBox = FName(TEXT("<Clear>"));
+FName SActorIOActionListViewRow::NAME_ClearComboBox = FName("<Clear>");
 
 SLATE_IMPLEMENT_WIDGET(SActorIOActionListViewRow)
 void SActorIOActionListViewRow::PrivateRegisterAttributes(FSlateAttributeInitializer& AttributeInitializer)
@@ -657,7 +657,7 @@ void SActorIOActionListViewRow::OnTargetActorIsPending()
 	SWidget* ActorPickerComboButton = nullptr;
 	FActorIOChildWidgetIterator PickerWidgetIterator(*ActorPicker.Get(), [&](SWidget& InChild) -> bool
 	{
-		if (InChild.GetType() == FName(TEXT("SComboButton"), FNAME_Find))
+		if (InChild.GetType() == FName("SComboButton", FNAME_Find))
 		{
 			ActorPickerComboButton = &InChild;
 			return false;
@@ -672,9 +672,9 @@ void SActorIOActionListViewRow::OnTargetActorIsPending()
 	FActorIOChildWidgetIterator ButtonWidgetIterator(ComboButtonInnerButton.Get(), [&](SWidget& InChild) -> bool
 	{
 		// The combo button content we care about is nested in two horizontal boxes.
-		if (InChild.GetType() == FName(TEXT("SHorizontalBox"), FNAME_Find))
+		if (InChild.GetType() == FName("SHorizontalBox", FNAME_Find))
 		{
-			if (InChild.GetParentWidget()->GetType() == FName(TEXT("SHorizontalBox"), FNAME_Find))
+			if (InChild.GetParentWidget()->GetType() == FName("SHorizontalBox", FNAME_Find))
 			{
 				// Hide the status indicator because it looks really bad.
 				TSharedRef<SImage> ActorReferenceStatusImage = StaticCastSharedRef<SImage>(InChild.GetChildren()->GetChildAt(0));

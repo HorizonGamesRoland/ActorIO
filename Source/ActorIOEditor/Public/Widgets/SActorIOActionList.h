@@ -15,14 +15,14 @@ class SActorIOEditor;
  */
 namespace ColumnId
 {
-    const FName ActionType = FName(TEXT("ActionType"));
-    const FName Caller = FName(TEXT("Caller"));
-    const FName Event = FName(TEXT("Event"));
-    const FName Target = FName(TEXT("Target"));
-    const FName Action = FName(TEXT("Action"));
-    const FName Parameter = FName(TEXT("Parameter"));
-    const FName Delay = FName(TEXT("Delay"));
-    const FName OnlyOnce = FName(TEXT("OnlyOnce"));
+    const FName ActionType = FName("ActionType");
+    const FName Caller = FName("Caller");
+    const FName Event = FName("Event");
+    const FName Target = FName("Target");
+    const FName Action = FName("Action");
+    const FName Parameter = FName("Parameter");
+    const FName Delay = FName("Delay");
+    const FName OnlyOnce = FName("OnlyOnce");
 }
 
 /**
