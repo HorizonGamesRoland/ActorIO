@@ -43,26 +43,11 @@ END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 void SActorIOParamsViewer::FillParamsBox(UFunction* InFunctionPtr)
 {
-	for (TFieldIterator<FProperty> It(InFunctionPtr); It && It->HasAnyPropertyFlags(CPF_Parm); ++It)
+	TArray<FProperty*> InputParams = IActorIO::GetUFunctionInputParams(InFunctionPtr);
+	for (FProperty* Prop : InputParams)
 	{
-		FProperty* FunctionProp = *It;
-		checkSlow(FunctionProp);
-
-		// Do not create widget for return property.
-		if (FunctionProp->HasAnyPropertyFlags(CPF_ReturnParm))
-		{
-			continue;
-		}
-
-		// Do not create widget for output params, but only if they are not passed by ref
-		// since in that case the value is also an input param.
-		if (FunctionProp->HasAnyPropertyFlags(CPF_OutParm) && !FunctionProp->HasAnyPropertyFlags(CPF_ReferenceParm))
-		{
-			continue;
-		}
-
 		TSharedRef<SWidget> ParamWidget = SNew(SActorIOParamsViewerEntry)
-			.PropertyPtr(FunctionProp);
+			.PropertyPtr(Prop);
 
 		ParamsBox->AddSlot().AttachWidget(ParamWidget);
 	}

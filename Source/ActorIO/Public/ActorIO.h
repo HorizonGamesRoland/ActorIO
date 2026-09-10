@@ -525,6 +525,12 @@ public:
 	/** Check that given object is truly valid and loaded. */
 	static bool ConfirmObjectIsAlive(UObject* InObject, FString& OutError);
 
+	/** @return List of input parameters of the given UFunction.  */
+	static TArray<FProperty*> GetUFunctionInputParams(UFunction* FunctionPtr, bool bExcludeGeneratedWorldContextParam = true);
+
+	/** @return The native return property, or optionally the first non ref 'out' property of the given UFunction. */
+	static FProperty* GetUFunctionReturnProperty(UFunction* FunctionPtr, bool bIncludeOutParams = true);
+
 	/** Perform basic checks to see if the given arguments can be imported into the function as parameters. */
 	static bool ValidateFunctionArguments(UFunction* FunctionPtr, const FString& InArguments, FText& OutError);
 

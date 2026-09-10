@@ -311,18 +311,15 @@ bool IActorIO::ConfirmObjectIsAlive(UObject* InObject, FString& OutError)
     return true;
 }
 
-bool IActorIO::ValidateFunctionArguments(UFunction* FunctionPtr, const FString& InArguments, FText& OutError)
+TArray<FProperty*> IActorIO::GetUFunctionInputParams(UFunction* FunctionPtr, bool bExcludeGeneratedWorldContextParam)
 {
+    TArray<FProperty*> OutProperties;
     if (!ensure(FunctionPtr))
     {
         // Do nothing if function ptr is null.
-        return false;
+        return OutProperties;
     }
 
-    TArray<FString> Arguments;
-    InArguments.ParseIntoArray(Arguments, ARGUMENT_SEPARATOR, true);
-
-    int32 NumParamsExpected = 0;
     for (TFieldIterator<FProperty> It(FunctionPtr); It && It->HasAnyPropertyFlags(CPF_Parm); ++It)
     {
         FProperty* FunctionProp = *It;
@@ -341,21 +338,67 @@ bool IActorIO::ValidateFunctionArguments(UFunction* FunctionPtr, const FString& 
             continue;
         }
 
-        // #TODO: Is it possible to actually try and import the value into the FProperty and catch errors?
+        // Skip blueprint generated '__WorldContext' property.
+        // The value for this will be auto initialized for us by the 'ActorIO::ExecuteCommand' function.
+        if (FunctionProp->GetName() == TEXT("__WorldContext") && bExcludeGeneratedWorldContextParam)
+        {
+            continue;
+        }
 
-        NumParamsExpected++;
+        OutProperties.Add(FunctionProp);
     }
 
-    if (Arguments.Num() > NumParamsExpected)
+    return OutProperties;
+}
+
+FProperty* IActorIO::GetUFunctionReturnProperty(UFunction* FunctionPtr, bool bIncludeOutParams)
+{
+    FProperty* OutProperty = nullptr;
+    if (!ensure(FunctionPtr))
+    {
+        // Do nothing if function ptr is null.
+        return OutProperty;
+    }
+
+    OutProperty = FunctionPtr->GetReturnProperty();
+
+    // If no return property is found, try to infer from out params (blueprint version of return values).
+    // The check for NumParms == 2 will in reality check if there's only one user defined param due to a default param existing.
+    if (!OutProperty && FunctionPtr->HasAnyFunctionFlags(FUNC_HasOutParms) && FunctionPtr->NumParms == 2)
+    {
+        for (TFieldIterator<FProperty> It(FunctionPtr); It && (It->PropertyFlags & CPF_Parm); ++It)
+        {
+            OutProperty = *It;
+        }
+    }
+
+    return OutProperty;
+}
+
+bool IActorIO::ValidateFunctionArguments(UFunction* InFunctionPtr, const FString& InArguments, FText& OutError)
+{
+    if (!ensure(InFunctionPtr))
+    {
+        // Do nothing if function ptr is null.
+        return false;
+    }
+
+    TArray<FString> Arguments;
+    InArguments.ParseIntoArray(Arguments, ARGUMENT_SEPARATOR, true);
+
+    TArray<FProperty*> InputParams = IActorIO::GetUFunctionInputParams(InFunctionPtr);
+    if (Arguments.Num() > InputParams.Num())
     {
         OutError = NSLOCTEXT("ActorIO", "ArgsValidation_TooManyParams", "Too many parameters");
         return false;
     }
-    else if (Arguments.Num() < NumParamsExpected)
+    else if (Arguments.Num() < InputParams.Num())
     {
         OutError = NSLOCTEXT("ActorIO", "ArgsValidation_NotEnoughParams", "Not enough parameters");
         return false;
     }
+
+    // #TODO: Is it possible to actually try and import the value into the FProperty and catch errors?
 
     return true;
 }

@@ -99,7 +99,7 @@ protected:
 	 * List of I/O function ids that are selectable in the function combo box.
 	 * Always contains the same ids found in ValidFunctions above.
 	 */
-	TArray<FName> SelectableFunctionIds;
+	TArray<FName> SelectableFunctions;
 
 	// #todo: remove if OnReferencedFunctionChanged is not needed
 	UFunction* ReferencedFunction;
@@ -200,11 +200,11 @@ public:
 
 protected:
 
-	FActorIOScriptCondition* Struct;
-
 	TSharedPtr<IPropertyHandle> PropHandle;
 
 	TSharedPtr<IPropertyUtilities> PropUtilities;
+
+	FActorIOScriptCondition* Struct;
 
 protected:
 

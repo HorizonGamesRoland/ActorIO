@@ -14,7 +14,7 @@ enum class EActorIOExpressionType : uint8
 	Function
 };
 
-class ACTORIO_API FActorIOExpressionBase
+class ACTORIO_API FActorIOExpressionBase : public TSharedFromThis<FActorIOExpressionBase>
 {
 public:
 
@@ -23,7 +23,7 @@ public:
 
 	virtual EActorIOExpressionType GetType() const { return EActorIOExpressionType::Invalid; }
 	virtual FName GetTypeName() const { return NAME_None; }
-	virtual bool Evaluate(FString& OutResult) { return false; }
+	virtual bool Evaluate(UObject* Executor, FString& OutResult) { return false; }
 
 	virtual bool ExportText(FString& Str) const { return false; }
 	virtual bool ImportText(const FString& Str, int32 Version) { return false; }
@@ -34,9 +34,14 @@ public:
 	FActorIOExpressionBase* GetRootExpression();
 	bool IsRootExpression() const { return ParentExpr != nullptr; }
 
-private:
+	void SetIsCondition(bool bEnabled) { bIsCondition = bEnabled; }
+	bool IsCondition() const { return bIsCondition; }
+
+protected:
 
 	FActorIOExpressionBase* ParentExpr;
+
+	bool bIsCondition;
 };
 
 class ACTORIO_API FActorIOLiteralExpression : public FActorIOExpressionBase
@@ -45,7 +50,7 @@ public:
 
 	virtual EActorIOExpressionType GetType() const override { return EActorIOExpressionType::Literal; }
 	virtual FName GetTypeName() const override { return FName("Literal"); }
-	virtual bool Evaluate(FString& OutResult) override;
+	virtual bool Evaluate(UObject* Executor, FString& OutResult) override;
 	virtual bool ExportText(FString& Str) const override;
 	virtual bool ImportText(const FString& Str, int32 Version) override;
 
@@ -93,7 +98,7 @@ class ACTORIO_API FActorIOKismetFunctionExpression : public FActorIOFunctionExpr
 public:
 
 	virtual FName GetTypeName() const override { return FName("KismetFunction"); }
-	virtual bool Evaluate(FString& OutResult) override;
+	virtual bool Evaluate(UObject* Executor, FString& OutResult) override;
 	virtual bool ExportText(FString& Str) const override;
 	virtual bool ImportText(const FString& Str, int32 Version) override;
 
@@ -102,8 +107,7 @@ public:
 
 	const TWeakObjectPtr<UClass>& GetClass() const { return ClassPtr; }
 	FName GetFunctionId() const { return FunctionId; }
-	UFunction* GetUFunction();
-	TArray<FProperty*> GetUFunctionParams();
+	UFunction* ResolveUFunction() const;
 
 protected:
 
@@ -119,7 +123,7 @@ class ACTORIO_API FActorIOGroupExpression : public FActorIOFunctionExpressionBas
 public:
 
 	virtual FName GetTypeName() const override { return FName("Group"); }
-	virtual bool Evaluate(FString& OutResult) override;
+	virtual bool Evaluate(UObject* Executor, FString& OutResult) override;
 	virtual bool ExportText(FString& Str) const override;
 	virtual bool ImportText(const FString& Str, int32 Version) override;
 };
@@ -132,7 +136,8 @@ struct ACTORIO_API FActorIOScriptCondition
 public:
 	
 	FActorIOScriptCondition();
-	~FActorIOScriptCondition();
+
+	void Initialize();
 
 	bool operator==(const FActorIOScriptCondition& Other) const;
 	bool operator!=(const FActorIOScriptCondition& Other) const { return !(*this == Other); }
@@ -141,11 +146,13 @@ public:
 	bool ExportTextItem(FString& ValueStr, FActorIOScriptCondition const& DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope) const;
 	bool ImportTextItem(const TCHAR*& Buffer, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText);
 
-	FActorIOGroupExpression* GetExpression() const { return Expr; }
+	bool Evaluate(UObject* Executor);
+
+	FActorIOGroupExpression* GetExpression() const { return Expr.Get(); }
 
 protected:
 
-	FActorIOGroupExpression* Expr;
+	TSharedPtr<FActorIOGroupExpression> Expr;
 };
 
 template<>
@@ -160,7 +167,7 @@ struct TStructOpsTypeTraits<FActorIOScriptCondition> : public TStructOpsTypeTrai
 	};
 };
 
-class ACTORIO_API FActorIOExpresionParser
+class ACTORIO_API FActorIOExpressionParser
 {
 public:
 

@@ -34,6 +34,7 @@ FActorIOExpressionDetailBuilder::FActorIOExpressionDetailBuilder()
 
 void FActorIOExpressionDetailBuilder::GenerateHeaderRowContent(FDetailWidgetRow& NodeRow)
 {
+	
 }
 
 void FActorIOExpressionDetailBuilder::GenerateChildContent(IDetailChildrenBuilder& ChildrenBuilder)
@@ -157,7 +158,7 @@ void FActorIOKismetFunctionExpressionBuilder::GenerateHeaderRowContent(FDetailWi
 	FActorIOExpressionDetailBuilder::GenerateHeaderRowContent(NodeRow);
 
 	FActorIOKismetFunctionExpression* FunctionExpr = GetExpression<FActorIOKismetFunctionExpression>();
-	ReferencedFunction = FunctionExpr ? FunctionExpr->GetUFunction() : nullptr;
+	ReferencedFunction = FunctionExpr ? FunctionExpr->ResolveUFunction() : nullptr;
 
 	TSharedPtr<SHorizontalBox> HeaderBox = nullptr;
 
@@ -213,7 +214,7 @@ void FActorIOKismetFunctionExpressionBuilder::GenerateChildContent(IDetailChildr
 
 	if (ReferencedFunction)
 	{
-		TArray<FProperty*> FunctionParams = FunctionExpr->GetUFunctionParams();
+		TArray<FProperty*> FunctionParams = IActorIO::GetUFunctionInputParams(ReferencedFunction);
 		for (int32 ArgIdx = 0; ArgIdx != FunctionExpr->GetArguments().Num(); ++ArgIdx)
 		{
 			FActorIOExpressionBase* Arg = FunctionExpr->GetArgumentAt(ArgIdx);
@@ -265,7 +266,7 @@ void FActorIOKismetFunctionExpressionBuilder::GenerateChildContent(IDetailChildr
 		.ValueContent()
 		[
 			SNew(SComboBox<FName>)
-			.OptionsSource(&SelectableFunctionIds)
+			.OptionsSource(&SelectableFunctions)
 			.OnGenerateWidget(this, &FActorIOKismetFunctionExpressionBuilder::OnGenerateFunctionComboBoxWidget)
 			.OnComboBoxOpening(this, &FActorIOKismetFunctionExpressionBuilder::OnFunctionComboBoxOpening)
 			.OnSelectionChanged(this, &FActorIOKismetFunctionExpressionBuilder::OnFunctionComboBoxSelectionChanged)
@@ -294,7 +295,7 @@ void FActorIOKismetFunctionExpressionBuilder::OnSetFunctionClass(const UClass* S
 	if (FunctionExpr)
 	{
 		FunctionExpr->SetFunctionClass(const_cast<UClass*>(SelectedClass));
-		NewFunctionPtr = FunctionExpr->GetUFunction();
+		NewFunctionPtr = FunctionExpr->ResolveUFunction();
 	}
 
 	if (NewFunctionPtr != ReferencedFunction)
@@ -331,7 +332,7 @@ void FActorIOKismetFunctionExpressionBuilder::OnFunctionComboBoxSelectionChanged
 	if (FunctionExpr)
 	{
 		FunctionExpr->SetFunctionId(InName);
-		NewFunctionPtr = FunctionExpr->GetUFunction();
+		NewFunctionPtr = FunctionExpr->ResolveUFunction();
 	}
 
 	if (NewFunctionPtr != ReferencedFunction)
@@ -400,7 +401,7 @@ void FActorIOKismetFunctionExpressionBuilder::UpdateHeaderText()
 
 void FActorIOKismetFunctionExpressionBuilder::UpdateSelectableFunctions()
 {
-	SelectableFunctionIds.Reset();
+	SelectableFunctions.Reset();
 
 	FActorIOKismetFunctionExpression* FunctionExpr = GetExpression<FActorIOKismetFunctionExpression>();
 	if (FunctionExpr && FunctionExpr->GetClass().IsValid())
@@ -408,24 +409,18 @@ void FActorIOKismetFunctionExpressionBuilder::UpdateSelectableFunctions()
 		TStrongObjectPtr<UClass> SelectedClass = FunctionExpr->GetClass().Pin();
 		for (TFieldIterator<UFunction> FunctIt(SelectedClass.Get(), EFieldIteratorFlags::IncludeSuper); FunctIt; ++FunctIt)
 		{
-			UFunction* Function = *FunctIt;
-			FProperty* ReturnProp = Function->GetReturnProperty();
+			UFunction* FunctionPtr = *FunctIt;
 
-			// If no return property is found, try to infer from out params (blueprint version of return values).
-			// The check for NumParms == 2 will in reality check if there's only one user defined param due to a default param existing.
-			if (!ReturnProp && Function->HasAnyFunctionFlags(FUNC_HasOutParms) && Function->NumParms == 2)
+			if (FunctionExpr->IsCondition())
 			{
-				for (TFieldIterator<FProperty> It(Function); It && (It->PropertyFlags & CPF_OutParm); ++It)
+				FProperty* ReturnProp = IActorIO::GetUFunctionReturnProperty(FunctionPtr);
+				if (!CastField<FBoolProperty>(ReturnProp))
 				{
-					ReturnProp = *It;
+					continue;
 				}
 			}
 
-			// Only accept bool as return value for condition functions.
-			if (CastField<FBoolProperty>(ReturnProp))
-			{
-				SelectableFunctionIds.AddUnique(Function->GetFName());
-			}
+			SelectableFunctions.AddUnique(FunctionPtr->GetFName());
 		}
 	}
 }
@@ -632,6 +627,28 @@ void FActorIOScriptConditionCustomization::CustomizeHeader(TSharedRef<IPropertyH
 {
 	PropHandle = StructPropertyHandle.ToSharedPtr();
 	PropUtilities = StructCustomizationUtils.GetPropertyUtilities();
+	Struct = nullptr;
+
+	if (StructCustomizationUtils.GetPropertyUtilities()->GetSelectedObjects().Num() > 1)
+	{
+		HeaderRow
+		.NameContent()
+		[
+			StructPropertyHandle->CreatePropertyNameWidget()
+		]
+		.ValueContent()
+		[
+			SNew(SBox)
+			.VAlign(VAlign_Center)
+			[
+				SNew(STextBlock)
+				.Text(LOCTEXT("ExpressionEd_MultiSelectError", "Can't edit multiple objects"))
+				.Font(IDetailLayoutBuilder::GetDetailFont())
+				.OverflowPolicy(ETextOverflowPolicy::Ellipsis)
+			]
+		];
+		return;
+	}
 
 	void* RawData = nullptr;
 	if (StructPropertyHandle->GetValueData(RawData) == FPropertyAccess::Success)

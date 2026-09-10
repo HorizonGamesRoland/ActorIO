@@ -1066,29 +1066,8 @@ void SActorIOActionListViewRow::OnFocusChanging(const FWeakWidgetPath& PreviousF
 			UFunction* FunctionPtr = ActionPtr->ResolveUFunction(TargetFunction);
 			if (FunctionPtr)
 			{
-				int32 NumInputParams = 0;
-				for (TFieldIterator<FProperty> It(FunctionPtr); It && It->HasAnyPropertyFlags(CPF_Parm); ++It)
-				{
-					FProperty* FunctionProp = *It;
-					checkSlow(FunctionProp);
-
-					// Do not count return property.
-					if (FunctionProp->HasAnyPropertyFlags(CPF_ReturnParm))
-					{
-						continue;
-					}
-
-					// Do not count output params, but only if they are not passed by reference
-					// since in that case the value is also an input param.
-					if (FunctionProp->HasAnyPropertyFlags(CPF_OutParm) && !FunctionProp->HasAnyPropertyFlags(CPF_ReferenceParm))
-					{
-						continue;
-					}
-
-					NumInputParams++;
-				}
-
-				if (NumInputParams > 0)
+				TArray<FProperty*> InputParams = IActorIO::GetUFunctionInputParams(FunctionPtr);
+				if (InputParams.Num() > 0)
 				{
 					GetOwnerActionListView()->ShowParamsViewer(FunctionPtr, ArgumentsBox->AsShared());
 					return;

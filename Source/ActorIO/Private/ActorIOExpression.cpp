@@ -3,7 +3,6 @@
 #include "ActorIOExpression.h"
 #include "ActorIOSubsystemBase.h"
 #include "ActorIOVersions.h"
-#include "Kismet/KismetMathLibrary.h"
 #include "Engine/Engine.h"
 #include "Misc/OutputDeviceNull.h"
 
@@ -14,6 +13,7 @@
 FActorIOExpressionBase::FActorIOExpressionBase()
 {
 	ParentExpr = nullptr;
+	bIsCondition = false;
 }
 
 FActorIOExpressionBase* FActorIOExpressionBase::GetRootExpression()
@@ -37,7 +37,7 @@ FActorIOExpressionBase* FActorIOExpressionBase::GetRootExpression()
 //~ Begin FActorIOLiteralExpression
 //=======================================================
 
-bool FActorIOLiteralExpression::Evaluate(FString& OutResult)
+bool FActorIOLiteralExpression::Evaluate(UObject* Executor, FString& OutResult)
 {
 	OutResult = LiteralValue;
 	return true;
@@ -53,7 +53,7 @@ bool FActorIOLiteralExpression::ImportText(const FString& Str, int32 Version)
 {
 	FString Prefix;
 	FString Data;
-	if (!FActorIOExpresionParser::ParseBracket(Str, Prefix, Data))
+	if (!FActorIOExpressionParser::ParseBracket(Str, Prefix, Data))
 	{
 		return false;
 	}
@@ -86,6 +86,7 @@ void FActorIOFunctionExpressionBase::AddArgument(FActorIOExpressionBase* InExpr)
 	if (InExpr)
 	{
 		InExpr->SetParent(this);
+		InExpr->SetIsCondition(bIsCondition);
 		Args.Add(InExpr);
 	}
 }
@@ -94,12 +95,8 @@ void FActorIOFunctionExpressionBase::RemoveArgument(FActorIOExpressionBase* InEx
 {
 	if (InExpr)
 	{
-		int32 Idx = Args.Find(InExpr);
-		if (Idx != INDEX_NONE)
-		{
-			Args.RemoveAt(Idx);
-			delete InExpr;
-		}
+		Args.Remove(InExpr);
+		delete InExpr;
 	}
 }
 
@@ -114,6 +111,7 @@ void FActorIOFunctionExpressionBase::SetArgumentAt(int32 Index, FActorIOExpressi
 		}
 
 		InExpr->SetParent(this);
+		InExpr->SetIsCondition(bIsCondition);
 		Args[Index] = InExpr;
 	}
 }
@@ -166,7 +164,7 @@ bool FActorIOFunctionExpressionBase::ImportArgumentsText(const FString& Str, int
 	ResetArguments();
 	for (const FString& ArgData : ArgDatas)
 	{
-		FActorIOExpressionBase* NewExpr = FActorIOExpresionParser::NewExpressionFromString(ArgData, Version);
+		FActorIOExpressionBase* NewExpr = FActorIOExpressionParser::NewExpressionFromString(ArgData, Version);
 		if (NewExpr)
 		{
 			AddArgument(NewExpr);
@@ -225,11 +223,12 @@ int32 FActorIOFunctionExpressionBase::GetNumArguments(bool bRecursive) const
 //~ Begin FActorIOKismetFunctionExpression
 //=======================================================
 
-bool FActorIOKismetFunctionExpression::Evaluate(FString& OutResult)
+bool FActorIOKismetFunctionExpression::Evaluate(UObject* Executor, FString& OutResult)
 {
 	OutResult.Empty();
 
-	if (!ClassPtr.IsValid())
+	UFunction* FunctionPtr = ResolveUFunction();
+	if (!FunctionPtr)
 	{
 		// #TODO: log error
 		return false;
@@ -239,7 +238,7 @@ bool FActorIOKismetFunctionExpression::Evaluate(FString& OutResult)
 	for (FActorIOExpressionBase* Expr : Args)
 	{
 		FString Result;
-		if (!Expr || !Expr->Evaluate(Result))
+		if (!Expr || !Expr->Evaluate(Executor, Result))
 		{
 			return false;
 		}
@@ -248,11 +247,35 @@ bool FActorIOKismetFunctionExpression::Evaluate(FString& OutResult)
 		Cmd += Result;
 	}
 
-	UActorIOSubsystemBase* IOSubsystem = UActorIOSubsystemBase::Get(GEngine->GetCurrentPlayWorld());
-	check(IOSubsystem);
+	UActorIOSubsystemBase* IOSubsystem = UActorIOSubsystemBase::Get(Executor);
+	if (!IOSubsystem)
+	{
+		return false;
+	}
+
+	const TFunction<void(FProperty*, uint8*)> ReturnPropertyAccessor = [&](FProperty* ReturnProperty, uint8* Container)
+	{
+		if (ReturnProperty)
+		{
+			if (const FBoolProperty* BoolProperty = CastField<FBoolProperty>(ReturnProperty))
+			{
+				bool bValue = BoolProperty->GetPropertyValue_InContainer(Container);
+				if (bNegated)
+				{
+					bValue = !bValue;
+				}
+
+				OutResult = bValue ? TEXT("True") : TEXT("False");
+			}
+			else
+			{
+				ReturnProperty->ExportTextItem_InContainer(OutResult, Container, nullptr, nullptr, PPF_None);
+			}
+		}
+	};
 
 	FOutputDeviceNull Ar;
-	return IOSubsystem->ExecuteCommand(ClassPtr.Pin()->GetDefaultObject(), *Cmd, Ar, IOSubsystem, &OutResult);
+	return IOSubsystem->ExecuteCommand(ClassPtr.Pin()->GetDefaultObject(), *Cmd, Ar, IOSubsystem, ReturnPropertyAccessor);
 }
 
 bool FActorIOKismetFunctionExpression::ExportText(FString& Str) const
@@ -291,7 +314,7 @@ bool FActorIOKismetFunctionExpression::ImportText(const FString& Str, int32 Vers
 {
 	FString Prefix;
 	FString Data;
-	if (!FActorIOExpresionParser::ParseBracket(Str, Prefix, Data))
+	if (!FActorIOExpressionParser::ParseBracket(Str, Prefix, Data))
 	{
 		return false;
 	}
@@ -305,13 +328,13 @@ bool FActorIOKismetFunctionExpression::ImportText(const FString& Str, int32 Vers
 	{
 		FString FuncData = Data;
 		FString ArgsData;
-		if (FActorIOExpresionParser::ParseBracket(FuncData, Prefix, Data))
+		if (FActorIOExpressionParser::ParseBracket(FuncData, Prefix, Data))
 		{
 			bNegated = Prefix == TEXT("not");
 			if (bNegated)
 			{
 				FuncData = Data;
-				if (FActorIOExpresionParser::ParseBracket(FuncData, Prefix, Data))
+				if (FActorIOExpressionParser::ParseBracket(FuncData, Prefix, Data))
 				{
 					FuncData = Prefix;
 					ArgsData = Data;
@@ -348,7 +371,7 @@ bool FActorIOKismetFunctionExpression::ImportText(const FString& Str, int32 Vers
 		ClassPtr = ResolvedClass;
 		FunctionId = FName(*FunctionIdStr, FNAME_Find);
 
-		if (GetUFunction())
+		if (ResolveUFunction())
 		{
 			ImportArgumentsText(ArgsData, Version);
 		}
@@ -379,15 +402,19 @@ void FActorIOKismetFunctionExpression::UpdateArguments()
 {
 	ResetArguments();
 
-	TArray<FProperty*> FunctionParams = GetUFunctionParams();
-	for (int32 ArgIdx = 0; ArgIdx != FunctionParams.Num(); ++ArgIdx)
+	UFunction* FunctionPtr = ResolveUFunction();
+	if (FunctionPtr)
 	{
-		FActorIOLiteralExpression* NewArg = new FActorIOLiteralExpression();
-		AddArgument(NewArg);
+		TArray<FProperty*> FunctionParams = IActorIO::GetUFunctionInputParams(FunctionPtr);
+		for (int32 ArgIdx = 0; ArgIdx != FunctionParams.Num(); ++ArgIdx)
+		{
+			FActorIOLiteralExpression* NewArg = new FActorIOLiteralExpression();
+			AddArgument(NewArg);
+		}
 	}
 }
 
-UFunction* FActorIOKismetFunctionExpression::GetUFunction()
+UFunction* FActorIOKismetFunctionExpression::ResolveUFunction() const
 {
 	if (ClassPtr.IsValid() && FunctionId != NAME_None)
 	{
@@ -397,65 +424,46 @@ UFunction* FActorIOKismetFunctionExpression::GetUFunction()
 	return nullptr;
 }
 
-TArray<FProperty*> FActorIOKismetFunctionExpression::GetUFunctionParams()
-{
-	TArray<FProperty*> OutParams;
-
-	UFunction* ReferencedFunction = GetUFunction();
-	if (ReferencedFunction)
-	{
-		for (TFieldIterator<FProperty> It(ReferencedFunction); It && It->HasAnyPropertyFlags(CPF_Parm); ++It)
-		{
-			FProperty* FunctionProp = *It;
-			checkSlow(FunctionProp);
-
-			// Do not create widget for return property.
-			if (FunctionProp->HasAnyPropertyFlags(CPF_ReturnParm))
-			{
-				continue;
-			}
-
-			// Do not create widget for output params, but only if they are not passed by ref
-			// since in that case the value is also an input param.
-			if (FunctionProp->HasAnyPropertyFlags(CPF_OutParm) && !FunctionProp->HasAnyPropertyFlags(CPF_ReferenceParm))
-			{
-				continue;
-			}
-
-			// Skip blueprint generated '__WorldContext' property.
-			// The value for this will be auto initialized for us by the 'ActorIO::ExecuteCommand' function.
-			if (FunctionProp->GetName() == TEXT("__WorldContext"))
-			{
-				continue;
-			}
-
-			OutParams.Add(FunctionProp);
-		}
-	}
-
-	return OutParams;
-}
-
 //=======================================================
 //~ Begin FActorIOGroupExpression
 //=======================================================
 
-bool FActorIOGroupExpression::Evaluate(FString& OutResult)
+bool FActorIOGroupExpression::Evaluate(UObject* Executor, FString& OutResult)
 {
+	OutResult.Empty();
+
+	// Empty groups are treated as if they are not even there.
+	if (Args.IsEmpty())
+	{
+		OutResult = TEXT("True");
+		return true;
+	}
+
+	bool bResult = true;
 	for (FActorIOExpressionBase* Expr : Args)
 	{
 		FString Result;
-		if (!Expr || !Expr->Evaluate(Result))
+		if (!Expr || !Expr->Evaluate(Executor, Result))
 		{
 			return false;
 		}
 
-		if (Result != TEXT("1") && Result != TEXT("True"))
+		if (bIsCondition)
 		{
-			return false;
+			// This handles early exit cases when evaluating conditions:
+			// - Result is true and we want 'ANY is true' (bNegated true), so its a pass.
+			// - Result is false and we want 'ALL is true' (bNegated false), so its a fail.
+
+			const bool bResultAsBool = FCString::ToBool(*Result);
+			if (bResultAsBool == bNegated)
+			{
+				bResult = bResultAsBool;
+				break;
+			}
 		}
 	}
 
+	OutResult = bResult ? TEXT("True") : TEXT("False");
 	return true;
 }
 
@@ -476,7 +484,7 @@ bool FActorIOGroupExpression::ImportText(const FString& Str, int32 Version)
 {
 	FString Prefix;
 	FString Data;
-	if (!FActorIOExpresionParser::ParseBracket(Str, Prefix, Data))
+	if (!FActorIOExpressionParser::ParseBracket(Str, Prefix, Data))
 	{
 		return false;
 	}
@@ -497,21 +505,24 @@ bool FActorIOGroupExpression::ImportText(const FString& Str, int32 Version)
 
 FActorIOScriptCondition::FActorIOScriptCondition()
 {
-	Expr = new FActorIOGroupExpression();
+	Expr = nullptr;
 }
 
-FActorIOScriptCondition::~FActorIOScriptCondition()
+void FActorIOScriptCondition::Initialize()
 {
-	if (Expr)
+	if (Expr.IsValid())
 	{
-		delete Expr;
+		Expr.Reset();
 	}
+
+	Expr = MakeShared<FActorIOGroupExpression>();
+	Expr->SetIsCondition(true);
 }
 
 bool FActorIOScriptCondition::operator==(const FActorIOScriptCondition& Other) const
 {
 	FActorIOGroupExpression* OtherExpr = Other.GetExpression();
-	if (Expr && OtherExpr)
+	if (Expr.IsValid() && OtherExpr)
 	{
 		FString Data;
 		FString OtherData;
@@ -538,7 +549,7 @@ bool FActorIOScriptCondition::Serialize(FArchive& Ar)
 		FString SavedStr;
 		Ar << SavedStr;
 
-		if (Expr)
+		if (Expr.IsValid())
 		{
 			return Expr->ImportText(SavedStr, Version);
 		}
@@ -546,7 +557,7 @@ bool FActorIOScriptCondition::Serialize(FArchive& Ar)
 	else
 	{
 		FString ExprStr;
-		if (Expr)
+		if (Expr.IsValid())
 		{
 			Expr->ExportText(ExprStr);
 		}
@@ -560,19 +571,30 @@ bool FActorIOScriptCondition::Serialize(FArchive& Ar)
 
 bool FActorIOScriptCondition::ExportTextItem(FString& ValueStr, FActorIOScriptCondition const& DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope) const
 {
-	return Expr && Expr->ExportText(ValueStr);
+	return Expr.IsValid() && Expr->ExportText(ValueStr);
 }
 
 bool FActorIOScriptCondition::ImportTextItem(const TCHAR*& Buffer, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText)
 {
-	return Expr && Expr->ImportText(Buffer, (int32)FActorIOExpressionVersion::LatestVersion);
+	return Expr.IsValid() && Expr->ImportText(Buffer, (int32)FActorIOExpressionVersion::LatestVersion);
+}
+
+bool FActorIOScriptCondition::Evaluate(UObject* Executor)
+{
+	FString Result;
+	if (Expr.IsValid() && Expr->Evaluate(Executor, Result))
+	{
+		return FCString::ToBool(*Result);
+	}
+
+	return false;
 }
 
 //=======================================================
-//~ Begin FActorIOExpresionParser
+//~ Begin FActorIOExpressionParser
 //=======================================================
 
-FActorIOExpressionBase* FActorIOExpresionParser::NewExpressionFromString(const FString& Str, int32 Version)
+FActorIOExpressionBase* FActorIOExpressionParser::NewExpressionFromString(const FString& Str, int32 Version)
 {
 	if (Version == INDEX_NONE)
 	{
@@ -581,7 +603,7 @@ FActorIOExpressionBase* FActorIOExpresionParser::NewExpressionFromString(const F
 
 	FString Prefix;
 	FString Data;
-	if (!FActorIOExpresionParser::ParseBracket(Str, Prefix, Data))
+	if (!FActorIOExpressionParser::ParseBracket(Str, Prefix, Data))
 	{
 		return nullptr;
 	}
@@ -599,7 +621,7 @@ FActorIOExpressionBase* FActorIOExpresionParser::NewExpressionFromString(const F
 	return NewExpr;
 }
 
-FActorIOExpressionBase* FActorIOExpresionParser::NewExpressionOfType(FName TypeName)
+FActorIOExpressionBase* FActorIOExpressionParser::NewExpressionOfType(FName TypeName)
 {
 	if (TypeName == FName("val"))
 	{
@@ -619,7 +641,7 @@ FActorIOExpressionBase* FActorIOExpresionParser::NewExpressionOfType(FName TypeN
 	return nullptr;
 }
 
-bool FActorIOExpresionParser::ParseBracket(const FString& Str, FString& OutPrefix, FString& OutData)
+bool FActorIOExpressionParser::ParseBracket(const FString& Str, FString& OutPrefix, FString& OutData)
 {
 	int32 OpenBracketIdx = INDEX_NONE;
 	if (!Str.FindChar(TEXT('('), OpenBracketIdx))

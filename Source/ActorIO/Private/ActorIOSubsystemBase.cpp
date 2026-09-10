@@ -442,7 +442,7 @@ void UActorIOSubsystemBase::ProcessMessage(const FActorIOMessage& InMessage)
     }
 }
 
-bool UActorIOSubsystemBase::ExecuteCommand(UObject* Target, const TCHAR* Str, FOutputDevice& Ar, UObject* Executor, FString* OutRetValue)
+bool UActorIOSubsystemBase::ExecuteCommand(UObject* Target, const TCHAR* Str, FOutputDevice& Ar, UObject* Executor, TFunction<void(FProperty*, uint8*)> ReturnPropertyAccessor)
 {
     /**
      * THIS IS A MODIFIED VERSION OF UObject::CallFunctionByNameWithString
@@ -458,6 +458,7 @@ bool UActorIOSubsystemBase::ExecuteCommand(UObject* Target, const TCHAR* Str, FO
      *   - Auto initialize blueprint generated '__WorldContext' property to support static functions.
      *   - Skip importing value for 'out' properties that are not passed by 'ref'.
      *   - Skip CPP param default value initialization because it only works in editor and not packaged games.
+     *   - Add return property accessor function
      *   - Return success/failure properly.
      */
 
@@ -530,7 +531,7 @@ bool UActorIOSubsystemBase::ExecuteCommand(UObject* Target, const TCHAR* Str, FO
             }
         }
 
-        /*
+        /**
          * AUTO INITIALIZE BLUEPRINT GENERATED '__WORLDCONTEXT' PROPERTY TO SUPPORT STATIC FUNCTIONS
          */
         if (PropertyParam->GetName() == TEXT("__WorldContext"))
@@ -543,7 +544,7 @@ bool UActorIOSubsystemBase::ExecuteCommand(UObject* Target, const TCHAR* Str, FO
             }
         }
 
-        /*
+        /**
          * SKIP IMPORTING VALUE FOR 'OUT' PROPERTIES THAT ARE NOT PASSED BY 'REF'
          * 
          * In Unreal's reflection system, out properties and reference properties are differentiated.
@@ -574,7 +575,7 @@ bool UActorIOSubsystemBase::ExecuteCommand(UObject* Target, const TCHAR* Str, FO
         bool bFoundDefault = false;
         bool bFailedImport = true;
 
-        /*
+        /**
          * SKIP INITIALIZE CPP FUNCTION PARAM DEFAULT VALUE
          *
          * This only works in the editor because values are being read from Function->GetMetaData (which is editor only).
@@ -629,21 +630,13 @@ bool UActorIOSubsystemBase::ExecuteCommand(UObject* Target, const TCHAR* Str, FO
     {
         Target->ProcessEvent(Function, Parms);
 
-        // #TODO: Find a better way to access the return value before it is destructed
-        if (OutRetValue != nullptr)
+        /**
+         * ACCESS RETURN PROPERTY BEFORE IT IS DESTRUCTED
+         */
+        if (ReturnPropertyAccessor)
         {
-            FProperty* ReturnProp = Function->GetReturnProperty();
-            if (!ReturnProp && LastParameter->HasAnyPropertyFlags(CPF_OutParm) && !LastParameter->HasAnyPropertyFlags(CPF_ReferenceParm))
-            {
-                ReturnProp = LastParameter;
-            }
-
-            if (ReturnProp)
-            {
-                ReturnProp->ExportTextItem_InContainer(*OutRetValue, Parms, nullptr, nullptr, PPF_None);
-
-                UE_LOG(LogActorIO, Warning, TEXT("%s exported return value: %s"), *Function->GetName(), **OutRetValue);
-            }
+            FProperty* ReturnProp = IActorIO::GetUFunctionReturnProperty(Function);
+            ReturnPropertyAccessor(ReturnProp, Parms);
         }
     }
 

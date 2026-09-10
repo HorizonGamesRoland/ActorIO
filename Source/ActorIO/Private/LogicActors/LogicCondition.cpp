@@ -35,10 +35,7 @@ void ALogicCondition::RegisterIOFunctions(FActorIOFunctionList& FunctionRegistry
 
 void ALogicCondition::Test()
 {
-	FString Result;
-	bool bSuccess = Condition.GetExpression()->Evaluate(Result);
-
-	if (Result == TEXT("1") || Result == TEXT("True"))
+	if (Condition.Evaluate(this))
 	{
 		OnPass.Broadcast();
 	}

@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
+#include "ActorIO.h"
 #include "Widgets/SCompoundWidget.h"
 
 /**
