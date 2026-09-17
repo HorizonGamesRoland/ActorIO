@@ -186,7 +186,7 @@ public:
 /**
  *
  */
-class ACTORIOEDITOR_API FActorIOScriptConditionCustomization : public IPropertyTypeCustomization
+class ACTORIOEDITOR_API FActorIOExpressionContainerCustomization : public IPropertyTypeCustomization
 {
 public:
 
@@ -198,13 +198,15 @@ public:
 	virtual void CustomizeChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils) override;
 	//~ End IPropertyTypeCustomization Interface
 
+	FActorIOExpressionContainer* GetStructDataPtr();
+
 protected:
 
-	TSharedPtr<IPropertyHandle> PropHandle;
+	TSharedPtr<IPropertyHandle> PropStruct;
+
+	TSharedPtr<IPropertyHandleArray> PropExpressions;
 
 	TSharedPtr<IPropertyUtilities> PropUtilities;
-
-	FActorIOScriptCondition* Struct;
 
 protected:
 

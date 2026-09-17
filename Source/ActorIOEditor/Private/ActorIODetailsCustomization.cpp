@@ -131,17 +131,11 @@ void FActorIOLiteralExpressionBuilder::OnClick_Remove()
 {
 	// #todo: use CustomizationUtils->GetPropertyUtilities()->EnqueueDeferredAction?
 
-	if (Expr)
-	{
-		FActorIOExpressionBase* ParentExpr = Expr->GetParent();
-		if (ParentExpr->GetType() == EActorIOExpressionType::Function)
-		{
-			FActorIOFunctionExpressionBase* FunctionExpr = static_cast<FActorIOFunctionExpressionBase*>(ParentExpr);
-			FunctionExpr->RemoveArgument(Expr);
+	FActorIOExpressionContainer* ExprContainer = Expr->GetContainer();
+	int32 ExprIdx = ExprContainer->GetExpressionIdx(Expr);
+	ExprContainer->RemoveExpression(ExprIdx);
 
-			LayoutBuilder->ForceRefreshDetails();
-		}
-	}
+	LayoutBuilder->ForceRefreshDetails();
 }
 
 //=======================================================
@@ -212,17 +206,22 @@ void FActorIOKismetFunctionExpressionBuilder::GenerateChildContent(IDetailChildr
 	FActorIOKismetFunctionExpression* FunctionExpr = GetExpression<FActorIOKismetFunctionExpression>();
 	if (!FunctionExpr) return;
 
+	FActorIOExpressionContainer* ExprContainer = Expr->GetContainer();
+	if (!ExprContainer) return;
+
 	if (ReferencedFunction)
 	{
-		TArray<FProperty*> FunctionParams = IActorIO::GetUFunctionInputParams(ReferencedFunction);
-		for (int32 ArgIdx = 0; ArgIdx != FunctionExpr->GetArguments().Num(); ++ArgIdx)
-		{
-			FActorIOExpressionBase* Arg = FunctionExpr->GetArgumentAt(ArgIdx);
-			if (!Arg) continue;
+		int32 ExprIdx = ExprContainer->GetExpressionIdx(Expr);
+		TArray<FActorIOExpressionBase*> ChildExpressions = ExprContainer->GetChildExpressions(ExprIdx);
 
-			TSharedRef<FActorIOExpressionDetailBuilder> Builder = FActorIODetailCustomizationHelper::NewExpressionDetailBuilderOfType(Arg->GetTypeName());
-			Builder->SetExpression(Arg);
-			Builder->SetNameOverrideText(FunctionParams[ArgIdx]->GetDisplayNameText());
+		TArray<FProperty*> FunctionParams = IActorIO::GetUFunctionInputParams(ReferencedFunction);
+		for (int32 ChildIdx = 0; ChildIdx != ChildExpressions.Num(); ++ChildIdx)
+		{
+			if (!FunctionParams.IsValidIndex(ChildIdx)) continue;
+
+			TSharedRef<FActorIOExpressionDetailBuilder> Builder = FActorIODetailCustomizationHelper::NewExpressionDetailBuilderOfType(Expr->GetTypeName());
+			Builder->SetExpression(ChildExpressions[ChildIdx]);
+			Builder->SetNameOverrideText(FunctionParams[ChildIdx]->GetDisplayNameText());
 			Builder->SetAllowRemove(false);
 			ChildrenBuilder.AddCustomBuilder(Builder);
 		}
@@ -403,15 +402,18 @@ void FActorIOKismetFunctionExpressionBuilder::UpdateSelectableFunctions()
 {
 	SelectableFunctions.Reset();
 
+	FActorIOExpressionContainer* ExprContainer = Expr->GetContainer();
 	FActorIOKismetFunctionExpression* FunctionExpr = GetExpression<FActorIOKismetFunctionExpression>();
-	if (FunctionExpr && FunctionExpr->GetClass().IsValid())
+	if (!FunctionExpr) return;
+
+	if (FunctionExpr->GetClass().IsValid())
 	{
 		TStrongObjectPtr<UClass> SelectedClass = FunctionExpr->GetClass().Pin();
 		for (TFieldIterator<UFunction> FunctIt(SelectedClass.Get(), EFieldIteratorFlags::IncludeSuper); FunctIt; ++FunctIt)
 		{
 			UFunction* FunctionPtr = *FunctIt;
 
-			if (FunctionExpr->IsCondition())
+			if (ExprContainer->IsConditionContainer())
 			{
 				FProperty* ReturnProp = IActorIO::GetUFunctionReturnProperty(FunctionPtr);
 				if (!CastField<FBoolProperty>(ReturnProp))
@@ -441,17 +443,11 @@ void FActorIOKismetFunctionExpressionBuilder::OnClick_Remove()
 {
 	// #todo: use CustomizationUtils->GetPropertyUtilities()->EnqueueDeferredAction?
 
-	if (Expr)
-	{
-		FActorIOExpressionBase* ParentExpr = Expr->GetParent();
-		if (ParentExpr->GetType() == EActorIOExpressionType::Function)
-		{
-			FActorIOFunctionExpressionBase* ParentFunctionExpr = static_cast<FActorIOFunctionExpressionBase*>(ParentExpr);
-			ParentFunctionExpr->RemoveArgument(Expr);
+	FActorIOExpressionContainer* ExprContainer = Expr->GetContainer();
+	int32 ExprIdx = ExprContainer->GetExpressionIdx(Expr);
+	ExprContainer->RemoveExpression(ExprIdx);
 
-			LayoutBuilder->ForceRefreshDetails();
-		}
-	}
+	LayoutBuilder->ForceRefreshDetails();
 }
 
 //=======================================================
@@ -518,12 +514,14 @@ void FActorIOGroupExpressionBuilder::GenerateChildContent(IDetailChildrenBuilder
 	FActorIOGroupExpression* GroupExpr = GetExpression<FActorIOGroupExpression>();
 	if (!GroupExpr) return;
 
-	for (FActorIOExpressionBase* Arg : GroupExpr->GetArguments())
-	{
-		if (!Arg) continue;
+	FActorIOExpressionContainer* ExprContainer = Expr->GetContainer();
+	if (!ExprContainer) return;
 
-		TSharedRef<FActorIOExpressionDetailBuilder> Builder = FActorIODetailCustomizationHelper::NewExpressionDetailBuilderOfType(Arg->GetTypeName());
-		Builder->SetExpression(Arg);
+	int32 ExprIdx = ExprContainer->GetExpressionIdx(Expr);
+	for (FActorIOExpressionBase* ChildExpr : ExprContainer->GetChildExpressions(ExprIdx))
+	{
+		TSharedRef<FActorIOExpressionDetailBuilder> Builder = FActorIODetailCustomizationHelper::NewExpressionDetailBuilderOfType(ChildExpr->GetTypeName());
+		Builder->SetExpression(ChildExpr);
 		ChildrenBuilder.AddCustomBuilder(Builder);
 	}
 }
@@ -531,13 +529,18 @@ void FActorIOGroupExpressionBuilder::GenerateChildContent(IDetailChildrenBuilder
 void FActorIOGroupExpressionBuilder::OnClick_AddCondition()
 {
 	FActorIOGroupExpression* GroupExpr = GetExpression<FActorIOGroupExpression>();
-	if (GroupExpr)
-	{
-		FActorIOKismetFunctionExpression* NewExpression = new FActorIOKismetFunctionExpression();
-		GroupExpr->AddArgument(NewExpression);
+	if (!GroupExpr) return;
 
-		LayoutBuilder->ForceRefreshDetails();
-	}
+	FActorIOExpressionContainer* ExprContainer = Expr->GetContainer();
+
+	FActorIOKismetFunctionExpression NewExpr;
+	TInstancedStruct<FActorIOExpressionBase> NewExprInstance;
+	NewExprInstance.InitializeAs<FActorIOKismetFunctionExpression>(NewExpr);
+
+	int32 ExprParentIdx = ExprContainer->GetExpressionParentIdx(Expr);
+	ExprContainer->AddExpression(NewExprInstance, ExprParentIdx);
+
+	LayoutBuilder->ForceRefreshDetails();
 }
 
 void FActorIOGroupExpressionBuilder::OnClick_Negate()
@@ -556,17 +559,11 @@ void FActorIOGroupExpressionBuilder::OnClick_Remove()
 {
 	// #todo: use CustomizationUtils->GetPropertyUtilities()->EnqueueDeferredAction?
 
-	if (Expr)
-	{
-		FActorIOExpressionBase* ParentExpr = Expr->GetParent();
-		if (ParentExpr->GetType() == EActorIOExpressionType::Function)
-		{
-			FActorIOFunctionExpressionBase* ParentFunctionExpr = static_cast<FActorIOFunctionExpressionBase*>(ParentExpr);
-			ParentFunctionExpr->RemoveArgument(Expr);
+	FActorIOExpressionContainer* ExprContainer = Expr->GetContainer();
+	int32 ExprIdx = ExprContainer->GetExpressionIdx(Expr);
+	ExprContainer->RemoveExpression(ExprIdx);
 
-			LayoutBuilder->ForceRefreshDetails();
-		}
-	}
+	LayoutBuilder->ForceRefreshDetails();
 }
 
 void FActorIOGroupExpressionBuilder::UpdateHeaderText()
@@ -615,21 +612,21 @@ void FActorIOInvalidExpressionBuilder::GenerateHeaderRowContent(FDetailWidgetRow
 }
 
 //=======================================================
-//~ Begin FActorIOScriptConditionCustomization
+//~ Begin FActorIOExpressionContainerCustomization
 //=======================================================
 
-TSharedRef<IPropertyTypeCustomization> FActorIOScriptConditionCustomization::MakeInstance()
+TSharedRef<IPropertyTypeCustomization> FActorIOExpressionContainerCustomization::MakeInstance()
 {
-	return MakeShareable(new FActorIOScriptConditionCustomization);
+	return MakeShareable(new FActorIOExpressionContainerCustomization);
 }
 
-void FActorIOScriptConditionCustomization::CustomizeHeader(TSharedRef<IPropertyHandle> StructPropertyHandle, FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
+void FActorIOExpressionContainerCustomization::CustomizeHeader(TSharedRef<IPropertyHandle> StructPropertyHandle, FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
 {
-	PropHandle = StructPropertyHandle.ToSharedPtr();
+	PropStruct = StructPropertyHandle.ToSharedPtr();
+	PropExpressions = StructPropertyHandle->GetChildHandle(FName("Expressions"))->AsArray();
 	PropUtilities = StructCustomizationUtils.GetPropertyUtilities();
-	Struct = nullptr;
 
-	if (StructCustomizationUtils.GetPropertyUtilities()->GetSelectedObjects().Num() > 1)
+	if (PropUtilities->GetSelectedObjects().Num() > 1)
 	{
 		HeaderRow
 		.NameContent()
@@ -650,13 +647,7 @@ void FActorIOScriptConditionCustomization::CustomizeHeader(TSharedRef<IPropertyH
 		return;
 	}
 
-	void* RawData = nullptr;
-	if (StructPropertyHandle->GetValueData(RawData) == FPropertyAccess::Success)
-	{
-		Struct = static_cast<FActorIOScriptCondition*>(RawData);
-	}
-
-	StructPropertyHandle->SetOnPropertyValueChanged(FSimpleDelegate::CreateSP(this, &FActorIOScriptConditionCustomization::OnValueChanged));
+	StructPropertyHandle->SetOnPropertyValueChanged(FSimpleDelegate::CreateSP(this, &FActorIOExpressionContainerCustomization::OnValueChanged));
 
 	HeaderRow
 	.NameContent()
@@ -680,7 +671,7 @@ void FActorIOScriptConditionCustomization::CustomizeHeader(TSharedRef<IPropertyH
 		.VAlign(VAlign_Center)
 		.AutoWidth()
 		[
-			PropertyCustomizationHelpers::MakeAddButton(FSimpleDelegate::CreateSP(this, &FActorIOScriptConditionCustomization::OnClick_AddCondition),
+			PropertyCustomizationHelpers::MakeAddButton(FSimpleDelegate::CreateSP(this, &FActorIOExpressionContainerCustomization::OnClick_AddCondition),
 				LOCTEXT("ExpressionEd_AddCondition", "Add Condition"))
 		]
 		+ SHorizontalBox::Slot()
@@ -689,78 +680,96 @@ void FActorIOScriptConditionCustomization::CustomizeHeader(TSharedRef<IPropertyH
 		.VAlign(VAlign_Center)
 		.AutoWidth()
 		[
-			PropertyCustomizationHelpers::MakeDeleteButton(FSimpleDelegate::CreateSP(this, &FActorIOScriptConditionCustomization::OnClick_ResetConditions),
+			PropertyCustomizationHelpers::MakeDeleteButton(FSimpleDelegate::CreateSP(this, &FActorIOExpressionContainerCustomization::OnClick_ResetConditions),
 				LOCTEXT("ExpressionEd_ResetConditions", "Remove All Conditions"))
 		]
 	];
 }
 
-void FActorIOScriptConditionCustomization::CustomizeChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
+void FActorIOExpressionContainerCustomization::CustomizeChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
 {
-	if (Struct && Struct->GetExpression())
+	FActorIOExpressionContainer* ExprContainer = GetStructDataPtr();
+	if (ExprContainer && ExprContainer->GetNumExpressions() > 0)
 	{
-		for (FActorIOExpressionBase* Arg : Struct->GetExpression()->GetArguments())
+		for (TInstancedStruct<FActorIOExpressionBase>& ExprInstance : ExprContainer->GetExpressions())
 		{
-			if (!Arg) continue;
-
-			TSharedRef<FActorIOExpressionDetailBuilder> Builder = FActorIODetailCustomizationHelper::NewExpressionDetailBuilderOfType(Arg->GetTypeName());
-			Builder->SetExpression(Arg);
+			FActorIOExpressionBase* ExprPtr = ExprInstance.GetMutablePtr<FActorIOExpressionBase>();
+			TSharedRef<FActorIOExpressionDetailBuilder> Builder = FActorIODetailCustomizationHelper::NewExpressionDetailBuilderOfType(ExprPtr->GetTypeName());
+			Builder->SetExpression(ExprPtr);
 			StructBuilder.AddCustomBuilder(Builder);
 		}
 	}
 }
 
-FText FActorIOScriptConditionCustomization::GetHeaderText()
+FActorIOExpressionContainer* FActorIOExpressionContainerCustomization::GetStructDataPtr()
 {
-	int32 NumExpressions = 0;
-	if (Struct && Struct->GetExpression())
+	void* RawData = nullptr;
+	if (PropStruct->GetValueData(RawData) == FPropertyAccess::Success)
 	{
-		NumExpressions += Struct->GetExpression()->GetNumArguments(true);
+		return static_cast<FActorIOExpressionContainer*>(RawData);
 	}
+
+	return nullptr;
+}
+
+FText FActorIOExpressionContainerCustomization::GetHeaderText()
+{
+	uint32 NumExpressions = 0;
+	PropExpressions->GetNumElements(NumExpressions);
 
 	return FText::Format(LOCTEXT("ExpressionEd_ConditionHeaderText", "{0} Condition elements"), FText::AsNumber(NumExpressions));
 }
 
-void FActorIOScriptConditionCustomization::OnClick_AddCondition()
+void FActorIOExpressionContainerCustomization::OnClick_AddCondition()
 {
-	if (Struct && Struct->GetExpression())
+	FActorIOExpressionContainer* ExprContainer = GetStructDataPtr();
+	if (ExprContainer)
 	{
+		TArray<UObject*> OuterObjects;
+		PropStruct->GetOuterObjects(OuterObjects);
+
 		const FScopedTransaction Transaction(LOCTEXT("AddActorIOExpression", "Add ActorIO Expression"));
-		TArray<TWeakObjectPtr<UObject>> ObjectsBeingCustomized = PropUtilities->GetSelectedObjects();
-		for (const TWeakObjectPtr<UObject>& ObjectBeingCustomized : ObjectsBeingCustomized)
+		for (UObject* OuterObject : OuterObjects)
 		{
-			ObjectBeingCustomized.Get()->Modify();
+			OuterObject->Modify();
 		}
 
-		PropHandle->NotifyPreChange();
+		PropStruct->NotifyPreChange();
 
-		FActorIOGroupExpression* NewExpression = new FActorIOGroupExpression();
-		Struct->GetExpression()->AddArgument(NewExpression);
-		
-		PropHandle->NotifyPostChange(EPropertyChangeType::ValueSet);
+		FActorIOGroupExpression NewExpr;
+		TInstancedStruct<FActorIOExpressionBase> NewExprInstance;
+		NewExprInstance.InitializeAs<FActorIOGroupExpression>(NewExpr);
+
+		int32 ExprParentIdx = ExprContainer->GetNumExpressions() == 0 ? INDEX_NONE : 0;
+		ExprContainer->AddExpression(NewExprInstance, ExprParentIdx);
+
+		PropStruct->NotifyPostChange(EPropertyChangeType::ValueSet);
 	}
 }
 
-void FActorIOScriptConditionCustomization::OnClick_ResetConditions()
+void FActorIOExpressionContainerCustomization::OnClick_ResetConditions()
 {
-	if (Struct && Struct->GetExpression())
+	FActorIOExpressionContainer* ExprContainer = GetStructDataPtr();
+	if (ExprContainer)
 	{
+		TArray<UObject*> OuterObjects;
+		PropStruct->GetOuterObjects(OuterObjects);
+
 		const FScopedTransaction Transaction(LOCTEXT("ResetActorIOExpression", "Reset ActorIO Expressions"));
-		TArray<TWeakObjectPtr<UObject>> ObjectsBeingCustomized = PropUtilities->GetSelectedObjects();
-		for (const TWeakObjectPtr<UObject>& ObjectBeingCustomized : ObjectsBeingCustomized)
+		for (UObject* OuterObject : OuterObjects)
 		{
-			ObjectBeingCustomized.Get()->Modify();
+			OuterObject->Modify();
 		}
 
-		PropHandle->NotifyPreChange();
+		PropStruct->NotifyPreChange();
 
-		Struct->GetExpression()->ResetArguments();
+		ExprContainer->Empty();
 
-		PropHandle->NotifyPostChange(EPropertyChangeType::ValueSet);
+		PropStruct->NotifyPostChange(EPropertyChangeType::ValueSet);
 	}
 }
 
-void FActorIOScriptConditionCustomization::OnValueChanged()
+void FActorIOExpressionContainerCustomization::OnValueChanged()
 {
 	PropUtilities->RequestForceRefresh();
 }

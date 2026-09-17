@@ -3,8 +3,8 @@
 #pragma once
 
 #include "ActorIO.h"
-#include "LogicActors/LogicActorBase.h"
 #include "ActorIOExpression.h"
+#include "LogicActors/LogicActorBase.h"
 #include "LogicCondition.generated.h"
 
 /**
@@ -32,8 +32,8 @@ public:
 
 protected:
 
-	UPROPERTY(EditInstanceOnly)
-	FActorIOScriptCondition Condition;
+	UPROPERTY(EditInstanceOnly, Category = "Condition")
+	FActorIOExpressionContainer Conditions;
 
 public:
 

@@ -42,7 +42,7 @@ void FActorIOEditor::StartupModule()
 
 	// Register property customizations.
 	FPropertyEditorModule& PropertyModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>(TEXT("PropertyEditor"));
-	PropertyModule.RegisterCustomPropertyTypeLayout(TEXT("ActorIOScriptCondition"), FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FActorIOScriptConditionCustomization::MakeInstance));
+	PropertyModule.RegisterCustomPropertyTypeLayout(TEXT("ActorIOExpressionContainer"), FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FActorIOExpressionContainerCustomization::MakeInstance));
 	PropertyModule.NotifyCustomizationModuleChanged();
 
 	// Register component visualizer to draw I/O lines between actors.
@@ -84,7 +84,7 @@ void FActorIOEditor::ShutdownModule()
 	if (FModuleManager::Get().IsModuleLoaded("PropertyEditor"))
 	{
 		FPropertyEditorModule& PropertyModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>(TEXT("PropertyEditor"));
-		PropertyModule.UnregisterCustomPropertyTypeLayout(TEXT("ActorIOScriptCondition"));
+		PropertyModule.UnregisterCustomPropertyTypeLayout(TEXT("ActorIOExpressionContainer"));
 		PropertyModule.NotifyCustomizationModuleChanged();
 	}
 

@@ -6,32 +6,35 @@
 #include "Engine/Engine.h"
 #include "Misc/OutputDeviceNull.h"
 
+// #todo: rename to ActorIOExpressions.h
+
+
 //=======================================================
 //~ Begin FActorIOExpressionBase
 //=======================================================
 
 FActorIOExpressionBase::FActorIOExpressionBase()
 {
-	ParentExpr = nullptr;
-	bIsCondition = false;
+	ParentContainer = nullptr;
+	//bIsCondition = false;
 }
 
-FActorIOExpressionBase* FActorIOExpressionBase::GetRootExpression()
-{
-	FActorIOExpressionBase* RootExpr = this;
-	while (true)
-	{
-		FActorIOExpressionBase* Parent = RootExpr->GetParent();
-		if (!Parent)
-		{
-			break;
-		}
-
-		RootExpr = Parent;
-	}
-
-	return RootExpr;
-}
+//FActorIOExpressionBase* FActorIOExpressionBase::GetRootExpression()
+//{
+//	FActorIOExpressionBase* RootExpr = this;
+//	while (true)
+//	{
+//		FActorIOExpressionBase* Parent = RootExpr->GetParent();
+//		if (!Parent)
+//		{
+//			break;
+//		}
+//
+//		RootExpr = Parent;
+//	}
+//
+//	return RootExpr;
+//}
 
 //=======================================================
 //~ Begin FActorIOLiteralExpression
@@ -76,52 +79,6 @@ FActorIOFunctionExpressionBase::FActorIOFunctionExpressionBase()
 	bNegated = false;
 }
 
-FActorIOFunctionExpressionBase::~FActorIOFunctionExpressionBase()
-{
-	Args.Empty();
-}
-
-void FActorIOFunctionExpressionBase::AddArgument(FActorIOExpressionBase* InExpr)
-{
-	if (InExpr)
-	{
-		InExpr->SetParent(this);
-		InExpr->SetIsCondition(bIsCondition);
-		Args.Add(InExpr);
-	}
-}
-
-void FActorIOFunctionExpressionBase::RemoveArgument(FActorIOExpressionBase* InExpr)
-{
-	if (InExpr)
-	{
-		Args.Remove(InExpr);
-		delete InExpr;
-	}
-}
-
-void FActorIOFunctionExpressionBase::SetArgumentAt(int32 Index, FActorIOExpressionBase* InExpr)
-{
-	if (InExpr && Args.IsValidIndex(Index) && Args[Index] != InExpr)
-	{
-		if (Args[Index] != nullptr)
-		{
-			delete Args[Index];
-			Args[Index] = nullptr;
-		}
-
-		InExpr->SetParent(this);
-		InExpr->SetIsCondition(bIsCondition);
-		Args[Index] = InExpr;
-	}
-}
-
-void FActorIOFunctionExpressionBase::ResetArguments()
-{
-	// #todo: check if element destructors are called properly
-	Args.Empty();
-}
-
 bool FActorIOFunctionExpressionBase::ImportArgumentsText(const FString& Str, int32 Version)
 {
 	TArray<FString> ArgDatas;
@@ -161,62 +118,36 @@ bool FActorIOFunctionExpressionBase::ImportArgumentsText(const FString& Str, int
 		}
 	}
 
-	ResetArguments();
-	for (const FString& ArgData : ArgDatas)
-	{
-		FActorIOExpressionBase* NewExpr = FActorIOExpressionParser::NewExpressionFromString(ArgData, Version);
-		if (NewExpr)
-		{
-			AddArgument(NewExpr);
-		}
-	}
+	//ResetArguments();
+	//for (const FString& ArgData : ArgDatas)
+	//{
+	//	FActorIOExpressionBase* NewExpr = FActorIOExpressionParser::NewExpressionFromString(ArgData, Version);
+	//	if (NewExpr)
+	//	{
+	//		AddArgument(NewExpr);
+	//	}
+	//}
 
 	return true;
 }
 
 bool FActorIOFunctionExpressionBase::ExportArgumentsText(FString& Str) const
 {
-	for (FActorIOExpressionBase* Arg : Args)
-	{
-		if (!Arg) continue;
-		if (!Str.IsEmpty()) Str += TEXT(',');
-
-		FString ArgData;
-		if (!Arg->ExportText(ArgData))
-		{
-			return false;
-		}
-
-		Str += ArgData;
-	}
+	//for (FActorIOExpressionBase* Arg : Args)
+	//{
+	//	if (!Arg) continue;
+	//	if (!Str.IsEmpty()) Str += TEXT(',');
+	//
+	//	FString ArgData;
+	//	if (!Arg->ExportText(ArgData))
+	//	{
+	//		return false;
+	//	}
+	//
+	//	Str += ArgData;
+	//}
 
 	return true;
-}
-
-FActorIOExpressionBase* FActorIOFunctionExpressionBase::GetArgumentAt(int32 Index) const
-{
-	if (Args.IsValidIndex(Index))
-	{
-		return Args[Index];
-	}
-
-	return nullptr;
-}
-
-int32 FActorIOFunctionExpressionBase::GetNumArguments(bool bRecursive) const
-{
-	int32 NumArgs = 0;
-	for (FActorIOExpressionBase* Arg : Args)
-	{
-		NumArgs++;
-		if (bRecursive && Arg->GetType() == EActorIOExpressionType::Function)
-		{
-			FActorIOFunctionExpressionBase* FunctionArg = static_cast<FActorIOFunctionExpressionBase*>(Arg);
-			NumArgs += FunctionArg->GetNumArguments();
-		}
-	}
-
-	return NumArgs;
 }
 
 //=======================================================
@@ -234,8 +165,12 @@ bool FActorIOKismetFunctionExpression::Evaluate(UObject* Executor, FString& OutR
 		return false;
 	}
 
+	FActorIOExpressionContainer* ExprContainer = GetContainer();
+	int32 SelfIdx = ExprContainer->GetExpressionIdx(this);
+	TArray<FActorIOExpressionBase*> ChildExpressions = ExprContainer->GetChildExpressions(SelfIdx);
+
 	FString Cmd = FunctionId.ToString();
-	for (FActorIOExpressionBase* Expr : Args)
+	for (FActorIOExpressionBase* Expr : ChildExpressions)
 	{
 		FString Result;
 		if (!Expr || !Expr->Evaluate(Executor, Result))
@@ -400,7 +335,7 @@ void FActorIOKismetFunctionExpression::SetFunctionId(FName InFunctionId)
 
 void FActorIOKismetFunctionExpression::UpdateArguments()
 {
-	ResetArguments();
+	//ResetArguments();
 
 	UFunction* FunctionPtr = ResolveUFunction();
 	if (FunctionPtr)
@@ -408,8 +343,8 @@ void FActorIOKismetFunctionExpression::UpdateArguments()
 		TArray<FProperty*> FunctionParams = IActorIO::GetUFunctionInputParams(FunctionPtr);
 		for (int32 ArgIdx = 0; ArgIdx != FunctionParams.Num(); ++ArgIdx)
 		{
-			FActorIOLiteralExpression* NewArg = new FActorIOLiteralExpression();
-			AddArgument(NewArg);
+			//FActorIOLiteralExpression* NewArg = new FActorIOLiteralExpression();
+			//AddArgument(NewArg);
 		}
 	}
 }
@@ -432,23 +367,27 @@ bool FActorIOGroupExpression::Evaluate(UObject* Executor, FString& OutResult)
 {
 	OutResult.Empty();
 
+	FActorIOExpressionContainer* ExprContainer = GetContainer();
+	int32 SelfIdx = ExprContainer->GetExpressionIdx(this);
+	TArray<FActorIOExpressionBase*> ChildExpressions = ExprContainer->GetChildExpressions(SelfIdx);
+
 	// Empty groups are treated as if they are not even there.
-	if (Args.IsEmpty())
+	if (ChildExpressions.Num() == 0)
 	{
 		OutResult = TEXT("True");
 		return true;
 	}
 
 	bool bResult = true;
-	for (FActorIOExpressionBase* Expr : Args)
+	for (FActorIOExpressionBase* Expr : ChildExpressions)
 	{
 		FString Result;
-		if (!Expr || !Expr->Evaluate(Executor, Result))
+		if (!Expr->Evaluate(Executor, Result))
 		{
 			return false;
 		}
 
-		if (bIsCondition)
+		if (ExprContainer->IsConditionContainer())
 		{
 			// This handles early exit cases when evaluating conditions:
 			// - Result is true and we want 'ANY is true' (bNegated true), so its a pass.
@@ -500,95 +439,215 @@ bool FActorIOGroupExpression::ImportText(const FString& Str, int32 Version)
 }
 
 //=======================================================
-//~ Begin FActorIOScriptCondition
+//~ Begin FActorIOExpressionContainer
 //=======================================================
 
-FActorIOScriptCondition::FActorIOScriptCondition()
+int32 FActorIOExpressionContainer::AddExpression(const TInstancedStruct<FActorIOExpressionBase>& Expr, int32 ParentIdx)
 {
-	Expr = nullptr;
-}
+	//TInstancedStruct<FActorIOExpressionBase> InstancedStruct;
+	//InstancedStruct.InitializeAsScriptStruct(TBaseStructure<FActorIOGroupExpression>::Get());
+	//Expressions.Add(InstancedStruct);
 
-void FActorIOScriptCondition::Initialize()
-{
-	if (Expr.IsValid())
+	//TInstancedStruct<FActorIOExpressionBase> InstancedStruct = TInstancedStruct<FActorIOExpressionBase>::Make<FActorIOGroupExpression>();
+	//Expressions.Add(InstancedStruct);
+
+	//FActorIOGroupExpression GroupExpr;
+	//TInstancedStruct<FActorIOExpressionBase> InstancedStruct;
+	//InstancedStruct.InitializeAs(GroupExpr);
+
+	//FActorIOGroupExpression GroupExpr;
+	//TInstancedStruct<FActorIOExpressionBase> InstancedStruct;
+	//InstancedStruct.InitializeAs(FActorIOGroupExpression::StaticStruct(), GroupExpr);
+
+	if (ParentIdx == INDEX_NONE && Expressions.Num() > 0)
 	{
-		Expr.Reset();
+		// #todo: error
+		return INDEX_NONE;
 	}
 
-	Expr = MakeShared<FActorIOGroupExpression>();
-	Expr->SetIsCondition(true);
+	if (ParentIdx != INDEX_NONE && !Expressions.IsValidIndex(ParentIdx))
+	{
+		// #todo: error
+		return INDEX_NONE;
+	}
+
+	// #todo: ensure expression can have children
+
+	int32 ExprIdx = Expressions.Add(Expr);
+	ParentIndexMapping.Add(ParentIdx);
+
+	Expressions[ExprIdx]->SetContainer(this);
+
+	return ExprIdx;
 }
 
-bool FActorIOScriptCondition::operator==(const FActorIOScriptCondition& Other) const
+void FActorIOExpressionContainer::RemoveExpression(int32 ExprIdx)
 {
-	FActorIOGroupExpression* OtherExpr = Other.GetExpression();
-	if (Expr.IsValid() && OtherExpr)
+	if (Expressions.IsValidIndex(ExprIdx))
 	{
-		FString Data;
-		FString OtherData;
-		if (Expr->ExportText(Data) && OtherExpr->ExportText(OtherData))
+		Expressions.RemoveAt(ExprIdx);
+		ParentIndexMapping.RemoveAt(ExprIdx);
+	}
+}
+
+void FActorIOExpressionContainer::Empty()
+{
+	Expressions.Empty();
+	ParentIndexMapping.Empty();
+}
+
+int32 FActorIOExpressionContainer::GetExpressionIdx(const FActorIOExpressionBase* InExpr) const
+{
+	if (InExpr->GetContainer() != this)
+	{
+		return INDEX_NONE;
+	}
+
+	for (int32 Idx = 0; Idx != Expressions.Num(); ++Idx)
+	{
+		// #todo: does this work?
+		if (Expressions[Idx].GetPtr<FActorIOExpressionBase>() == InExpr)
 		{
-			return Data == OtherData;
+			return Idx;
 		}
 	}
 
-	return false;
+	return INDEX_NONE;
 }
 
-bool FActorIOScriptCondition::Serialize(FArchive& Ar)
+int32 FActorIOExpressionContainer::GetExpressionParentIdx(const FActorIOExpressionBase* InExpr) const
 {
-	Ar.UsingCustomVersion(FActorIOExpressionVersion::GUID);
+	int32 ExprIdx = GetExpressionIdx(InExpr);
+	return ParentIndexMapping[ExprIdx];
+}
 
-	int32 Version = Ar.CustomVer(FActorIOExpressionVersion::GUID);
-	Ar << Version;
+TArray<FActorIOExpressionBase*> FActorIOExpressionContainer::GetChildExpressions(int32 ExprIdx)
+{
+	TArray<FActorIOExpressionBase*> OutExpressions;
 
-	if (Ar.IsLoading())
+	ensure(Expressions.Num() == ParentIndexMapping.Num());
+
+	//const int32 RequestorIdx = Expressions.IndexOfByKey(Expr);
+	for (int32 Idx = 0; Idx != Expressions.Num(); ++Idx)
 	{
-		Ar.SetCustomVersion(FActorIOExpressionVersion::GUID, Version, TEXT("ActorIOExpressionVer"));
-
-		FString SavedStr;
-		Ar << SavedStr;
-
-		if (Expr.IsValid())
+		if (ParentIndexMapping[Idx] == ExprIdx)
 		{
-			return Expr->ImportText(SavedStr, Version);
+			if (Expressions[Idx].IsValid())
+			{
+				FActorIOExpressionBase* MutablePtr = Expressions[Idx].GetMutablePtr<FActorIOExpressionBase>();
+				OutExpressions.Add(MutablePtr);
+			}
 		}
 	}
-	else
-	{
-		FString ExprStr;
-		if (Expr.IsValid())
-		{
-			Expr->ExportText(ExprStr);
-		}
 
-		Ar << ExprStr;
-		return true;
+	return OutExpressions;
+}
+
+FActorIOExpressionBase* FActorIOExpressionContainer::GetRootExpression()
+{
+	ensure(Expressions.Num() == ParentIndexMapping.Num());
+
+	for (int32 Idx = 0; Idx != Expressions.Num(); ++Idx)
+	{
+		if (ParentIndexMapping[Idx] == INDEX_NONE)
+		{
+			if (Expressions[Idx].IsValid())
+			{
+				return Expressions[Idx].GetMutablePtr<FActorIOExpressionBase>();
+			}
+		}
 	}
 
-	return false;
+	return nullptr;
 }
 
-bool FActorIOScriptCondition::ExportTextItem(FString& ValueStr, FActorIOScriptCondition const& DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope) const
+bool FActorIOExpressionContainer::Evaluate(UObject* Executor)
 {
-	return Expr.IsValid() && Expr->ExportText(ValueStr);
-}
-
-bool FActorIOScriptCondition::ImportTextItem(const TCHAR*& Buffer, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText)
-{
-	return Expr.IsValid() && Expr->ImportText(Buffer, (int32)FActorIOExpressionVersion::LatestVersion);
-}
-
-bool FActorIOScriptCondition::Evaluate(UObject* Executor)
-{
+	FActorIOExpressionBase* RootExpr = GetRootExpression();
 	FString Result;
-	if (Expr.IsValid() && Expr->Evaluate(Executor, Result))
+	if (RootExpr && RootExpr->Evaluate(Executor, Result))
 	{
-		return FCString::ToBool(*Result);
+		if (bIsConditionContainer)
+		{
+			return FCString::ToBool(*Result);
+		}
+		else
+		{
+			return true;
+		}
 	}
 
 	return false;
 }
+
+void FActorIOExpressionContainer::PostScriptConstruct()
+{
+	UE_LOG(LogTemp, Log, TEXT("%s"), ANSI_TO_TCHAR(__FUNCTION__));
+	for (TInstancedStruct<FActorIOExpressionBase>& ExprInstance : Expressions)
+	{
+		ExprInstance->SetContainer(this);
+	}
+}
+
+//bool FActorIOScriptCondition::operator==(const FActorIOScriptCondition& Other) const
+//{
+//	FActorIOGroupExpression* OtherExpr = Other.GetExpression();
+//	if (Expr.IsValid() && OtherExpr)
+//	{
+//		FString Data;
+//		FString OtherData;
+//		if (Expr->ExportText(Data) && OtherExpr->ExportText(OtherData))
+//		{
+//			return Data == OtherData;
+//		}
+//	}
+//
+//	return false;
+//}
+//
+//bool FActorIOScriptCondition::Serialize(FArchive& Ar)
+//{
+//	Ar.UsingCustomVersion(FActorIOExpressionVersion::GUID);
+//
+//	int32 Version = Ar.CustomVer(FActorIOExpressionVersion::GUID);
+//	Ar << Version;
+//
+//	if (Ar.IsLoading())
+//	{
+//		Ar.SetCustomVersion(FActorIOExpressionVersion::GUID, Version, TEXT("ActorIOExpressionVer"));
+//
+//		FString SavedStr;
+//		Ar << SavedStr;
+//
+//		if (Expr.IsValid())
+//		{
+//			return Expr->ImportText(SavedStr, Version);
+//		}
+//	}
+//	else
+//	{
+//		FString ExprStr;
+//		if (Expr.IsValid())
+//		{
+//			Expr->ExportText(ExprStr);
+//		}
+//
+//		Ar << ExprStr;
+//		return true;
+//	}
+//
+//	return false;
+//}
+//
+//bool FActorIOScriptCondition::ExportTextItem(FString& ValueStr, FActorIOScriptCondition const& DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope) const
+//{
+//	return Expr.IsValid() && Expr->ExportText(ValueStr);
+//}
+//
+//bool FActorIOScriptCondition::ImportTextItem(const TCHAR*& Buffer, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText)
+//{
+//	return Expr.IsValid() && Expr->ImportText(Buffer, (int32)FActorIOExpressionVersion::LatestVersion);
+//}
 
 //=======================================================
 //~ Begin FActorIOExpressionParser

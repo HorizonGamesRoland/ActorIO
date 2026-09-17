@@ -6,7 +6,7 @@
 
 ALogicCondition::ALogicCondition()
 {
-	
+	Conditions.SetIsConditionContainer(true);
 }
 
 void ALogicCondition::RegisterIOEvents(FActorIOEventList& EventRegistry)
@@ -35,7 +35,7 @@ void ALogicCondition::RegisterIOFunctions(FActorIOFunctionList& FunctionRegistry
 
 void ALogicCondition::Test()
 {
-	if (Condition.Evaluate(this))
+	if (Conditions.Evaluate(this))
 	{
 		OnPass.Broadcast();
 	}

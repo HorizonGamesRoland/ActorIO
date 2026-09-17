@@ -3,7 +3,7 @@
 #pragma once
 
 #include "ActorIO.h"
-#include "UObject/WeakObjectPtr.h"
+#include "StructUtils/InstancedStruct.h"
 #include "ActorIOExpression.generated.h"
 
 UENUM()
@@ -14,8 +14,11 @@ enum class EActorIOExpressionType : uint8
 	Function
 };
 
-class ACTORIO_API FActorIOExpressionBase : public TSharedFromThis<FActorIOExpressionBase>
+USTRUCT()
+struct ACTORIO_API FActorIOExpressionBase
 {
+	GENERATED_BODY()
+
 public:
 
 	FActorIOExpressionBase();
@@ -28,24 +31,28 @@ public:
 	virtual bool ExportText(FString& Str) const { return false; }
 	virtual bool ImportText(const FString& Str, int32 Version) { return false; }
 
-	void SetParent(FActorIOExpressionBase* InExpr) { ParentExpr = InExpr; }
-	FActorIOExpressionBase* GetParent() const { return ParentExpr; }
+	void SetContainer(FActorIOExpressionContainer* InContainer) { ParentContainer = InContainer; }
+	FActorIOExpressionContainer* GetContainer() const { return ParentContainer; }
 
-	FActorIOExpressionBase* GetRootExpression();
-	bool IsRootExpression() const { return ParentExpr != nullptr; }
+	//FActorIOExpressionBase* GetParentExpression() const { return ParentExpr; }
+	//FActorIOExpressionBase* GetRootExpression();
+	//bool IsRootExpression() const { return ParentExpr != nullptr; }
 
-	void SetIsCondition(bool bEnabled) { bIsCondition = bEnabled; }
-	bool IsCondition() const { return bIsCondition; }
+	//void SetIsCondition(bool bEnabled) { bIsCondition = bEnabled; }
+	//bool IsCondition() const { return bIsCondition; }
 
-protected:
+private:
 
-	FActorIOExpressionBase* ParentExpr;
+	FActorIOExpressionContainer* ParentContainer;
 
-	bool bIsCondition;
+	//bool bIsCondition;
 };
 
-class ACTORIO_API FActorIOLiteralExpression : public FActorIOExpressionBase
+USTRUCT()
+struct ACTORIO_API FActorIOLiteralExpression : public FActorIOExpressionBase
 {
+	GENERATED_BODY()
+
 public:
 
 	virtual EActorIOExpressionType GetType() const override { return EActorIOExpressionType::Literal; }
@@ -59,26 +66,20 @@ public:
 
 protected:
 
+	UPROPERTY()
 	FString LiteralValue;
 };
 
-class ACTORIO_API FActorIOFunctionExpressionBase: public FActorIOExpressionBase
+USTRUCT()
+struct ACTORIO_API FActorIOFunctionExpressionBase: public FActorIOExpressionBase
 {
+	GENERATED_BODY()
+
 public:
 
 	FActorIOFunctionExpressionBase();
-	virtual ~FActorIOFunctionExpressionBase();
 
 	virtual EActorIOExpressionType GetType() const override { return EActorIOExpressionType::Function; }
-
-	void AddArgument(FActorIOExpressionBase* InExpr);
-	void RemoveArgument(FActorIOExpressionBase* InExpr);
-	void SetArgumentAt(int32 Index, FActorIOExpressionBase* InExpr);
-	void ResetArguments();
-
-	const TArray<FActorIOExpressionBase*>& GetArguments() const { return Args; }
-	FActorIOExpressionBase* GetArgumentAt(int32 Index) const;
-	int32 GetNumArguments(bool bRecursive = false) const;
 
 	void SetNegated(bool bEnabled) { bNegated = bEnabled; }
 	bool IsNegated() const { return bNegated; }
@@ -88,13 +89,15 @@ protected:
 	virtual bool ImportArgumentsText(const FString& Str, int32 Version);
 	virtual bool ExportArgumentsText(FString& Str) const;
 
-	TArray<FActorIOExpressionBase*> Args;
-
+	UPROPERTY()
 	bool bNegated;
 };
 
-class ACTORIO_API FActorIOKismetFunctionExpression : public FActorIOFunctionExpressionBase
+USTRUCT()
+struct ACTORIO_API FActorIOKismetFunctionExpression : public FActorIOFunctionExpressionBase
 {
+	GENERATED_BODY()
+
 public:
 
 	virtual FName GetTypeName() const override { return FName("KismetFunction"); }
@@ -118,8 +121,11 @@ protected:
 	FName FunctionId;
 };
 
-class ACTORIO_API FActorIOGroupExpression : public FActorIOFunctionExpressionBase
+USTRUCT()
+struct ACTORIO_API FActorIOGroupExpression : public FActorIOFunctionExpressionBase
 {
+	GENERATED_BODY()
+
 public:
 
 	virtual FName GetTypeName() const override { return FName("Group"); }
@@ -129,41 +135,67 @@ public:
 };
 
 USTRUCT()
-struct ACTORIO_API FActorIOScriptCondition
+struct ACTORIO_API FActorIOExpressionContainer
 {
 	GENERATED_BODY()
 
 public:
-	
-	FActorIOScriptCondition();
 
-	void Initialize();
+	int32 AddExpression(const TInstancedStruct<FActorIOExpressionBase>& Expr, int32 ParentIdx);
 
-	bool operator==(const FActorIOScriptCondition& Other) const;
-	bool operator!=(const FActorIOScriptCondition& Other) const { return !(*this == Other); }
+	void RemoveExpression(int32 ExprIdx);
 
-	bool Serialize(FArchive& Ar);
-	bool ExportTextItem(FString& ValueStr, FActorIOScriptCondition const& DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope) const;
-	bool ImportTextItem(const TCHAR*& Buffer, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText);
+	void Empty();
+
+	TArray<TInstancedStruct<FActorIOExpressionBase>>& GetExpressions() { return Expressions; }
+	int32 GetNumExpressions() const { return Expressions.Num(); }
+
+	int32 GetExpressionIdx(const FActorIOExpressionBase* InExpr) const;
+	int32 GetExpressionParentIdx(const FActorIOExpressionBase* InExpr) const;
+
+	TInstancedStruct<FActorIOExpressionBase>& GetExpression(int32 Idx) { return Expressions[Idx]; }
+	const TInstancedStruct<FActorIOExpressionBase>& GetExpression(int32 Idx) const { return Expressions[Idx]; }
+
+	TArray<FActorIOExpressionBase*> GetChildExpressions(int32 ExprIdx);
+
+	FActorIOExpressionBase* GetRootExpression();
+
+	void SetIsConditionContainer(bool bEnabled) { bIsConditionContainer = bEnabled; }
+	bool IsConditionContainer() const { return bIsConditionContainer; }
 
 	bool Evaluate(UObject* Executor);
 
-	FActorIOGroupExpression* GetExpression() const { return Expr.Get(); }
+	void PostScriptConstruct();
+
+	//bool operator==(const FActorIOScriptCondition& Other) const;
+	//bool operator!=(const FActorIOScriptCondition& Other) const { return !(*this == Other); }
+	//
+	//bool Serialize(FArchive& Ar);
+	//bool ExportTextItem(FString& ValueStr, FActorIOScriptCondition const& DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope) const;
+	//bool ImportTextItem(const TCHAR*& Buffer, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText);
 
 protected:
 
-	TSharedPtr<FActorIOGroupExpression> Expr;
+	UPROPERTY(EditAnywhere)
+	TArray<TInstancedStruct<FActorIOExpressionBase>> Expressions;
+
+	UPROPERTY()
+	TArray<int32> ParentIndexMapping;
+
+	UPROPERTY()
+	bool bIsConditionContainer;
 };
 
 template<>
-struct TStructOpsTypeTraits<FActorIOScriptCondition> : public TStructOpsTypeTraitsBase2<FActorIOScriptCondition>
+struct TStructOpsTypeTraits<FActorIOExpressionContainer> : public TStructOpsTypeTraitsBase2<FActorIOExpressionContainer>
 {
 	enum
 	{
-		WithSerializer = true,
-		WithExportTextItem = true,
-		WithImportTextItem = true,
+		//WithSerializer = true,
+		//WithExportTextItem = true,
+		//WithImportTextItem = true,
 		//WithIdenticalViaEquality = true - disabled to avoid users bricking their maps
+		WithPostScriptConstruct
 	};
 };
 
