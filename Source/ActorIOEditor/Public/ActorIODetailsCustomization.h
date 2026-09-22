@@ -4,9 +4,10 @@
 
 #include "IPropertyTypeCustomization.h"
 #include "IDetailCustomNodeBuilder.h"
-#include "ActorIOExpression.h"
+#include "ActorIOExpressions.h"
 
 class IPropertyHandle;
+class IPropertyHandleArray;
 class IPropertyUtilities;
 class IDetailLayoutBuilder;
 class FReply;
@@ -198,7 +199,7 @@ public:
 	virtual void CustomizeChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils) override;
 	//~ End IPropertyTypeCustomization Interface
 
-	FActorIOExpressionContainer* GetStructDataPtr();
+	FActorIOExpressionContainer* GetContainerData();
 
 protected:
 
@@ -212,9 +213,11 @@ protected:
 
 	FText GetHeaderText();
 
-	void OnClick_AddCondition();
+	void OnClick_AddExpression();
 
-	void OnClick_ResetConditions();
+	void OnClick_ResetExpressions();
+
+	void OnClick_DebugExpressions();
 
 	void OnValueChanged();
 };

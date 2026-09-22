@@ -4,7 +4,9 @@
 
 #include "ActorIO.h"
 #include "StructUtils/InstancedStruct.h"
-#include "ActorIOExpression.generated.h"
+#include "Templates/SubclassOf.h"
+#include "Kismet/BlueprintFunctionLibrary.h"
+#include "ActorIOExpressions.generated.h"
 
 UENUM()
 enum class EActorIOExpressionType : uint8
@@ -34,18 +36,9 @@ public:
 	void SetContainer(FActorIOExpressionContainer* InContainer) { ParentContainer = InContainer; }
 	FActorIOExpressionContainer* GetContainer() const { return ParentContainer; }
 
-	//FActorIOExpressionBase* GetParentExpression() const { return ParentExpr; }
-	//FActorIOExpressionBase* GetRootExpression();
-	//bool IsRootExpression() const { return ParentExpr != nullptr; }
-
-	//void SetIsCondition(bool bEnabled) { bIsCondition = bEnabled; }
-	//bool IsCondition() const { return bIsCondition; }
-
 private:
 
 	FActorIOExpressionContainer* ParentContainer;
-
-	//bool bIsCondition;
 };
 
 USTRUCT()
@@ -106,19 +99,21 @@ public:
 	virtual bool ImportText(const FString& Str, int32 Version) override;
 
 	void SetFunctionClass(UClass* InClassPtr);
-	void SetFunctionId(FName InFunctionId);
+	void SetFunctionName(FName InFunctionName);
 
-	const TWeakObjectPtr<UClass>& GetClass() const { return ClassPtr; }
-	FName GetFunctionId() const { return FunctionId; }
+	const UClass* GetFunctionClass() const { return FunctionClass.Get(); }
+	FName GetFunctionName() const { return FunctionName; }
 	UFunction* ResolveUFunction() const;
 
 protected:
 
 	void UpdateArguments();
 
-	TWeakObjectPtr<UClass> ClassPtr;
+	UPROPERTY()
+	TSubclassOf<UBlueprintFunctionLibrary> FunctionClass;
 
-	FName FunctionId;
+	UPROPERTY()
+	FName FunctionName;
 };
 
 USTRUCT()
@@ -141,9 +136,13 @@ struct ACTORIO_API FActorIOExpressionContainer
 
 public:
 
+	FActorIOExpressionContainer();
+
 	int32 AddExpression(const TInstancedStruct<FActorIOExpressionBase>& Expr, int32 ParentIdx);
 
-	void RemoveExpression(int32 ExprIdx);
+	void RemoveExpression(int32 ExprIdx, bool bRemoveChilds = true);
+
+	void RemoveChildExpressions(int32 ExprIdx);
 
 	void Empty();
 
@@ -157,6 +156,7 @@ public:
 	const TInstancedStruct<FActorIOExpressionBase>& GetExpression(int32 Idx) const { return Expressions[Idx]; }
 
 	TArray<FActorIOExpressionBase*> GetChildExpressions(int32 ExprIdx);
+	TArray<int32> GetChildExpressionIdxs(int32 ExprIdx);
 
 	FActorIOExpressionBase* GetRootExpression();
 
@@ -165,12 +165,11 @@ public:
 
 	bool Evaluate(UObject* Executor);
 
-	void PostScriptConstruct();
-
 	//bool operator==(const FActorIOScriptCondition& Other) const;
 	//bool operator!=(const FActorIOScriptCondition& Other) const { return !(*this == Other); }
-	//
-	//bool Serialize(FArchive& Ar);
+
+	bool Serialize(FArchive& Ar);
+	void PostSerialize(const FArchive& Ar);
 	//bool ExportTextItem(FString& ValueStr, FActorIOScriptCondition const& DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope) const;
 	//bool ImportTextItem(const TCHAR*& Buffer, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText);
 
@@ -191,11 +190,11 @@ struct TStructOpsTypeTraits<FActorIOExpressionContainer> : public TStructOpsType
 {
 	enum
 	{
-		//WithSerializer = true,
+		WithSerializer = true,
+		WithPostSerialize = true
 		//WithExportTextItem = true,
 		//WithImportTextItem = true,
 		//WithIdenticalViaEquality = true - disabled to avoid users bricking their maps
-		WithPostScriptConstruct
 	};
 };
 

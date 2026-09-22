@@ -363,12 +363,15 @@ FProperty* IActorIO::GetUFunctionReturnProperty(UFunction* FunctionPtr, bool bIn
     OutProperty = FunctionPtr->GetReturnProperty();
 
     // If no return property is found, try to infer from out params (blueprint version of return values).
-    // The check for NumParms == 2 will in reality check if there's only one user defined param due to a default param existing.
-    if (!OutProperty && FunctionPtr->HasAnyFunctionFlags(FUNC_HasOutParms) && FunctionPtr->NumParms == 2)
+    if (!OutProperty && FunctionPtr->HasAnyFunctionFlags(FUNC_HasOutParms))
     {
         for (TFieldIterator<FProperty> It(FunctionPtr); It && (It->PropertyFlags & CPF_Parm); ++It)
         {
-            OutProperty = *It;
+            if (It->HasAllPropertyFlags(CPF_OutParm) && !It->HasAnyPropertyFlags(CPF_Deprecated | CPF_EditorOnly | CPF_ConstParm | CPF_ReferenceParm))
+            {
+                OutProperty = *It;
+                break;
+            }
         }
     }
 

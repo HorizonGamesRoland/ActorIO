@@ -3,7 +3,7 @@
 #pragma once
 
 #include "ActorIO.h"
-#include "ActorIOExpression.h"
+#include "ActorIOExpressions.h"
 #include "LogicActors/LogicActorBase.h"
 #include "LogicCondition.generated.h"
 
