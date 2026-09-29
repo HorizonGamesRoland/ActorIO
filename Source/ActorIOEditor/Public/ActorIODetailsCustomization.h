@@ -7,11 +7,53 @@
 #include "ActorIOExpressions.h"
 
 class IPropertyHandle;
-class IPropertyHandleArray;
 class IPropertyUtilities;
 class IDetailLayoutBuilder;
-class FReply;
 class SWidget;
+
+/**
+ *
+ */
+class ACTORIOEDITOR_API FActorIOExpressionContainerCustomization : public IPropertyTypeCustomization
+{
+public:
+
+	/** Makes a new instance of this customization. */
+	static TSharedRef<IPropertyTypeCustomization> MakeInstance();
+
+	//~ Begin IPropertyTypeCustomization Interface
+	virtual void CustomizeHeader(TSharedRef<IPropertyHandle> StructPropertyHandle, FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils) override;
+	virtual void CustomizeChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils) override;
+	//~ End IPropertyTypeCustomization Interface
+
+	FActorIOExpressionContainer* GetContainerData() const;
+
+	TSharedPtr<IPropertyHandle> GetExpressionProperty(int32 Idx) const;
+
+protected:
+
+	TSharedPtr<IPropertyHandle> PropStruct;
+
+	TSharedPtr<IPropertyHandle> PropExpressionArray;
+
+	TSharedPtr<IPropertyUtilities> PropUtilities;
+
+protected:
+
+	FText GetHeaderText() const;
+
+	FText GetHeaderTooltip() const;
+
+	void OnContainerDataChanged();
+
+	void OnExpressionArrayChanged();
+
+	void OnClick_AddExpression();
+
+	void OnClick_ClearExpressions();
+
+	void OnClick_DebugExpressions();
+};
 
 class ACTORIOEDITOR_API FActorIOExpressionDetailBuilder : public IDetailCustomNodeBuilder, public TSharedFromThis<FActorIOExpressionDetailBuilder>
 {
@@ -22,28 +64,48 @@ public:
 	//~ Begin IDetailCustomNodeBuilder Interface
 	virtual void SetOnRebuildChildren(FSimpleDelegate InOnRebuildChildren) override { OnRebuildChildren = InOnRebuildChildren; }
 	virtual void GenerateHeaderRowContent(FDetailWidgetRow& NodeRow) override;
-	virtual void GenerateChildContent(IDetailChildrenBuilder& ChildrenBuilder) override;
+	virtual bool InitiallyCollapsed() const override { return false; }
+	virtual FName GetName() const override { return NAME_None; }
 	//~ End IDetailCustomNodeBuilder Interface
 
-	void SetExpression(FActorIOExpressionBase* InExpr) { Expr = InExpr; }
+	virtual bool WholeRowHeader() const { return false; }
+
+	virtual void RefreshHeader();
+
+	void SetExpression(const TSharedPtr<IPropertyHandle>& InProperty, FActorIOExpressionBase* InExpr);
 
 	template<class T>
 	T* GetExpression() const { return static_cast<T*>(Expr); }
 
-	void SetNameOverrideText(const FText& InText) { NameOverrideText = InText; }
+	void SetParentCustomization(FActorIOExpressionContainerCustomization* InCustomization) { ParentCustomization = InCustomization; }
+
+	void SetHeaderTextOverride(const FText& InText) { HeaderTextOverride = InText; }
+
 	void SetAllowRemove(bool bEnabled) { bAllowRemove = bEnabled; }
 
 protected:
 
+	TSharedPtr<class STextBlock> HeaderText;
+
+	TSharedPtr<class SHorizontalBox> ExtensionBox;
+
+	TSharedPtr<IPropertyHandle> PropExpression;
+
+	TSharedPtr<IPropertyHandle> PropExpressionArray;
+
 	FActorIOExpressionBase* Expr;
 
-	FText NameOverrideText;
+	FActorIOExpressionContainerCustomization* ParentCustomization;
+
+	FText HeaderTextOverride;
 
 	bool bAllowRemove;
 
 	FSimpleDelegate OnRebuildChildren;
 
-	IDetailLayoutBuilder* LayoutBuilder;
+protected:
+
+	void OnClick_Remove();
 };
 
 /**
@@ -58,22 +120,14 @@ public:
 
 	//~ Begin FActorIOExpressionDetailBuilder Interface
 	virtual void GenerateHeaderRowContent(FDetailWidgetRow& NodeRow) override;
-	virtual FName GetName() const override { return FName("ActorIOLiteralExpression"); }
+	virtual void RefreshHeader() override;
 	//~ End FActorIOExpressionDetailBuilder Interface
 
 protected:
 
-	TSharedPtr<class STextBlock> HeaderText;
-
-protected:
-
-	void UpdateHeaderText();
-
-	FText OnGetValueText();
+	FText OnGetValueText() const;
 
 	void OnValueCommitted(const FText& InText, ETextCommit::Type InCommitType);
-
-	void OnClick_Remove();
 };
 
 /**
@@ -89,21 +143,17 @@ public:
 	//~ Begin FActorIOExpressionDetailBuilder Interface
 	virtual void GenerateHeaderRowContent(FDetailWidgetRow& NodeRow) override;
 	virtual void GenerateChildContent(IDetailChildrenBuilder& ChildrenBuilder) override;
-	virtual FName GetName() const override { return FName("ActorIOKismetFunctionExpression"); }
+	virtual bool WholeRowHeader() const { return true; }
+	virtual void RefreshHeader() override;
 	//~ End FActorIOExpressionDetailBuilder Interface
 
 protected:
-
-	TSharedPtr<class STextBlock> HeaderText;
 
 	/**
 	 * List of I/O function ids that are selectable in the function combo box.
 	 * Always contains the same ids found in ValidFunctions above.
 	 */
 	TArray<FName> SelectableFunctions;
-
-	// #todo: remove if OnReferencedFunctionChanged is not needed
-	UFunction* ReferencedFunction;
 
 protected:
 
@@ -121,23 +171,17 @@ protected:
 	void OnFunctionComboBoxSelectionChanged(FName InName, ESelectInfo::Type InSelectType);
 
 	/** Finds the display name of the given I/O function. */
-	FText GetFunctionDisplayName(FName InFunctionId) const;
+	FText GetFunctionDisplayName(FName InFunctionName) const;
 
 	/** @return Color based on whether the given I/O function is valid or not. */
-	FSlateColor GetFunctionDisplayColor(FName InFunctionId) const;
+	FSlateColor GetFunctionDisplayColor(FName InFunctionName) const;
 
 	/** @return Tooltip widget to use for I/O functions. */
-	FText GetFunctionTooltip(FName InFunctionId);
-
-	void OnReferencedFunctionChanged();
-
-	void UpdateHeaderText();
+	FText GetFunctionTooltip(FName InFunctionName);
 
 	void UpdateSelectableFunctions();
 
 	void OnClick_Negate();
-
-	void OnClick_Remove();
 };
 
 /**
@@ -153,22 +197,15 @@ public:
 	//~ Begin FActorIOExpressionDetailBuilder Interface
 	virtual void GenerateHeaderRowContent(FDetailWidgetRow& NodeRow) override;
 	virtual void GenerateChildContent(IDetailChildrenBuilder& ChildrenBuilder) override;
-	virtual FName GetName() const override { return FName("ActorIOGroupExpression"); }
+	virtual bool WholeRowHeader() const { return true; }
+	virtual void RefreshHeader() override;
 	//~ End FActorIOExpressionDetailBuilder Interface
 
 protected:
 
-	TSharedPtr<class STextBlock> HeaderText;
-
-protected:
-
-	void OnClick_AddCondition();
+	void OnClick_AddExpression();
 
 	void OnClick_Negate();
-
-	void OnClick_Remove();
-
-	void UpdateHeaderText();
 };
 
 class ACTORIOEDITOR_API FActorIOInvalidExpressionBuilder : public FActorIOExpressionDetailBuilder
@@ -179,47 +216,8 @@ public:
 	static TSharedRef<FActorIOExpressionDetailBuilder> MakeInstance();
 
 	//~ Begin FActorIOExpressionDetailBuilder Interface
-	virtual void GenerateHeaderRowContent(FDetailWidgetRow& NodeRow) override;
-	virtual FName GetName() const override { return FName("ActorIOInvalidExpression"); }
+	virtual void RefreshHeader() override;
 	//~ End FActorIOExpressionDetailBuilder Interface
-};
-
-/**
- *
- */
-class ACTORIOEDITOR_API FActorIOExpressionContainerCustomization : public IPropertyTypeCustomization
-{
-public:
-
-	/** Makes a new instance of this customization. */
-	static TSharedRef<IPropertyTypeCustomization> MakeInstance();
-
-	//~ Begin IPropertyTypeCustomization Interface
-	virtual void CustomizeHeader(TSharedRef<IPropertyHandle> StructPropertyHandle, FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils) override;
-	virtual void CustomizeChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils) override;
-	//~ End IPropertyTypeCustomization Interface
-
-	FActorIOExpressionContainer* GetContainerData();
-
-protected:
-
-	TSharedPtr<IPropertyHandle> PropStruct;
-
-	TSharedPtr<IPropertyHandleArray> PropExpressions;
-
-	TSharedPtr<IPropertyUtilities> PropUtilities;
-
-protected:
-
-	FText GetHeaderText();
-
-	void OnClick_AddExpression();
-
-	void OnClick_ResetExpressions();
-
-	void OnClick_DebugExpressions();
-
-	void OnValueChanged();
 };
 
 class ACTORIOEDITOR_API FActorIODetailCustomizationHelper
