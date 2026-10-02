@@ -5,6 +5,7 @@
 #include "Widgets/SActorIOParamsViewer.h"
 #include "Widgets/SActorIOErrorText.h"
 #include "Widgets/SActorIOTooltip.h"
+#include "ActorIOWidgetIterator.h"
 #include "ActorIOComponent.h"
 #include "ActorIOEditor.h"
 #include "ActorIOEditorSubsystem.h"
@@ -1132,40 +1133,6 @@ FReply SActorIOActionListViewRow::HandleAcceptDrop(const FDragDropEvent& DragDro
 	GetOwnerActionListView()->RequestEditorRefresh();
 
 	return FReply::Handled();
-}
-
-
-//=======================================================
-//~ Begin FActorIOChildWidgetIterator
-//=======================================================
-
-FActorIOChildWidgetIterator::FActorIOChildWidgetIterator(SWidget& InParent, TWidgetIterationFunc InIterationFunc)
-{
-	IterationFunc = InIterationFunc;
-	Advance(InParent);
-}
-
-bool FActorIOChildWidgetIterator::Advance(SWidget& InWidget)
-{
-	if (!IterationFunc(InWidget))
-	{
-		return false;
-	}
-
-	FChildren* Children = InWidget.GetChildren();
-	if (Children && Children->Num() > 0)
-	{
-		// Recursively go into child widgets.
-		for (int32 ChildrenIdx = 0; ChildrenIdx != Children->Num(); ++ChildrenIdx)
-		{
-			if (!Advance(*Children->GetChildAt(ChildrenIdx)))
-			{
-				return false;
-			}
-		}
-	}
-
-	return true;
 }
 
 #undef LOCTEXT_NAMESPACE
