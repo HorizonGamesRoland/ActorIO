@@ -5,35 +5,31 @@
 #include "ActorIO.h"
 #include "ActorIOExpressions.h"
 #include "LogicActors/LogicActorBase.h"
-#include "LogicCondition.generated.h"
+#include "LogicScriptAction.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class ACTORIO_API ALogicCondition : public ALogicActorBase
+class ACTORIO_API ALogicScriptAction : public ALogicActorBase
 {
 	GENERATED_BODY()
 
 public:
 
 	/** Default constructor. */
-	ALogicCondition();
+	ALogicScriptAction();
 
 public:
 
 	/** Event when the condition passes after 'Test' is called. */
 	UPROPERTY(BlueprintAssignable, Category = "Events")
-	FSimpleActionDelegate OnPass;
-
-	/** Event when the condition fails after 'Test' is called. */
-	UPROPERTY(BlueprintAssignable, Category = "Events")
-	FSimpleActionDelegate OnFail;
+	FSimpleActionDelegate OnExecute;
 
 protected:
 
-	UPROPERTY(EditInstanceOnly, Category = "Condition")
-	FActorIOExpressionContainer Conditions;
+	UPROPERTY(EditInstanceOnly, Category = "Script Action")
+	FActorIOExpressionContainer Actions;
 
 public:
 
@@ -44,7 +40,7 @@ public:
 
 public:
 
-	/** Test the condition and fire 'OnPass' or 'OnFail' based on the result. */
-	UFUNCTION(BlueprintCallable, Category = "LogicActors|LogicCondition")
-	void Test();
+	/** Execute the actions and fire the 'OnExecute' event. */
+	UFUNCTION(BlueprintCallable, Category = "LogicActors|LogicScriptAction")
+	bool Execute();
 };

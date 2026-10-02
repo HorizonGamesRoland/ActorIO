@@ -1,0 +1,50 @@
+// Copyright 2024-2026 Horizon Games and all contributors at https://github.com/HorizonGamesRoland/ActorIO/graphs/contributors
+
+#pragma once
+
+#include "ActorIO.h"
+#include "ActorIOExpressions.h"
+#include "LogicActors/LogicActorBase.h"
+#include "LogicScriptCondition.generated.h"
+
+/**
+ * 
+ */
+UCLASS()
+class ACTORIO_API ALogicScriptCondition : public ALogicActorBase
+{
+	GENERATED_BODY()
+
+public:
+
+	/** Default constructor. */
+	ALogicScriptCondition();
+
+public:
+
+	/** Event when the condition passes after 'Test' is called. */
+	UPROPERTY(BlueprintAssignable, Category = "Events")
+	FSimpleActionDelegate OnPass;
+
+	/** Event when the condition fails after 'Test' is called. */
+	UPROPERTY(BlueprintAssignable, Category = "Events")
+	FSimpleActionDelegate OnFail;
+
+protected:
+
+	UPROPERTY(EditInstanceOnly, Category = "Script Condition")
+	FActorIOExpressionContainer Conditions;
+
+public:
+
+	//~ Begin ALogicActorBase Interface
+	virtual void RegisterIOEvents(FActorIOEventList& EventRegistry) override;
+	virtual void RegisterIOFunctions(FActorIOFunctionList& FunctionRegistry) override;
+	//~ End ALogicActorBase Interface
+
+public:
+
+	/** Test the condition and fire 'OnPass' or 'OnFail' based on the result. */
+	UFUNCTION(BlueprintCallable, Category = "LogicActors|LogicScriptCondition")
+	void Test();
+};
