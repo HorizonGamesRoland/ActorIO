@@ -177,6 +177,7 @@ public:
 	int32 GetRootExpressionIdx() const;
 
 	void FixupContainerReferences();
+	FSimpleMulticastDelegate& OnFixupContainerReferences() { return FixupContainerReferencesEvent; }
 
 	void SetIsConditionContainer(bool bEnabled) { bIsConditionContainer = bEnabled; }
 	bool IsConditionContainer() const { return bIsConditionContainer; }
@@ -201,6 +202,8 @@ protected:
 
 	UPROPERTY()
 	bool bIsConditionContainer;
+
+	FSimpleMulticastDelegate FixupContainerReferencesEvent;
 };
 
 template<>

@@ -9,6 +9,7 @@
 #include "Widgets/Input/SEditableTextBox.h"
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/Images/SImage.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "PropertyHandle.h"
 #include "PropertyCustomizationHelpers.h"
 #include "DetailWidgetRow.h"
@@ -24,6 +25,16 @@
 //~ Begin FActorIOExpressionContainerCustomization
 //=======================================================
 
+FActorIOExpressionContainerCustomization::~FActorIOExpressionContainerCustomization()
+{
+	FActorIOExpressionContainer* ExprContainer = GetContainerData();
+	if (ExprContainer && DelegateHandle_OnFixupContainerReferences.IsValid())
+	{
+		ExprContainer->OnFixupContainerReferences().Remove(DelegateHandle_OnFixupContainerReferences);
+		DelegateHandle_OnFixupContainerReferences.Reset();
+	}
+}
+
 TSharedRef<IPropertyTypeCustomization> FActorIOExpressionContainerCustomization::MakeInstance()
 {
 	return MakeShareable(new FActorIOExpressionContainerCustomization);
@@ -35,7 +46,7 @@ void FActorIOExpressionContainerCustomization::CustomizeHeader(TSharedRef<IPrope
 	PropExpressionArray = StructPropertyHandle->GetChildHandle(FName("Expressions"));
 	PropUtilities = StructCustomizationUtils.GetPropertyUtilities();
 
-	if (PropUtilities->GetSelectedObjects().Num() > 1)
+	if (PropStruct->GetNumOuterObjects() > 1)
 	{
 		HeaderRow
 		.NameContent()
@@ -58,6 +69,12 @@ void FActorIOExpressionContainerCustomization::CustomizeHeader(TSharedRef<IPrope
 
 	PropStruct->SetOnPropertyValueChanged(FSimpleDelegate::CreateSP(this, &FActorIOExpressionContainerCustomization::OnContainerDataChanged));
 	PropExpressionArray->SetOnPropertyValueChanged(FSimpleDelegate::CreateSP(this, &FActorIOExpressionContainerCustomization::OnExpressionArrayChanged));
+
+	FActorIOExpressionContainer* ExprContainer = GetContainerData();
+	if (ExprContainer && !DelegateHandle_OnFixupContainerReferences.IsValid())
+	{
+		DelegateHandle_OnFixupContainerReferences = ExprContainer->OnFixupContainerReferences().AddSP(this, &FActorIOExpressionContainerCustomization::OnFixupContainerReferences);
+	}
 
 	HeaderRow
 	.NameContent()
@@ -82,8 +99,21 @@ void FActorIOExpressionContainerCustomization::CustomizeHeader(TSharedRef<IPrope
 		.VAlign(VAlign_Center)
 		.AutoWidth()
 		[
-			PropertyCustomizationHelpers::MakeAddButton(FSimpleDelegate::CreateSP(this, &FActorIOExpressionContainerCustomization::OnClick_AddExpression),
-				LOCTEXT("ExpressionEd_AddExpression", "Add Expression"))
+			SNew(SComboButton)
+			.ComboButtonStyle(FAppStyle::Get(), "SimpleComboButtonWithIcon")
+			.HasDownArrow(false)
+			.MenuPlacement(EMenuPlacement::MenuPlacement_CenteredAboveAnchor)
+			.MenuContent()
+			[
+				GenerateAddExpressionMenu()
+			]
+			.ButtonContent()
+			[
+				SNew(SImage)
+				.Image(FAppStyle::GetBrush("Icons.PlusCircle"))
+				.ColorAndOpacity(FSlateColor::UseForeground())
+				.ToolTipText(LOCTEXT("ExpressionEd_AddExpression", "Add Expression"))
+			]
 		]
 		+ SHorizontalBox::Slot()
 		.Padding(4.0f, 1.0f, 0.0f, 1.0f)
@@ -108,6 +138,8 @@ void FActorIOExpressionContainerCustomization::CustomizeHeader(TSharedRef<IPrope
 
 void FActorIOExpressionContainerCustomization::CustomizeChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
 {
+	if (PropStruct->GetNumOuterObjects() > 1) return;
+
 	FActorIOExpressionContainer* ExprContainer = GetContainerData();
 	if (!ExprContainer) return;
 
@@ -136,12 +168,16 @@ FActorIOExpressionContainer* FActorIOExpressionContainerCustomization::GetContai
 
 TSharedPtr<IPropertyHandle> FActorIOExpressionContainerCustomization::GetExpressionProperty(int32 Idx) const
 {
-	uint32 NumExpressions = 0;
-	PropExpressionArray->AsArray()->GetNumElements(NumExpressions);
-
-	if (Idx < (int32)NumExpressions)
+	if (PropExpressionArray.IsValid() && Idx >= 0)
 	{
-		return PropExpressionArray->AsArray()->GetElement(Idx);
+		TSharedPtr<IPropertyHandleArray> PropArray = PropExpressionArray->AsArray();
+		uint32 NumExpressions = 0;
+		PropArray->GetNumElements(NumExpressions);
+
+		if (Idx < (int32)NumExpressions)
+		{
+			return PropArray->GetElement(Idx);
+		}
 	}
 
 	return nullptr;
@@ -174,6 +210,14 @@ void FActorIOExpressionContainerCustomization::OnContainerDataChanged()
 	}
 }
 
+void FActorIOExpressionContainerCustomization::OnFixupContainerReferences()
+{
+	if (PropUtilities.IsValid())
+	{
+		PropUtilities->RequestForceRefresh();
+	}
+}
+
 void FActorIOExpressionContainerCustomization::OnExpressionArrayChanged()
 {
 	if (PropUtilities.IsValid())
@@ -182,10 +226,42 @@ void FActorIOExpressionContainerCustomization::OnExpressionArrayChanged()
 	}
 }
 
-void FActorIOExpressionContainerCustomization::OnClick_AddExpression()
+TSharedRef<SWidget> FActorIOExpressionContainerCustomization::GenerateAddExpressionMenu()
+{
+	FMenuBuilder MenuBuilder(true, NULL, NULL);
+
+	MenuBuilder.BeginSection(TEXT("ExpressionType"), LOCTEXT("ExpressionEd_AddExpressionMenu", "Add Expression"));
+
+	MenuBuilder.AddMenuEntry
+	(
+		LOCTEXT("ExpressionEd_AddExpression_Group", "Add Group"),
+		FText::GetEmpty(),
+		FSlateIcon(),
+		FExecuteAction::CreateSP(this, &FActorIOExpressionContainerCustomization::OnClick_AddExpression, FString(TEXT("and")))
+	);
+
+	MenuBuilder.AddMenuEntry
+	(
+		LOCTEXT("ExpressionEd_AddExpression_Func", "Add Function"),
+		FText::GetEmpty(),
+		FSlateIcon(),
+		FUIAction(
+			FExecuteAction::CreateSP(this, &FActorIOExpressionContainerCustomization::OnClick_AddExpression, FString(TEXT("func"))),
+			FCanExecuteAction::CreateLambda([]() { return false; }))
+	);
+
+	MenuBuilder.EndSection();
+
+	return MenuBuilder.MakeWidget();
+}
+
+void FActorIOExpressionContainerCustomization::OnClick_AddExpression(FString InType)
 {
 	FActorIOExpressionContainer* ExprContainer = GetContainerData();
 	if (!ExprContainer) return;
+
+	TInstancedStruct<FActorIOExpressionBase> NewExprInstance = FActorIOExpressionParser::NewExpressionOfType(InType);
+	if (!NewExprInstance.IsValid()) return;
 
 	TArray<UObject*> OuterObjects;
 	PropExpressionArray->GetOuterObjects(OuterObjects);
@@ -198,14 +274,12 @@ void FActorIOExpressionContainerCustomization::OnClick_AddExpression()
 
 	PropExpressionArray->NotifyPreChange();
 
-	FActorIOGroupExpression NewExpr;
-	TInstancedStruct<FActorIOExpressionBase> NewExprInstance;
-	NewExprInstance.InitializeAs<FActorIOGroupExpression>(NewExpr);
-
 	int32 ExprParentIdx = ExprContainer->GetRootExpression() ? 0 : INDEX_NONE;
 	ExprContainer->AddExpression(NewExprInstance, ExprParentIdx);
 
 	PropExpressionArray->NotifyPostChange(EPropertyChangeType::ArrayAdd);
+
+	PropStruct->SetExpanded(true);
 }
 
 void FActorIOExpressionContainerCustomization::OnClick_ClearExpressions()
@@ -418,15 +492,21 @@ void FActorIOKismetFunctionExpressionBuilder::GenerateHeaderRowContent(FDetailWi
 {
 	FActorIOExpressionDetailBuilder::GenerateHeaderRowContent(NodeRow);
 
-	ExtensionBox->InsertSlot(0)
-	.Padding(4.0f, 1.0f, 0.0f, 1.0f)
-	.HAlign(HAlign_Left)
-	.VAlign(VAlign_Center)
-	.AutoWidth()
-	[
-		PropertyCustomizationHelpers::MakeCustomButton(FCoreStyle::Get().GetBrush("Icons.Rotate180"), FSimpleDelegate::CreateSP(this, &FActorIOKismetFunctionExpressionBuilder::OnClick_Negate),
-			LOCTEXT("ExpressionEd_Negate", "Negate Expression"))
-	];
+	FActorIOExpressionContainer* ExprContainer = Expr->GetContainer();
+	if (!ExprContainer) return;
+
+	if (ExprContainer->IsConditionContainer())
+	{
+		ExtensionBox->InsertSlot(0)
+		.Padding(4.0f, 1.0f, 0.0f, 1.0f)
+		.HAlign(HAlign_Left)
+		.VAlign(VAlign_Center)
+		.AutoWidth()
+		[
+			PropertyCustomizationHelpers::MakeCustomButton(FCoreStyle::Get().GetBrush("Icons.Rotate180"), FSimpleDelegate::CreateSP(this, &FActorIOKismetFunctionExpressionBuilder::OnClick_Negate),
+				LOCTEXT("ExpressionEd_Negate", "Negate Expression"))
+		];
+	}
 }
 
 void FActorIOKismetFunctionExpressionBuilder::GenerateChildContent(IDetailChildrenBuilder& ChildrenBuilder)
@@ -665,6 +745,13 @@ void FActorIOKismetFunctionExpressionBuilder::UpdateSelectableFunctions()
 					continue;
 				}
 			}
+			else
+			{
+				if (!FunctionPtr->HasAnyFunctionFlags(FUNC_BlueprintCallable) || FunctionPtr->HasAnyFunctionFlags(FUNC_Delegate | FUNC_BlueprintPure))
+				{
+					continue;
+				}
+			}
 
 			SelectableFunctions.AddUnique(FunctionPtr->GetFName());
 		}
@@ -708,25 +795,44 @@ void FActorIOGroupExpressionBuilder::GenerateHeaderRowContent(FDetailWidgetRow& 
 {
 	FActorIOExpressionDetailBuilder::GenerateHeaderRowContent(NodeRow);
 
+	FActorIOExpressionContainer* ExprContainer = Expr->GetContainer();
+	if (!ExprContainer) return;
+
 	ExtensionBox->InsertSlot(0)
 	.Padding(4.0f, 1.0f, 0.0f, 1.0f)
 	.HAlign(HAlign_Left)
 	.VAlign(VAlign_Center)
 	.AutoWidth()
 	[
-		PropertyCustomizationHelpers::MakeAddButton(FSimpleDelegate::CreateSP(this, &FActorIOGroupExpressionBuilder::OnClick_AddExpression),
-			LOCTEXT("ExpressionEd_AddExpression", "Add Expression"))
+		SNew(SComboButton)
+		.ComboButtonStyle(FAppStyle::Get(), "SimpleComboButtonWithIcon")
+		.HasDownArrow(false)
+		.MenuPlacement(EMenuPlacement::MenuPlacement_CenteredAboveAnchor)
+		.MenuContent()
+		[
+			GenerateAddExpressionMenu()
+		]
+		.ButtonContent()
+		[
+			SNew(SImage)
+			.Image(FAppStyle::GetBrush("Icons.PlusCircle"))
+			.ColorAndOpacity(FSlateColor::UseForeground())
+			.ToolTipText(LOCTEXT("ExpressionEd_AddExpression", "Add Expression"))
+		]
 	];
 
-	ExtensionBox->InsertSlot(1)
-	.Padding(4.0f, 1.0f, 0.0f, 1.0f)
-	.HAlign(HAlign_Left)
-	.VAlign(VAlign_Center)
-	.AutoWidth()
-	[
-		PropertyCustomizationHelpers::MakeCustomButton(FCoreStyle::Get().GetBrush("Icons.Rotate180"), FSimpleDelegate::CreateSP(this, &FActorIOGroupExpressionBuilder::OnClick_Negate),
-			LOCTEXT("ExpressionEd_Negate", "Negate Expression"))
-	];
+	if (ExprContainer->IsConditionContainer())
+	{
+		ExtensionBox->InsertSlot(1)
+		.Padding(4.0f, 1.0f, 0.0f, 1.0f)
+		.HAlign(HAlign_Left)
+		.VAlign(VAlign_Center)
+		.AutoWidth()
+		[
+			PropertyCustomizationHelpers::MakeCustomButton(FCoreStyle::Get().GetBrush("Icons.Rotate180"), FSimpleDelegate::CreateSP(this, &FActorIOGroupExpressionBuilder::OnClick_Negate),
+				LOCTEXT("ExpressionEd_Negate", "Negate Expression"))
+		];
+	}
 }
 
 void FActorIOGroupExpressionBuilder::GenerateChildContent(IDetailChildrenBuilder& ChildrenBuilder)
@@ -765,10 +871,40 @@ void FActorIOGroupExpressionBuilder::RefreshHeader()
 	}
 }
 
-void FActorIOGroupExpressionBuilder::OnClick_AddExpression()
+TSharedRef<SWidget> FActorIOGroupExpressionBuilder::GenerateAddExpressionMenu()
+{
+	FMenuBuilder MenuBuilder(true, NULL, NULL);
+
+	MenuBuilder.BeginSection(TEXT("ExpressionType"), LOCTEXT("ExpressionEd_AddExpressionMenu", "Add Expression"));
+
+	MenuBuilder.AddMenuEntry
+	(
+		LOCTEXT("ExpressionEd_AddExpression_Group", "Add Group"),
+		FText::GetEmpty(),
+		FSlateIcon(),
+		FExecuteAction::CreateSP(this, &FActorIOGroupExpressionBuilder::OnClick_AddExpression, FString(TEXT("and")))
+	);
+
+	MenuBuilder.AddMenuEntry
+	(
+		LOCTEXT("ExpressionEd_AddExpression_Func", "Add Function"),
+		FText::GetEmpty(),
+		FSlateIcon(),
+		FExecuteAction::CreateSP(this, &FActorIOGroupExpressionBuilder::OnClick_AddExpression, FString(TEXT("func")))
+	);
+
+	MenuBuilder.EndSection();
+
+	return MenuBuilder.MakeWidget();
+}
+
+void FActorIOGroupExpressionBuilder::OnClick_AddExpression(FString InType)
 {
 	FActorIOExpressionContainer* ExprContainer = Expr->GetContainer();
 	if (!ExprContainer) return;
+
+	TInstancedStruct<FActorIOExpressionBase> NewExprInstance = FActorIOExpressionParser::NewExpressionOfType(InType);
+	if (!NewExprInstance.IsValid()) return;
 
 	TArray<UObject*> OuterObjects;
 	PropExpressionArray->GetOuterObjects(OuterObjects);
@@ -780,10 +916,6 @@ void FActorIOGroupExpressionBuilder::OnClick_AddExpression()
 	}
 
 	PropExpressionArray->NotifyPreChange();
-
-	FActorIOKismetFunctionExpression NewExpr;
-	TInstancedStruct<FActorIOExpressionBase> NewExprInstance;
-	NewExprInstance.InitializeAs<FActorIOKismetFunctionExpression>(NewExpr);
 
 	int32 ExprIdx = ExprContainer->GetExpressionIdx(Expr);
 	ExprContainer->AddExpression(NewExprInstance, ExprIdx);

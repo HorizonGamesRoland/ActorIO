@@ -698,6 +698,8 @@ void FActorIOExpressionContainer::FixupContainerReferences()
 	{
 		ExprInstance->SetContainer(this);
 	}
+
+	FixupContainerReferencesEvent.Broadcast();
 }
 
 bool FActorIOExpressionContainer::Evaluate(UObject* Executor)

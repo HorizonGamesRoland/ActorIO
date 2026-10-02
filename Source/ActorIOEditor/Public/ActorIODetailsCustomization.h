@@ -7,6 +7,7 @@
 #include "ActorIOExpressions.h"
 
 class IPropertyHandle;
+class IPropertyHandleArray;
 class IPropertyUtilities;
 class IDetailLayoutBuilder;
 class SWidget;
@@ -17,6 +18,8 @@ class SWidget;
 class ACTORIOEDITOR_API FActorIOExpressionContainerCustomization : public IPropertyTypeCustomization
 {
 public:
+
+	~FActorIOExpressionContainerCustomization();
 
 	/** Makes a new instance of this customization. */
 	static TSharedRef<IPropertyTypeCustomization> MakeInstance();
@@ -38,6 +41,8 @@ protected:
 
 	TSharedPtr<IPropertyUtilities> PropUtilities;
 
+	FDelegateHandle DelegateHandle_OnFixupContainerReferences;
+
 protected:
 
 	FText GetHeaderText() const;
@@ -46,9 +51,13 @@ protected:
 
 	void OnContainerDataChanged();
 
+	void OnFixupContainerReferences();
+
 	void OnExpressionArrayChanged();
 
-	void OnClick_AddExpression();
+	TSharedRef<SWidget> GenerateAddExpressionMenu();
+
+	void OnClick_AddExpression(FString InType);
 
 	void OnClick_ClearExpressions();
 
@@ -203,7 +212,9 @@ public:
 
 protected:
 
-	void OnClick_AddExpression();
+	TSharedRef<SWidget> GenerateAddExpressionMenu();
+
+	void OnClick_AddExpression(FString InType);
 
 	void OnClick_Negate();
 };

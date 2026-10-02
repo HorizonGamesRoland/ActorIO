@@ -34,15 +34,15 @@ void FActorIOEditor::StartupModule()
 	FActorIOEditorStyle::Initialize();
 
 	// Register Actor I/O editor tab.
-	FGlobalTabmanager::Get()->RegisterNomadTabSpawner(TEXT("ActorIO"), FOnSpawnTab::CreateRaw(this, &FActorIOEditor::CreateActorIOEditorTab))
+	FGlobalTabmanager::Get()->RegisterNomadTabSpawner("ActorIO", FOnSpawnTab::CreateRaw(this, &FActorIOEditor::CreateActorIOEditorTab))
 		.SetDisplayName(LOCTEXT("TabName", "Actor I/O"))
 		.SetTooltipText(LOCTEXT("TabTooltip", "Open the Actor I/O editor tab to edit scripted actions of actors in the level."))
 		.SetGroup(WorkspaceMenu::GetMenuStructure().GetLevelEditorCategory())
 		.SetIcon(FSlateIcon(FAppStyle::GetAppStyleSetName(), "Icons.Event"));
 
 	// Register property customizations.
-	FPropertyEditorModule& PropertyModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>(TEXT("PropertyEditor"));
-	PropertyModule.RegisterCustomPropertyTypeLayout(TEXT("ActorIOExpressionContainer"), FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FActorIOExpressionContainerCustomization::MakeInstance));
+	FPropertyEditorModule& PropertyModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
+	PropertyModule.RegisterCustomPropertyTypeLayout("ActorIOExpressionContainer", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FActorIOExpressionContainerCustomization::MakeInstance));
 	PropertyModule.NotifyCustomizationModuleChanged();
 
 	// Register component visualizer to draw I/O lines between actors.
@@ -63,7 +63,7 @@ void FActorIOEditor::StartupModule()
 	if (IPlacementModeModule::IsAvailable())
 	{
 		FPlacementCategoryInfo Info(LOCTEXT("ActorIOPlaceCategoryName", "Logic Actors"),
-			FSlateIcon(FAppStyle::GetAppStyleSetName(), "Icons.Event"), TEXT("ActorIOPlaceCategory"), TEXT("PMActorIOPlaceCategory"), 25);
+			FSlateIcon(FAppStyle::GetAppStyleSetName(), "Icons.Event"), "ActorIOPlaceCategory", TEXT("PMActorIOPlaceCategory"), 25);
 
 #if UE_VERSION_NEWER_THAN(5, 4, ENGINE_PATCH_VERSION)
 		Info.ShortDisplayName = LOCTEXT("ActorIOPlaceCategoryShortName", "Logic");
@@ -78,13 +78,13 @@ void FActorIOEditor::StartupModule()
 void FActorIOEditor::ShutdownModule()
 {
 	// Unregister Actor I/O editor tab.
-	FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(TEXT("ActorIO"));
+	FGlobalTabmanager::Get()->UnregisterNomadTabSpawner("ActorIO");
 
 	// Unregister property customizations.
 	if (FModuleManager::Get().IsModuleLoaded("PropertyEditor"))
 	{
-		FPropertyEditorModule& PropertyModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>(TEXT("PropertyEditor"));
-		PropertyModule.UnregisterCustomPropertyTypeLayout(TEXT("ActorIOExpressionContainer"));
+		FPropertyEditorModule& PropertyModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
+		PropertyModule.UnregisterCustomPropertyTypeLayout("ActorIOExpressionContainer");
 		PropertyModule.NotifyCustomizationModuleChanged();
 	}
 
@@ -101,7 +101,7 @@ void FActorIOEditor::ShutdownModule()
 	if (IPlacementModeModule::IsAvailable())
 	{
 		IPlacementModeModule& PlacementModeModule = IPlacementModeModule::Get();
-		PlacementModeModule.UnregisterPlacementCategory(TEXT("ActorIOPlaceCategory"));
+		PlacementModeModule.UnregisterPlacementCategory("ActorIOPlaceCategory");
 	}
 
 	// Unregister the editor style of the plugin.
@@ -190,7 +190,7 @@ void FActorIOEditor::OnPlacementModeCategoryRefreshed(FName CategoryName)
 			if (PlaceableItemClass && PlaceableItemClass->IsChildOf<ALogicActorBase>())
 			{
 				TSharedRef<FPlaceableItem> NewPlaceable = MakeShared<FPlaceableItem>(PlaceableItem->AssetFactory, PlaceableItem->AssetData);
-				PlaceActors.Add(PlacementModeModule.RegisterPlaceableItem(TEXT("ActorIOPlaceCategory"), NewPlaceable));
+				PlaceActors.Add(PlacementModeModule.RegisterPlaceableItem("ActorIOPlaceCategory", NewPlaceable));
 			}
 		}
 	}
