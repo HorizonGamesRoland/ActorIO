@@ -15,6 +15,123 @@ FActorIOExpressionBase::FActorIOExpressionBase()
 	ParentContainer = nullptr;
 }
 
+void FActorIOExpressionBase::SetMetadata(const FString& InName, const FString& InValue)
+{
+	if (InName.IsEmpty())
+	{
+		return;
+	}
+
+	TArray<FString> MetadataLines;
+
+	const TCHAR* Stream = *Metadata;
+	while (*Stream)
+	{
+		FString NewMetadata;
+		if (FParse::Token(Stream, NewMetadata, true, TEXT(',')))
+		{
+			MetadataLines.Emplace(NewMetadata);
+		}
+	}
+
+	bool bFound = false;
+	for (FString& Line : MetadataLines)
+	{
+		FString MetadataName;
+		FString MetadataValue;
+		if (Line.Split(TEXT("="), &MetadataName, &MetadataValue))
+		{
+			if (MetadataName == InName)
+			{
+				Line = FString::Printf(TEXT("%s=%s"), *MetadataName, *InValue);
+				bFound = true;
+				break;
+			}
+		}
+	}
+
+	if (!bFound)
+	{
+		if (!Metadata.IsEmpty()) Metadata += TEXT(',');
+		Metadata += FString::Printf(TEXT("%s=%s"), *InName, *InValue);
+	}
+	else
+	{
+		Metadata.Empty();
+		for (const FString& Line : MetadataLines)
+		{
+			if (!Metadata.IsEmpty()) Metadata += TEXT(',');
+			Metadata += Line;
+		}
+	}
+}
+
+bool FActorIOExpressionBase::RemoveMetadata(const FString& InName)
+{
+	if (InName.IsEmpty())
+	{
+		return false;
+	}
+
+	TArray<FString> MetadataLines;
+
+	const TCHAR* Stream = *Metadata;
+	while (*Stream)
+	{
+		FString NewMetadata;
+		if (FParse::Token(Stream, NewMetadata, true, TEXT(',')))
+		{
+			MetadataLines.Emplace(NewMetadata);
+		}
+	}
+
+	bool bFound = false;
+	for (int32 Idx = MetadataLines.Num() - 1; Idx >= 0; --Idx)
+	{
+		FString MetadataName;
+		FString MetadataValue;
+		if (MetadataLines[Idx].Split(TEXT("="), &MetadataName, &MetadataValue))
+		{
+			if (MetadataName == InName)
+			{
+				MetadataLines.RemoveAt(Idx);
+				bFound = true;
+				break;
+			}
+		}
+	}
+
+	if (bFound)
+	{
+		Metadata.Empty();
+		for (const FString& Line : MetadataLines)
+		{
+			if (!Metadata.IsEmpty()) Metadata += TEXT(',');
+			Metadata += Line;
+		}
+	}
+
+	return bFound;
+}
+
+void FActorIOExpressionBase::ClearMetadata()
+{
+	Metadata.Empty();
+}
+
+bool FActorIOExpressionBase::HasMetadata(const FString& InName) const
+{
+	FString Match = InName + TEXT('=');
+	FString Value; // unused
+	return FParse::Value(*Metadata, *Match, Value);
+}
+
+bool FActorIOExpressionBase::GetMetadata(const FString& InName, FString& OutValue) const
+{
+	FString Match = InName + TEXT('=');
+	return FParse::Value(*Metadata, *Match, OutValue);
+}
+
 //=======================================================
 //~ Begin FActorIOLiteralExpression
 //=======================================================
@@ -319,29 +436,6 @@ void FActorIOKismetFunctionExpression::SetFunctionName(FName InFunctionName)
 	}
 }
 
-void FActorIOKismetFunctionExpression::UpdateArguments()
-{
-	FActorIOExpressionContainer* ExprContainer = GetContainer();
-	if (!ExprContainer) return;
-
-	int32 SelfIdx = ExprContainer->GetExpressionIdx(this);
-	ExprContainer->RemoveChildExpressions(SelfIdx);
-
-	UFunction* FunctionPtr = ResolveUFunction();
-	if (FunctionPtr)
-	{
-		TArray<FProperty*> FunctionParams = IActorIO::GetUFunctionInputParams(FunctionPtr);
-		for (int32 ArgIdx = 0; ArgIdx != FunctionParams.Num(); ++ArgIdx)
-		{
-			FActorIOLiteralExpression NewExpr;
-			TInstancedStruct<FActorIOExpressionBase> NewExprInstance;
-			NewExprInstance.InitializeAs<FActorIOLiteralExpression>(NewExpr);
-
-			ExprContainer->AddExpression(NewExprInstance, SelfIdx);
-		}
-	}
-}
-
 UFunction* FActorIOKismetFunctionExpression::ResolveUFunction() const
 {
 	if (FunctionClass && FunctionName != NAME_None)
@@ -350,6 +444,91 @@ UFunction* FActorIOKismetFunctionExpression::ResolveUFunction() const
 	}
 
 	return nullptr;
+}
+
+bool FActorIOKismetFunctionExpression::CheckArgumentsNeedUpdate() const
+{
+	FActorIOExpressionContainer* ExprContainer = GetContainer();
+	if (!ExprContainer) return false;
+
+	int32 SelfIdx = ExprContainer->GetExpressionIdx(this);
+
+	UFunction* FunctionPtr = ResolveUFunction();
+	if (!FunctionPtr)
+	{
+		return ExprContainer->GetNumChildExpressions(SelfIdx) > 0;
+	}
+
+	TArray<int32> ChildExprIdxs = ExprContainer->GetChildExpressionIdxs(SelfIdx);
+	TArray<FProperty*> FunctionParams = IActorIO::GetUFunctionInputParams(FunctionPtr);
+
+	int32 Diff = ChildExprIdxs.Num() - FunctionParams.Num();
+	if (Diff != 0)
+	{
+		return true;
+	}
+
+	// #todo: check for out of order params
+
+	return false;
+}
+
+void FActorIOKismetFunctionExpression::UpdateArguments()
+{
+	FActorIOExpressionContainer* ExprContainer = GetContainer();
+	if (!ExprContainer) return;
+
+	int32 SelfIdx = ExprContainer->GetExpressionIdx(this);
+
+	UFunction* FunctionPtr = ResolveUFunction();
+	if (!FunctionPtr)
+	{
+		ExprContainer->RemoveChildExpressions(SelfIdx);
+		return;
+	}
+
+	bool bChildExprIdxsDirty = false;
+	TArray<int32> ChildExprIdxs = ExprContainer->GetChildExpressionIdxs(SelfIdx);
+	TArray<FProperty*> FunctionParams = IActorIO::GetUFunctionInputParams(FunctionPtr);
+
+	int32 Diff = ChildExprIdxs.Num() - FunctionParams.Num();
+	while (Diff != 0)
+	{
+		bChildExprIdxsDirty = true;
+		if (Diff > 0) // more childs than params
+		{
+			ExprContainer->RemoveExpression(ChildExprIdxs.Last());
+			Diff--;
+		}
+		else if (Diff < 0) // less childs than params
+		{
+			FActorIOLiteralExpression NewExpr;
+			TInstancedStruct<FActorIOExpressionBase> NewExprInstance;
+			NewExprInstance.InitializeAs<FActorIOLiteralExpression>(NewExpr);
+
+			ExprContainer->AddExpression(NewExprInstance, SelfIdx);
+			Diff++;
+		}
+	}
+
+	for (int32 ParamIdx = 0; ParamIdx != FunctionParams.Num(); ++ParamIdx)
+	{
+		if (bChildExprIdxsDirty)
+		{
+			ChildExprIdxs = ExprContainer->GetChildExpressionIdxs(SelfIdx);
+			bChildExprIdxsDirty = false;
+		}
+
+		FString ExtendedTypeText;
+		FString PropType = FunctionParams[ParamIdx]->GetCPPType(&ExtendedTypeText) + ExtendedTypeText;
+		FString PropName = FunctionParams[ParamIdx]->GetAuthoredName();
+
+		FActorIOExpressionBase* Expr = ExprContainer->GetExpressionPtr(ChildExprIdxs[ParamIdx]);
+		Expr->SetMetadata(TEXT("PropName"), PropName);
+		Expr->SetMetadata(TEXT("PropType"), PropType);
+
+		// #todo: handle out of order params
+	}
 }
 
 //=======================================================
@@ -552,6 +731,61 @@ void FActorIOExpressionContainer::Empty()
 	ParentIndexMapping.Empty();
 }
 
+void FActorIOExpressionContainer::MoveExpressionTo(int32 ExprIdx, int32 ParentIdx, int32 SlotIdx)
+{
+	if (!Expressions.IsValidIndex(ExprIdx) || !Expressions.IsValidIndex(ParentIdx))
+	{
+		return;
+	}
+
+	TFunction<void(int32, int32)> fnMoveExpression = [this](int32 OriginalIndex, int32 NewIndex)
+	{
+		// Uses same move implementation as properties in the editor.
+		// @see FPropertyValueImpl::MoveElementTo
+
+		if (NewIndex > OriginalIndex)
+		{
+			Expressions.InsertDefaulted(NewIndex + 1);
+			Expressions.Swap(OriginalIndex, NewIndex + 1);
+			Expressions.RemoveAt(OriginalIndex);
+
+			ParentIndexMapping.InsertDefaulted(NewIndex + 1);
+			ParentIndexMapping.Swap(OriginalIndex, NewIndex + 1);
+			ParentIndexMapping.RemoveAt(OriginalIndex);
+		}
+		else if (NewIndex < OriginalIndex)
+		{
+			Expressions.InsertDefaulted(NewIndex);
+			Expressions.Swap(OriginalIndex + 1, NewIndex);
+			Expressions.RemoveAt(OriginalIndex + 1);
+
+			ParentIndexMapping.InsertDefaulted(NewIndex);
+			ParentIndexMapping.Swap(OriginalIndex + 1, NewIndex);
+			ParentIndexMapping.RemoveAt(OriginalIndex + 1);
+		}
+	};
+
+	int32 OriginalIdx = ExprIdx;
+	int32 NewIdx = (ParentIdx + 1) + FMath::Max(0, FMath::Min(SlotIdx, GetNumChildExpressions(ExprIdx) - 1));
+	fnMoveExpression(OriginalIdx, NewIdx);
+
+	for (int32& OldParentIdx : ParentIndexMapping)
+	{
+		if (OldParentIdx == OriginalIdx)
+		{
+			OldParentIdx = NewIdx;
+		}
+	}
+
+	TArray<int32> ChildExprIdxs = GetChildExpressionIdxs(NewIdx);
+	int32 ChildsProcessed = 0;
+	for (const int32 ChildIdx : ChildExprIdxs)
+	{
+		MoveExpressionTo(ChildIdx, NewIdx, ChildsProcessed);
+		ChildsProcessed++;
+	}
+}
+
 int32 FActorIOExpressionContainer::GetExpressionIdx(const FActorIOExpressionBase* InExpr) const
 {
 	if (InExpr->GetContainer() == this)
@@ -647,6 +881,23 @@ TArray<int32> FActorIOExpressionContainer::GetChildExpressionIdxs(int32 ExprIdx)
 	return OutExpressionIdxs;
 }
 
+int32 FActorIOExpressionContainer::GetNumChildExpressions(int32 ExprIdx) const
+{
+	int32 OutNumExpressions = 0;
+
+	ensure(Expressions.Num() == ParentIndexMapping.Num());
+
+	for (int32 Idx = 0; Idx != Expressions.Num(); ++Idx)
+	{
+		if (ParentIndexMapping[Idx] == ExprIdx && Expressions[Idx].IsValid())
+		{
+			OutNumExpressions++;
+		}
+	}
+
+	return OutNumExpressions;
+}
+
 FActorIOExpressionBase* FActorIOExpressionContainer::GetRootExpression()
 {
 	ensure(Expressions.Num() == ParentIndexMapping.Num());
@@ -721,22 +972,6 @@ bool FActorIOExpressionContainer::Evaluate(UObject* Executor)
 	return false;
 }
 
-//bool FActorIOScriptCondition::operator==(const FActorIOScriptCondition& Other) const
-//{
-//	FActorIOGroupExpression* OtherExpr = Other.GetExpression();
-//	if (Expr.IsValid() && OtherExpr)
-//	{
-//		FString Data;
-//		FString OtherData;
-//		if (Expr->ExportText(Data) && OtherExpr->ExportText(OtherData))
-//		{
-//			return Data == OtherData;
-//		}
-//	}
-//
-//	return false;
-//}
-
 bool FActorIOExpressionContainer::Serialize(FArchive& Ar)
 {
 	Ar.UsingCustomVersion(FActorIOExpressionVersion::GUID);
@@ -753,15 +988,40 @@ void FActorIOExpressionContainer::PostSerialize(const FArchive& Ar)
 	}
 }
 
-//bool FActorIOScriptCondition::ExportTextItem(FString& ValueStr, FActorIOScriptCondition const& DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope) const
-//{
-//	return Expr.IsValid() && Expr->ExportText(ValueStr);
-//}
-//
-//bool FActorIOScriptCondition::ImportTextItem(const TCHAR*& Buffer, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText)
-//{
-//	return Expr.IsValid() && Expr->ImportText(Buffer, (int32)FActorIOExpressionVersion::LatestVersion);
-//}
+bool FActorIOExpressionContainer::ImportTextItem(const TCHAR*& Buffer, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText)
+{
+	bool bValue = false;
+	if (FParse::Bool(Buffer, TEXT("bIsConditionContainer="), bValue))
+	{
+		// do not allow importing from a different container type
+		if (bValue != bIsConditionContainer)
+		{
+			return true;
+		}
+	}
+
+	// falls back to default tagged property import
+	return false;
+}
+
+#if WITH_EDITOR
+bool FActorIOExpressionContainer::HasAnyErrors() const
+{
+	for (const TInstancedStruct<FActorIOExpressionBase>& Expr : Expressions)
+	{
+		if (Expr->GetTypeName() == TEXT("KismetFunction"))
+		{
+			const FActorIOKismetFunctionExpression* FunctionExpr = Expr.GetPtr<FActorIOKismetFunctionExpression>();
+			if (FunctionExpr->CheckArgumentsNeedUpdate())
+			{
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+#endif
 
 //=======================================================
 //~ Begin FActorIOExpressionParser

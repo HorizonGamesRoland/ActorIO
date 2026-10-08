@@ -36,9 +36,19 @@ public:
 	void SetContainer(FActorIOExpressionContainer* InContainer) { ParentContainer = InContainer; }
 	FActorIOExpressionContainer* GetContainer() const { return ParentContainer; }
 
+	void SetMetadata(const FString& InName, const FString& InValue);
+	bool RemoveMetadata(const FString& InName);
+	void ClearMetadata();
+	bool HasMetadata(const FString& InName) const;
+	bool GetMetadata(const FString& InName, FString& OutValue) const;
+	const FString& GetMetadataString() const { return Metadata; }
+
 private:
 
 	FActorIOExpressionContainer* ParentContainer;
+
+	UPROPERTY()
+	FString Metadata;
 };
 
 USTRUCT()
@@ -108,9 +118,11 @@ public:
 	FName GetFunctionName() const { return FunctionName; }
 	UFunction* ResolveUFunction() const;
 
-protected:
+	bool CheckArgumentsNeedUpdate() const;
 
 	void UpdateArguments();
+
+protected:
 
 	UPROPERTY()
 	TSubclassOf<UBlueprintFunctionLibrary> FunctionClass;
@@ -156,6 +168,8 @@ public:
 
 	void Empty();
 
+	void MoveExpressionTo(int32 ExprIdx, int32 ParentIdx, int32 SlotIdx);
+
 	TArray<TInstancedStruct<FActorIOExpressionBase>>& GetExpressions() { return Expressions; }
 	int32 GetNumExpressions() const { return Expressions.Num(); }
 
@@ -171,6 +185,7 @@ public:
 	TArray<FActorIOExpressionBase*> GetChildExpressions(int32 ExprIdx);
 	TArray<const FActorIOExpressionBase*> GetChildExpressions(int32 ExprIdx) const;
 	TArray<int32> GetChildExpressionIdxs(int32 ExprIdx) const;
+	int32 GetNumChildExpressions(int32 ExprIdx) const;
 
 	FActorIOExpressionBase* GetRootExpression();
 	const FActorIOExpressionBase* GetRootExpression() const;
@@ -184,13 +199,13 @@ public:
 
 	bool Evaluate(UObject* Executor);
 
-	//bool operator==(const FActorIOScriptCondition& Other) const;
-	//bool operator!=(const FActorIOScriptCondition& Other) const { return !(*this == Other); }
-
 	bool Serialize(FArchive& Ar);
 	void PostSerialize(const FArchive& Ar);
-	//bool ExportTextItem(FString& ValueStr, FActorIOScriptCondition const& DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope) const;
-	//bool ImportTextItem(const TCHAR*& Buffer, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText);
+	bool ImportTextItem(const TCHAR*& Buffer, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText);
+
+#if WITH_EDITOR
+	bool HasAnyErrors() const;
+#endif
 
 protected:
 
@@ -212,10 +227,8 @@ struct TStructOpsTypeTraits<FActorIOExpressionContainer> : public TStructOpsType
 	enum
 	{
 		WithSerializer = true,
-		WithPostSerialize = true
-		//WithExportTextItem = true,
-		//WithImportTextItem = true,
-		//WithIdenticalViaEquality = true - disabled to avoid users bricking their maps
+		WithPostSerialize = true,
+		WithImportTextItem = true
 	};
 };
 

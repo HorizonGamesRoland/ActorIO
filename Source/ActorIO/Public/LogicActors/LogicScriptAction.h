@@ -28,7 +28,7 @@ public:
 
 protected:
 
-	UPROPERTY(EditInstanceOnly, Category = "Script Action")
+	UPROPERTY(EditInstanceOnly, Category = "Script Action", meta = (HideRootExpression))
 	FActorIOExpressionContainer Actions;
 
 public:
@@ -36,6 +36,9 @@ public:
 	//~ Begin ALogicActorBase Interface
 	virtual void RegisterIOEvents(FActorIOEventList& EventRegistry) override;
 	virtual void RegisterIOFunctions(FActorIOFunctionList& FunctionRegistry) override;
+#if WITH_EDITOR
+	virtual void CheckForErrors() override;
+#endif
 	//~ End ALogicActorBase Interface
 
 public:

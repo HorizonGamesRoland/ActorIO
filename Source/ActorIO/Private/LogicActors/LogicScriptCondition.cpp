@@ -1,12 +1,15 @@
 // Copyright 2024-2026 Horizon Games and all contributors at https://github.com/HorizonGamesRoland/ActorIO/graphs/contributors
 
 #include "LogicActors/LogicScriptCondition.h"
+#include "Logging/MessageLog.h"
+#include "Misc/UObjectToken.h"
 
 #define LOCTEXT_NAMESPACE "ActorIO"
 
 ALogicScriptCondition::ALogicScriptCondition()
 {
 	Conditions.SetIsConditionContainer(true);
+	Conditions.InitFromString(TEXT("and()"));
 }
 
 void ALogicScriptCondition::RegisterIOEvents(FActorIOEventList& EventRegistry)
@@ -32,6 +35,21 @@ void ALogicScriptCondition::RegisterIOFunctions(FActorIOFunctionList& FunctionRe
 		.SetTooltipText(LOCTEXT("LogicCondition.TestTooltip", "Test the condition and fire 'OnPass' or 'OnFail' based on the result."))
 		.SetFunction(TEXT("Test")));
 }
+
+#if WITH_EDITOR
+void ALogicScriptCondition::CheckForErrors()
+{
+	Super::CheckForErrors();
+
+	if (Conditions.HasAnyErrors())
+	{
+		FMessageLog("MapCheck").Error()
+			->AddToken(FTextToken::Create(LOCTEXT("MapCheck_Message_IOPrefix", "[I/O]")))
+			->AddToken(FUObjectToken::Create(this))
+			->AddToken(FTextToken::Create(LOCTEXT("MapCheck_Message_IOExpressionContainerError", "has an expression container with error(s).")));
+	}
+}
+#endif
 
 void ALogicScriptCondition::Test()
 {

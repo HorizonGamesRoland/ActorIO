@@ -11,6 +11,7 @@ class IPropertyHandleArray;
 class IPropertyUtilities;
 class IDetailLayoutBuilder;
 class SWidget;
+class FReply;
 
 /**
  *
@@ -19,6 +20,7 @@ class ACTORIOEDITOR_API FActorIOExpressionContainerCustomization : public IPrope
 {
 public:
 
+	FActorIOExpressionContainerCustomization();
 	~FActorIOExpressionContainerCustomization();
 
 	/** Makes a new instance of this customization. */
@@ -41,7 +43,11 @@ protected:
 
 	TSharedPtr<IPropertyUtilities> PropUtilities;
 
-	FDelegateHandle DelegateHandle_OnFixupContainerReferences;
+	bool bRootExpressionHidden;
+
+	FDelegateHandle DelegateHandle_FixupContainerReferences;
+
+	FDelegateHandle DelegateHandle_BlueprintCompiled;
 
 protected:
 
@@ -54,6 +60,8 @@ protected:
 	void OnFixupContainerReferences();
 
 	void OnExpressionArrayChanged();
+
+	void OnBlueprintCompiled();
 
 	TSharedRef<SWidget> GenerateAddExpressionMenu();
 
@@ -191,6 +199,8 @@ protected:
 	void UpdateSelectableFunctions();
 
 	void OnClick_Negate();
+
+	FReply OnClick_FixArguments();
 };
 
 /**

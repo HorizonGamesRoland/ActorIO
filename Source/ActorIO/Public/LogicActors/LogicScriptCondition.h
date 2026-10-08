@@ -32,7 +32,7 @@ public:
 
 protected:
 
-	UPROPERTY(EditInstanceOnly, Category = "Script Condition")
+	UPROPERTY(EditInstanceOnly, Category = "Script Condition", meta = (HideRootExpression))
 	FActorIOExpressionContainer Conditions;
 
 public:
@@ -40,6 +40,9 @@ public:
 	//~ Begin ALogicActorBase Interface
 	virtual void RegisterIOEvents(FActorIOEventList& EventRegistry) override;
 	virtual void RegisterIOFunctions(FActorIOFunctionList& FunctionRegistry) override;
+#if WITH_EDITOR
+	virtual void CheckForErrors() override;
+#endif
 	//~ End ALogicActorBase Interface
 
 public:
