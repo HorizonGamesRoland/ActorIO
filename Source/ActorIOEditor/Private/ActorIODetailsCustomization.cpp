@@ -218,6 +218,27 @@ TSharedPtr<IPropertyHandle> FActorIOExpressionContainerCustomization::GetExpress
 	return nullptr;
 }
 
+void FActorIOExpressionContainerCustomization::MoveExpressionTo(int32 ExprIdx, int32 ParentIdx, int32 SlotIdx)
+{
+	FActorIOExpressionContainer* ExprContainer = GetContainerData();
+	if (!ExprContainer) return;
+
+	TArray<UObject*> OuterObjects;
+	PropExpressionArray->GetOuterObjects(OuterObjects);
+
+	const FScopedTransaction Transaction(LOCTEXT("MoveActorIOExpression", "Move ActorIO Expression"));
+	for (UObject* OuterObject : OuterObjects)
+	{
+		OuterObject->Modify();
+	}
+
+	PropExpressionArray->NotifyPreChange();
+
+	ExprContainer->MoveExpressionTo(ExprIdx, ParentIdx, SlotIdx);
+
+	PropExpressionArray->NotifyPostChange(EPropertyChangeType::ValueSet);
+}
+
 FText FActorIOExpressionContainerCustomization::GetHeaderText() const
 {
 	uint32 NumExpressions = 0;
@@ -362,7 +383,9 @@ void FActorIOExpressionContainerCustomization::OnClick_ClearExpressions()
 void FActorIOExpressionContainerCustomization::OnClick_DebugExpressions()
 {
 	FActorIOExpressionContainer* ExprContainer = GetContainerData();
-	UE_LOG(LogTemp, Log, TEXT("%s: %s"), ANSI_TO_TCHAR(__FUNCTION__), *ExprContainer->ToString());
+	if (!ExprContainer) return;
+
+	ExprContainer->DebugDumpContainerData();
 }
 
 //=======================================================
@@ -374,6 +397,8 @@ FActorIOExpressionDetailBuilder::FActorIOExpressionDetailBuilder()
 	Expr = nullptr;
 	ParentCustomization = nullptr;
 	bAllowRemove = true;
+	bAllowDragDrop = true;
+	bAllowDragDropOnto = false;
 }
 
 void FActorIOExpressionDetailBuilder::GenerateHeaderRowContent(FDetailWidgetRow& NodeRow)
@@ -416,6 +441,12 @@ void FActorIOExpressionDetailBuilder::GenerateHeaderRowContent(FDetailWidgetRow&
 		[
 			SAssignNew(ExtensionBox, SHorizontalBox)
 		];
+	}
+
+	if (bAllowDragDrop)
+	{
+		int32 ExpressionIdx = PropExpression->GetIndexInArray();
+		NodeRow.DragDropHandler(MakeShared<FActorIOExpressionDragDropHandler>(ParentCustomization, ExpressionIdx, bAllowDragDropOnto));
 	}
 
 	if (bAllowRemove)
@@ -469,6 +500,81 @@ void FActorIOExpressionDetailBuilder::OnClick_Remove()
 	ExprContainer->RemoveExpression(ExprIdx);
 
 	PropExpressionArray->NotifyPostChange(EPropertyChangeType::ArrayRemove);
+}
+
+//=======================================================
+//~ Begin FActorIOExpressionDragDropHandler
+//=======================================================
+
+TSharedPtr<FDragDropOperation> FActorIOExpressionDragDropHandler::CreateDragDropOperation() const
+{
+	TSharedPtr<FActorIOExpressionDragDropOp> DragOp = MakeShared<FActorIOExpressionDragDropOp>(ExpressionIdx);
+	return DragOp;
+}
+
+bool FActorIOExpressionDragDropHandler::AcceptDrop(const FDragDropEvent& DragDropEvent, EItemDropZone DropZone) const
+{
+	const TSharedPtr<FActorIOExpressionDragDropOp> DragOp = DragDropEvent.GetOperationAs<FActorIOExpressionDragDropOp>();
+	if (!DragOp.IsValid())
+	{
+		return false;
+	}
+
+	FActorIOExpressionContainer* ExprContainer = ParentCustomization->GetContainerData();
+	if (!ExprContainer)
+	{
+		return false;
+	}
+
+	int32 ParentIdx = ExprContainer->GetExpressionParentIdx(ExpressionIdx);
+	int32 SlotIdx = ExprContainer->GetExpressionSlotIdx(ExpressionIdx);
+	if (DropZone == EItemDropZone::OntoItem)
+	{
+		ParentIdx = ExpressionIdx;
+		SlotIdx = MAX_int32;
+	}
+
+	ParentCustomization->MoveExpressionTo(DragOp->ExpressionIdx, ParentIdx, SlotIdx);
+	return true;
+}
+
+TOptional<EItemDropZone> FActorIOExpressionDragDropHandler::CanAcceptDrop(const FDragDropEvent& DragDropEvent, EItemDropZone DropZone) const
+{
+	TOptional<EItemDropZone> ReturnedDropZone;
+
+	const TSharedPtr<FActorIOExpressionDragDropOp> DragDropOp = DragDropEvent.GetOperationAs<FActorIOExpressionDragDropOp>();
+	const FActorIOExpressionContainer* ExprContainer = ParentCustomization->GetContainerData();
+	if (!DragDropOp.IsValid() || !ExprContainer)
+	{
+		return ReturnedDropZone;
+	}
+
+	// Can't drop below/above the root expression.
+	if (DropZone != EItemDropZone::OntoItem && ExpressionIdx == 0)
+	{
+		return ReturnedDropZone;
+	}
+
+	// Can't drop onto the expression unless allowed.
+	if (DropZone == EItemDropZone::OntoItem && !bAllowDropOnto)
+	{
+		return ReturnedDropZone;
+	}
+
+	// Can't drop onto our own parent.
+	if (DropZone == EItemDropZone::OntoItem && ExprContainer->GetExpressionParentIdx(DragDropOp->ExpressionIdx) == ExpressionIdx)
+	{
+		return ReturnedDropZone;
+	}
+
+	// Can't drop onto any of our childs.
+	if (ExprContainer->IsExpressionDescendantOf(ExpressionIdx, DragDropOp->ExpressionIdx))
+	{
+		return ReturnedDropZone;
+	}
+
+	ReturnedDropZone = DropZone;
+	return ReturnedDropZone;
 }
 
 //=======================================================
@@ -578,8 +684,8 @@ void FActorIOKismetFunctionExpressionBuilder::GenerateHeaderRowContent(FDetailWi
 			SNew(SButton)
 			.ButtonStyle(FAppStyle::Get(), "SimpleButton")
 			.ContentPadding(0.0f)
-			.ToolTipText(LOCTEXT("ExpressionEd_FixArgumentsTooltip", "Child expressions are out of date. Click to fix."))
-			.OnClicked(FOnClicked::CreateSP(this, &FActorIOKismetFunctionExpressionBuilder::OnClick_FixArguments))
+			.ToolTipText(LOCTEXT("ExpressionEd_FixChildExpressionsTooltip", "Child expressions are out of date. Click to fix."))
+			.OnClicked(FOnClicked::CreateSP(this, &FActorIOKismetFunctionExpressionBuilder::OnClick_FixChildExpressions))
 			[
 				SNew(SImage)
 				.Image(FAppStyle::GetBrush("Icons.Error.Solid"))
@@ -600,22 +706,22 @@ void FActorIOKismetFunctionExpressionBuilder::GenerateChildContent(IDetailChildr
 	if (FunctionPtr)
 	{
 		int32 ExprIdx = ExprContainer->GetExpressionIdx(Expr);
-		TArray<int32> ChildExpressionIdxs = ExprContainer->GetChildExpressionIdxs(ExprIdx);
 
-		TArray<FProperty*> FunctionParams = IActorIO::GetUFunctionInputParams(FunctionPtr);
+		TArray<int32> ChildExpressionIdxs = ExprContainer->GetChildExpressionIdxs(ExprIdx);
 		for (int32 Idx = 0; Idx != ChildExpressionIdxs.Num(); ++Idx)
 		{
-			if (!FunctionParams.IsValidIndex(Idx)) continue;
-
 			FActorIOExpressionBase* ChildExpr = ExprContainer->GetExpressionPtr(ChildExpressionIdxs[Idx]);
 			TSharedPtr<IPropertyHandle> PropChildExpr = ParentCustomization->GetExpressionProperty(ChildExpressionIdxs[Idx]);
+
+			FString ChildExprPropName = TEXT("<Invalid>");
+			ChildExpr->GetMetadata(TEXT("PropName"), ChildExprPropName);
 
 			TSharedRef<FActorIOExpressionDetailBuilder> Builder = FActorIODetailCustomizationHelper::NewExpressionDetailBuilderOfType(ChildExpr->GetTypeName());
 			Builder->SetExpression(PropChildExpr, ChildExpr);
 			Builder->SetParentCustomization(ParentCustomization);
-			Builder->SetHeaderTextOverride(FunctionParams[Idx]->GetDisplayNameText());
-			//Builder->SetHeaderTextOverride(FText::FromString(ChildExpr->GetMetadataString()));
+			Builder->SetHeaderTextOverride(FText::FromString(ChildExprPropName));
 			Builder->SetAllowRemove(false);
+			Builder->SetAllowDragDrop(false);
 			ChildrenBuilder.AddCustomBuilder(Builder);
 		}
 	}
@@ -863,7 +969,7 @@ void FActorIOKismetFunctionExpressionBuilder::OnClick_Negate()
 	RefreshHeader();
 }
 
-FReply FActorIOKismetFunctionExpressionBuilder::OnClick_FixArguments()
+FReply FActorIOKismetFunctionExpressionBuilder::OnClick_FixChildExpressions()
 {
 	FActorIOKismetFunctionExpression* FunctionExpr = GetExpression<FActorIOKismetFunctionExpression>();
 	if (!FunctionExpr) return FReply::Handled();
@@ -970,10 +1076,12 @@ void FActorIOGroupExpressionBuilder::RefreshHeader()
 	if (GroupExpr && GroupExpr->IsNegated())
 	{
 		HeaderText->SetText(LOCTEXT("ExpressionEd_GroupNameNegated", "OR"));
+		HeaderText->SetToolTipText(LOCTEXT("ExpressionEd_GroupTooltipNegated", "A group that is true if *Any* of its childs are true."));
 	}
 	else
 	{
 		HeaderText->SetText(LOCTEXT("ExpressionEd_GroupName", "AND"));
+		HeaderText->SetToolTipText(LOCTEXT("ExpressionEd_GroupTooltip", "A group that is true if *All* of its childs are true."));
 	}
 }
 
@@ -1086,7 +1194,9 @@ TSharedRef<FActorIOExpressionDetailBuilder> FActorIODetailCustomizationHelper::N
 	}
 	else if (TypeName == FName("Group"))
 	{
-		return FActorIOGroupExpressionBuilder::MakeInstance();
+		TSharedRef<FActorIOExpressionDetailBuilder> GroupBuilder = FActorIOGroupExpressionBuilder::MakeInstance();
+		GroupBuilder->SetAllowDragDropOnto(true);
+		return GroupBuilder;
 	}
 	
 	return FActorIOInvalidExpressionBuilder::MakeInstance();

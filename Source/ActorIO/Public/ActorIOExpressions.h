@@ -154,7 +154,7 @@ public:
 
 	FActorIOExpressionContainer();
 
-	int32 AddExpression(const TInstancedStruct<FActorIOExpressionBase>& Expr, int32 ParentIdx);
+	int32 AddExpression(const TInstancedStruct<FActorIOExpressionBase>& Expr, int32 ParentIdx, int32 SlotIdx = MAX_int32);
 
 	bool InitFromString(const FString& Str);
 
@@ -170,11 +170,15 @@ public:
 
 	void MoveExpressionTo(int32 ExprIdx, int32 ParentIdx, int32 SlotIdx);
 
+	void MoveExpressionTo_OLD(int32 ExprIdx, int32 ParentIdx, int32 SlotIdx); // #todo: debug, remove?
+
 	TArray<TInstancedStruct<FActorIOExpressionBase>>& GetExpressions() { return Expressions; }
+	const TArray<TInstancedStruct<FActorIOExpressionBase>>& GetExpressions() const { return Expressions; }
 	int32 GetNumExpressions() const { return Expressions.Num(); }
 
 	int32 GetExpressionIdx(const FActorIOExpressionBase* InExpr) const;
-	int32 GetExpressionParentIdx(const FActorIOExpressionBase* InExpr) const;
+	int32 GetExpressionParentIdx(int32 Idx) const;
+	int32 GetExpressionSlotIdx(int32 Idx) const;
 
 	TInstancedStruct<FActorIOExpressionBase>& GetExpression(int32 Idx) { return Expressions[Idx]; }
 	const TInstancedStruct<FActorIOExpressionBase>& GetExpression(int32 Idx) const { return Expressions[Idx]; }
@@ -187,7 +191,9 @@ public:
 	TArray<int32> GetChildExpressionIdxs(int32 ExprIdx) const;
 	int32 GetNumChildExpressions(int32 ExprIdx) const;
 
-	FActorIOExpressionBase* GetRootExpression();
+	bool IsExpressionDescendantOf(int32 ExprIdx, int32 AncestorIdx) const;
+
+	FActorIOExpressionBase* GetRootExpression(); // #todo: make it just return first element and ensure
 	const FActorIOExpressionBase* GetRootExpression() const;
 	int32 GetRootExpressionIdx() const;
 
@@ -206,6 +212,8 @@ public:
 #if WITH_EDITOR
 	bool HasAnyErrors() const;
 #endif
+
+	void DebugDumpContainerData() const;
 
 protected:
 

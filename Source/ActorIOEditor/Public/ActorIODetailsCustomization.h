@@ -4,6 +4,7 @@
 
 #include "IPropertyTypeCustomization.h"
 #include "IDetailCustomNodeBuilder.h"
+#include "IDetailDragDropHandler.h"
 #include "ActorIOExpressions.h"
 
 class IPropertyHandle;
@@ -34,6 +35,8 @@ public:
 	FActorIOExpressionContainer* GetContainerData() const;
 
 	TSharedPtr<IPropertyHandle> GetExpressionProperty(int32 Idx) const;
+
+	void MoveExpressionTo(int32 ExprIdx, int32 ParentIdx, int32 SlotIdx);
 
 protected:
 
@@ -100,6 +103,10 @@ public:
 
 	void SetAllowRemove(bool bEnabled) { bAllowRemove = bEnabled; }
 
+	void SetAllowDragDrop(bool bEnabled) { bAllowDragDrop = bEnabled; }
+
+	void SetAllowDragDropOnto(bool bEnabled) { bAllowDragDropOnto = bEnabled; }
+
 protected:
 
 	TSharedPtr<class STextBlock> HeaderText;
@@ -118,11 +125,56 @@ protected:
 
 	bool bAllowRemove;
 
+	bool bAllowDragDrop;
+
+	bool bAllowDragDropOnto;
+
 	FSimpleDelegate OnRebuildChildren;
 
 protected:
 
 	void OnClick_Remove();
+};
+
+class ACTORIOEDITOR_API FActorIOExpressionDragDropHandler : public IDetailDragDropHandler
+{
+public:
+
+	FActorIOExpressionDragDropHandler(FActorIOExpressionContainerCustomization* InParentCustomization, int32 InExpressionIdx, bool bInAllowDropOnto) :
+		ParentCustomization(InParentCustomization),
+		ExpressionIdx(InExpressionIdx),
+		bAllowDropOnto(bInAllowDropOnto)
+	{}
+
+	//~ Begin IDetailDragDropHandler Interface
+	virtual TSharedPtr<FDragDropOperation> CreateDragDropOperation() const override;
+	virtual bool AcceptDrop(const FDragDropEvent& DragDropEvent, EItemDropZone DropZone) const override;
+	virtual TOptional<EItemDropZone> CanAcceptDrop(const FDragDropEvent& DragDropEvent, EItemDropZone DropZone) const override;
+	//~ End IDetailDragDropHandler Interface
+
+private:
+
+	FActorIOExpressionContainerCustomization* ParentCustomization;
+
+	int32 ExpressionIdx;
+
+	bool bAllowDropOnto;
+};
+
+/**
+ * Drag & Drop operation for FActorIOExpressionDragDropHandler.
+ */
+class ACTORIOEDITOR_API FActorIOExpressionDragDropOp : public FDragDropOperation
+{
+public:
+
+	DRAG_DROP_OPERATOR_TYPE(FActorIOExpressionDragDropOp, FDragDropOperation);
+
+	FActorIOExpressionDragDropOp(int32 InExpressionIdx) :
+		ExpressionIdx(InExpressionIdx)
+	{}
+
+	int32 ExpressionIdx;
 };
 
 /**
@@ -200,7 +252,7 @@ protected:
 
 	void OnClick_Negate();
 
-	FReply OnClick_FixArguments();
+	FReply OnClick_FixChildExpressions();
 };
 
 /**
