@@ -136,12 +136,6 @@ bool FActorIOExpressionBase::GetMetadata(const FString& InName, FString& OutValu
 //~ Begin FActorIOLiteralExpression
 //=======================================================
 
-bool FActorIOLiteralExpression::Evaluate(UObject* Executor, FString& OutReturnValue)
-{
-	OutReturnValue = LiteralValue;
-	return true;
-}
-
 bool FActorIOLiteralExpression::InitFromString(const FString& Str)
 {
 	// Example valid strings:
@@ -168,6 +162,12 @@ bool FActorIOLiteralExpression::InitFromString(const FString& Str)
 FString FActorIOLiteralExpression::ToString() const
 {
 	return FString::Printf(TEXT("val(%s)"), *LiteralValue);
+}
+
+bool FActorIOLiteralExpression::Evaluate(UObject* Executor, FString& OutReturnValue)
+{
+	OutReturnValue = LiteralValue;
+	return true;
 }
 
 //=======================================================
@@ -254,68 +254,6 @@ FString FActorIOFunctionExpressionBase::ChildExpressionToString() const
 //=======================================================
 //~ Begin FActorIOKismetFunctionExpression
 //=======================================================
-
-bool FActorIOKismetFunctionExpression::Evaluate(UObject* Executor, FString& OutReturnValue)
-{
-	OutReturnValue.Empty();
-
-	UClass* ClassPtr = FunctionClass.Get();
-	UFunction* FunctionPtr = ResolveUFunction();
-	if (!FunctionPtr)
-	{
-		// #TODO: log error
-		return false;
-	}
-
-	FActorIOExpressionContainer* ExprContainer = GetContainer();
-	if (!ExprContainer) return false;
-
-	int32 SelfIdx = ExprContainer->GetExpressionIdx(this);
-	TArray<FActorIOExpressionBase*> ChildExpressions = ExprContainer->GetChildExpressions(SelfIdx);
-
-	FString Cmd = FunctionName.ToString();
-	for (FActorIOExpressionBase* Expr : ChildExpressions)
-	{
-		FString ReturnValue;
-		if (!Expr || !Expr->Evaluate(Executor, ReturnValue))
-		{
-			return false;
-		}
-
-		Cmd += TEXT(" ");
-		Cmd += ReturnValue;
-	}
-
-	UActorIOSubsystemBase* IOSubsystem = UActorIOSubsystemBase::Get(Executor);
-	if (!IOSubsystem)
-	{
-		return false;
-	}
-
-	const TFunction<void(FProperty*, uint8*)> ReturnPropertyAccessor = [&](FProperty* ReturnProperty, uint8* Container)
-	{
-		if (ReturnProperty)
-		{
-			if (const FBoolProperty* BoolProperty = CastField<FBoolProperty>(ReturnProperty))
-			{
-				bool bValue = BoolProperty->GetPropertyValue_InContainer(Container);
-				if (bNegated)
-				{
-					bValue = !bValue;
-				}
-
-				OutReturnValue = bValue ? TEXT("True") : TEXT("False");
-			}
-			else
-			{
-				ReturnProperty->ExportTextItem_InContainer(OutReturnValue, Container, nullptr, nullptr, PPF_None);
-			}
-		}
-	};
-
-	FOutputDeviceNull Ar;
-	return IOSubsystem->ExecuteCommand(ClassPtr->GetDefaultObject(), *Cmd, Ar, IOSubsystem, ReturnPropertyAccessor);
-}
 
 bool FActorIOKismetFunctionExpression::InitFromString(const FString& Str)
 {
@@ -418,11 +356,98 @@ FString FActorIOKismetFunctionExpression::ToString() const
 	return FString::Printf(TEXT("func(%s)"), *FuncData);
 }
 
-void FActorIOKismetFunctionExpression::SetFunctionClass(UClass* InClassPtr)
+bool FActorIOKismetFunctionExpression::Evaluate(UObject* Executor, FString& OutReturnValue)
+{
+	OutReturnValue.Empty();
+
+	UClass* ClassPtr = FunctionClass.Get();
+	UFunction* FunctionPtr = ResolveUFunction();
+	if (!FunctionPtr)
+	{
+		// #TODO: log error
+		return false;
+	}
+
+	FActorIOExpressionContainer* ExprContainer = GetContainer();
+	if (!ExprContainer) return false;
+
+	int32 SelfIdx = ExprContainer->GetExpressionIdx(this);
+	TArray<FActorIOExpressionBase*> ChildExpressions = ExprContainer->GetChildExpressions(SelfIdx);
+
+	FString Cmd = FunctionName.ToString();
+	for (FActorIOExpressionBase* Expr : ChildExpressions)
+	{
+		FString ReturnValue;
+		if (!Expr || !Expr->Evaluate(Executor, ReturnValue))
+		{
+			return false;
+		}
+
+		Cmd += TEXT(" ");
+		Cmd += ReturnValue;
+	}
+
+	UActorIOSubsystemBase* IOSubsystem = UActorIOSubsystemBase::Get(Executor);
+	if (!IOSubsystem)
+	{
+		return false;
+	}
+
+	const TFunction<void(FProperty*, uint8*)> ReturnPropertyAccessor = [&](FProperty* ReturnProperty, uint8* Container)
+	{
+		if (ReturnProperty)
+		{
+			if (const FBoolProperty* BoolProperty = CastField<FBoolProperty>(ReturnProperty))
+			{
+				bool bValue = BoolProperty->GetPropertyValue_InContainer(Container);
+				if (bNegated)
+				{
+					bValue = !bValue;
+				}
+
+				OutReturnValue = bValue ? TEXT("True") : TEXT("False");
+			}
+			else
+			{
+				ReturnProperty->ExportTextItem_InContainer(OutReturnValue, Container, nullptr, nullptr, PPF_None);
+			}
+		}
+	};
+
+	FOutputDeviceNull Ar;
+	return IOSubsystem->ExecuteCommand(ClassPtr->GetDefaultObject(), *Cmd, Ar, IOSubsystem, ReturnPropertyAccessor);
+}
+
+FString FActorIOKismetFunctionExpression::CheckForErrors() const
+{
+	if (FunctionName != NAME_None)
+	{
+		UClass* ClassPtr = FunctionClass.Get();
+		UFunction* FunctionPtr = ResolveUFunction();
+		if (ClassPtr && !FunctionPtr)
+		{
+			return TEXT("FunctionNotFound");
+		}
+	}
+
+	if (CheckArgumentsNeedUpdate())
+	{
+		return TEXT("ArgumentsNeedUpdate");
+	}
+
+	return TEXT("");
+}
+
+void FActorIOKismetFunctionExpression::SetFunctionClass(UClass* InClassPtr, bool bResetFunctionName)
 {
 	if (FunctionClass != InClassPtr)
 	{
 		FunctionClass = InClassPtr;
+		if (bResetFunctionName)
+		{
+			FunctionName = NAME_None;
+		}
+
 		UpdateArguments();
 	}
 }
@@ -583,6 +608,44 @@ void FActorIOKismetFunctionExpression::UpdateArguments()
 //~ Begin FActorIOGroupExpression
 //=======================================================
 
+bool FActorIOGroupExpression::InitFromString(const FString& Str)
+{
+	// Example valid strings:
+	// - and()
+	// - or
+	// - and(func(...),func(...))
+	// - or(func(...),func(...),func(...))     #todo: add eq, neq examples
+
+	FString Prefix;
+	FString Data;
+	if (!FActorIOExpressionParser::ParseBracket(Str, Prefix, Data))
+	{
+		return false;
+	}
+
+	if (Prefix != TEXT("and") && Prefix != TEXT("or"))
+	{
+		return false;
+	}
+
+	bNegated = Prefix == TEXT("or");
+	InitChildExpressionsFromString(Data);
+	return true;
+}
+
+FString FActorIOGroupExpression::ToString() const
+{
+	FString ChildsData = ChildExpressionToString();
+	if (bNegated)
+	{
+		return FString::Printf(TEXT("or(%s)"), *ChildsData);
+	}
+	else
+	{
+		return FString::Printf(TEXT("and(%s)"), *ChildsData);
+	}
+}
+
 bool FActorIOGroupExpression::Evaluate(UObject* Executor, FString& OutReturnValue)
 {
 	OutReturnValue.Empty();
@@ -628,44 +691,6 @@ bool FActorIOGroupExpression::Evaluate(UObject* Executor, FString& OutReturnValu
 	return true;
 }
 
-bool FActorIOGroupExpression::InitFromString(const FString& Str)
-{
-	// Example valid strings:
-	// - and()
-	// - or
-	// - and(func(...),func(...))
-	// - or(func(...),func(...),func(...))     #todo: add eq, neq examples
-
-	FString Prefix;
-	FString Data;
-	if (!FActorIOExpressionParser::ParseBracket(Str, Prefix, Data))
-	{
-		return false;
-	}
-
-	if (Prefix != TEXT("and") && Prefix != TEXT("or"))
-	{
-		return false;
-	}
-
-	bNegated = Prefix == TEXT("or");
-	InitChildExpressionsFromString(Data);
-	return true;
-}
-
-FString FActorIOGroupExpression::ToString() const
-{
-	FString ChildsData = ChildExpressionToString();
-	if (bNegated)
-	{
-		return FString::Printf(TEXT("or(%s)"), *ChildsData);
-	}
-	else
-	{
-		return FString::Printf(TEXT("and(%s)"), *ChildsData);
-	}
-}
-
 //=======================================================
 //~ Begin FActorIOExpressionContainer
 //=======================================================
@@ -689,7 +714,11 @@ int32 FActorIOExpressionContainer::AddExpression(const TInstancedStruct<FActorIO
 		return INDEX_NONE;
 	}
 
-	// #todo: ensure expression can have children
+	if (ParentIdx != INDEX_NONE && !Expressions[ParentIdx]->CanContainChildExpressions())
+	{
+		// #todo: error
+		return INDEX_NONE;
+	}
 
 	int32 ExprIdx = Expressions.Add(Expr);
 	ParentIndexMapping.Add(ParentIdx);
@@ -697,7 +726,7 @@ int32 FActorIOExpressionContainer::AddExpression(const TInstancedStruct<FActorIO
 	Expressions[ExprIdx]->SetContainer(this);
 	MoveExpressionTo(ExprIdx, ParentIdx, SlotIdx);
 
-	return ExprIdx;
+	return ExprIdx; // #todo: return the modified idx
 }
 
 bool FActorIOExpressionContainer::InitFromString(const FString& Str)
@@ -780,29 +809,40 @@ void FActorIOExpressionContainer::Empty()
 	ParentIndexMapping.Empty();
 }
 
-void FActorIOExpressionContainer::MoveExpressionTo(int32 ExprIdx, int32 ParentIdx, int32 SlotIdx)
+int32 FActorIOExpressionContainer::MoveExpressionTo(int32 ExprIdx, int32 ParentIdx, int32 SlotIdx)
 {
 	const int32 Num = Expressions.Num();
 	if (!ensure(Num == ParentIndexMapping.Num()))
 	{
-		return;
+		return INDEX_NONE;
 	}
 
 	if (!Expressions.IsValidIndex(ExprIdx) || !Expressions.IsValidIndex(ParentIdx))
 	{
-		return;
+		return INDEX_NONE;
 	}
 
 	// The root cannot be moved.
 	if (ParentIndexMapping[ExprIdx] == INDEX_NONE)
 	{
-		return;
+		return INDEX_NONE;
 	}
 
 	// Prevent cycles: the new parent must not be the expression itself or one of its descendants.
 	if (IsExpressionDescendantOf(ParentIdx, ExprIdx))
 	{
-		return;
+		return INDEX_NONE;
+	}
+
+	// Validate the whole parent mapping up front. Every value must be INDEX_NONE (root) or a valid
+	// expression index. Everything below indexes with these values, bail out before touching them.
+	for (int32 Idx = 0; Idx != Num; ++Idx)
+	{
+		const int32 Parent = ParentIndexMapping[Idx];
+		if (Parent != INDEX_NONE && !ensureMsgf(Expressions.IsValidIndex(Parent), TEXT("Expression %d has out of range parent index %d."), Idx, Parent))
+		{
+			return INDEX_NONE;
+		}
 	}
 
 	// Build ordered child lists (array order == sibling order).
@@ -825,7 +865,7 @@ void FActorIOExpressionContainer::MoveExpressionTo(int32 ExprIdx, int32 ParentId
 
 	if (RootIdx == INDEX_NONE)
 	{
-		return;
+		return INDEX_NONE;
 	}
 
 	// Detach from old parent, attach to new parent at the requested slot.
@@ -856,7 +896,7 @@ void FActorIOExpressionContainer::MoveExpressionTo(int32 ExprIdx, int32 ParentId
 	// If something was unreachable the tree was already corrupt. Bail before modifying anything.
 	if (!ensure(NewOrder.Num() == Num))
 	{
-		return;
+		return INDEX_NONE;
 	}
 
 	TArray<int32> OldToNew;
@@ -882,6 +922,8 @@ void FActorIOExpressionContainer::MoveExpressionTo(int32 ExprIdx, int32 ParentId
 
 	Expressions = MoveTemp(NewExpressions);
 	ParentIndexMapping = MoveTemp(NewParentMapping);
+
+	return OldToNew[ExprIdx];
 }
 
 void FActorIOExpressionContainer::MoveExpressionTo_OLD(int32 ExprIdx, int32 ParentIdx, int32 SlotIdx)
@@ -1004,6 +1046,11 @@ int32 FActorIOExpressionContainer::GetExpressionIdx(const FActorIOExpressionBase
 int32 FActorIOExpressionContainer::GetExpressionParentIdx(int32 Idx) const
 {
 	return ParentIndexMapping[Idx]; // #todo: return bool to support error checking?
+}
+
+bool FActorIOExpressionContainer::IsValidIndex(int32 Idx) const
+{
+	return Expressions.IsValidIndex(Idx); // #todo: keep checking for ParentIndexMapping.IsValidIndex?
 }
 
 int32 FActorIOExpressionContainer::GetExpressionSlotIdx(int32 Idx) const
@@ -1228,24 +1275,18 @@ bool FActorIOExpressionContainer::ImportTextItem(const TCHAR*& Buffer, int32 Por
 	return false;
 }
 
-#if WITH_EDITOR
 bool FActorIOExpressionContainer::HasAnyErrors() const
 {
 	for (const TInstancedStruct<FActorIOExpressionBase>& Expr : Expressions)
 	{
-		if (Expr->GetTypeName() == TEXT("KismetFunction"))
+		if (!Expr.IsValid() || !Expr->CheckForErrors().IsEmpty())
 		{
-			const FActorIOKismetFunctionExpression* FunctionExpr = Expr.GetPtr<FActorIOKismetFunctionExpression>();
-			if (FunctionExpr->CheckArgumentsNeedUpdate())
-			{
-				return true;
-			}
+			return true;
 		}
 	}
 
 	return false;
 }
-#endif
 
 void FActorIOExpressionContainer::DebugDumpContainerData() const
 {

@@ -32,11 +32,13 @@ public:
 	virtual void CustomizeChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils) override;
 	//~ End IPropertyTypeCustomization Interface
 
+	void RefreshDetails();
+
 	FActorIOExpressionContainer* GetContainerData() const;
 
 	TSharedPtr<IPropertyHandle> GetExpressionProperty(int32 Idx) const;
 
-	void MoveExpressionTo(int32 ExprIdx, int32 ParentIdx, int32 SlotIdx);
+	TSharedPtr<IPropertyHandle> GetExpressionArrayProperty() const { return PropExpressionArray; }
 
 protected:
 
@@ -57,14 +59,6 @@ protected:
 	FText GetHeaderText() const;
 
 	FText GetHeaderTooltip() const;
-
-	void OnContainerDataChanged();
-
-	void OnFixupContainerReferences();
-
-	void OnExpressionArrayChanged();
-
-	void OnBlueprintCompiled();
 
 	TSharedRef<SWidget> GenerateAddExpressionMenu();
 
@@ -92,6 +86,8 @@ public:
 
 	virtual void RefreshHeader();
 
+	virtual void RefreshError();
+
 	void SetExpression(const TSharedPtr<IPropertyHandle>& InProperty, FActorIOExpressionBase* InExpr);
 
 	template<class T>
@@ -113,6 +109,8 @@ protected:
 
 	TSharedPtr<class SHorizontalBox> ExtensionBox;
 
+	TSharedPtr<class SButton> ErrorButton;
+
 	TSharedPtr<IPropertyHandle> PropExpression;
 
 	TSharedPtr<IPropertyHandle> PropExpressionArray;
@@ -131,7 +129,11 @@ protected:
 
 	FSimpleDelegate OnRebuildChildren;
 
+	FString ErrorCode;
+
 protected:
+
+	virtual FReply OnClick_FixErrors();
 
 	void OnClick_Remove();
 };
@@ -212,8 +214,10 @@ public:
 	//~ Begin FActorIOExpressionDetailBuilder Interface
 	virtual void GenerateHeaderRowContent(FDetailWidgetRow& NodeRow) override;
 	virtual void GenerateChildContent(IDetailChildrenBuilder& ChildrenBuilder) override;
-	virtual bool WholeRowHeader() const { return true; }
+	virtual bool WholeRowHeader() const override { return true; }
 	virtual void RefreshHeader() override;
+	virtual void RefreshError() override;
+	virtual FReply OnClick_FixErrors() override;
 	//~ End FActorIOExpressionDetailBuilder Interface
 
 protected:
@@ -251,8 +255,6 @@ protected:
 	void UpdateSelectableFunctions();
 
 	void OnClick_Negate();
-
-	FReply OnClick_FixChildExpressions();
 };
 
 /**
@@ -268,7 +270,7 @@ public:
 	//~ Begin FActorIOExpressionDetailBuilder Interface
 	virtual void GenerateHeaderRowContent(FDetailWidgetRow& NodeRow) override;
 	virtual void GenerateChildContent(IDetailChildrenBuilder& ChildrenBuilder) override;
-	virtual bool WholeRowHeader() const { return true; }
+	virtual bool WholeRowHeader() const override { return true; }
 	virtual void RefreshHeader() override;
 	//~ End FActorIOExpressionDetailBuilder Interface
 

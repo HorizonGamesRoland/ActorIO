@@ -13,7 +13,8 @@ enum class EActorIOExpressionType : uint8
 {
 	Invalid,
 	Literal,
-	Function
+	Function,
+	Group
 };
 
 USTRUCT()
@@ -28,10 +29,16 @@ public:
 
 	virtual EActorIOExpressionType GetType() const { return EActorIOExpressionType::Invalid; }
 	virtual FName GetTypeName() const { return NAME_None; }
-	virtual bool Evaluate(UObject* Executor, FString& OutReturnValue) { return false; }
 
 	virtual bool InitFromString(const FString& Str) { return false; }
 	virtual FString ToString() const { return TEXT(""); }
+
+	virtual bool CanContainChildExpressions() const { return false; }
+	virtual bool CanEditChildExpressions() const { return false; }
+	virtual bool InitChildExpressionsFromString(const FString& Str) { return false; }
+	virtual FString ChildExpressionToString() const { return TEXT(""); }
+
+	virtual bool Evaluate(UObject* Executor, FString& OutReturnValue) { return false; }
 
 	void SetContainer(FActorIOExpressionContainer* InContainer) { ParentContainer = InContainer; }
 	FActorIOExpressionContainer* GetContainer() const { return ParentContainer; }
@@ -42,6 +49,8 @@ public:
 	bool HasMetadata(const FString& InName) const;
 	bool GetMetadata(const FString& InName, FString& OutValue) const;
 	const FString& GetMetadataString() const { return Metadata; }
+
+	virtual FString CheckForErrors() const { return TEXT(""); }
 
 private:
 
@@ -60,10 +69,9 @@ public:
 
 	virtual EActorIOExpressionType GetType() const override { return EActorIOExpressionType::Literal; }
 	virtual FName GetTypeName() const override { return FName("Literal"); }
-	virtual bool Evaluate(UObject* Executor, FString& OutReturnValue) override;
-
 	virtual bool InitFromString(const FString& Str) override;
 	virtual FString ToString() const override;
+	virtual bool Evaluate(UObject* Executor, FString& OutReturnValue) override;
 
 	void SetLiteralValue(const FString& InValue) { LiteralValue = InValue; }
 	const FString& GetLiteralValue() const { return LiteralValue; }
@@ -84,15 +92,14 @@ public:
 	FActorIOFunctionExpressionBase();
 
 	virtual EActorIOExpressionType GetType() const override { return EActorIOExpressionType::Function; }
+	virtual bool CanContainChildExpressions() const override { return true; }
+	virtual bool InitChildExpressionsFromString(const FString& Str) override;
+	virtual FString ChildExpressionToString() const override;
 
 	void SetNegated(bool bEnabled) { bNegated = bEnabled; }
 	bool IsNegated() const { return bNegated; }
 
 protected:
-
-	virtual bool InitChildExpressionsFromString(const FString& Str);
-
-	virtual FString ChildExpressionToString() const;
 
 	UPROPERTY()
 	bool bNegated;
@@ -106,12 +113,12 @@ struct ACTORIO_API FActorIOKismetFunctionExpression : public FActorIOFunctionExp
 public:
 
 	virtual FName GetTypeName() const override { return FName("KismetFunction"); }
-	virtual bool Evaluate(UObject* Executor, FString& OutReturnValue) override;
-
 	virtual bool InitFromString(const FString& Str) override;
 	virtual FString ToString() const override;
+	virtual bool Evaluate(UObject* Executor, FString& OutReturnValue) override;
+	virtual FString CheckForErrors() const override;
 
-	void SetFunctionClass(UClass* InClassPtr);
+	void SetFunctionClass(UClass* InClassPtr, bool bResetFunctionName = false);
 	void SetFunctionName(FName InFunctionName);
 
 	const UClass* GetFunctionClass() const { return FunctionClass.Get(); }
@@ -138,11 +145,12 @@ struct ACTORIO_API FActorIOGroupExpression : public FActorIOFunctionExpressionBa
 
 public:
 
+	virtual EActorIOExpressionType GetType() const override { return EActorIOExpressionType::Group; }
 	virtual FName GetTypeName() const override { return FName("Group"); }
-	virtual bool Evaluate(UObject* Executor, FString& OutReturnValue) override;
-
 	virtual bool InitFromString(const FString& Str) override;
 	virtual FString ToString() const override;
+	virtual bool CanEditChildExpressions() const override { return true; }
+	virtual bool Evaluate(UObject* Executor, FString& OutReturnValue) override;
 };
 
 USTRUCT()
@@ -154,7 +162,7 @@ public:
 
 	FActorIOExpressionContainer();
 
-	int32 AddExpression(const TInstancedStruct<FActorIOExpressionBase>& Expr, int32 ParentIdx, int32 SlotIdx = MAX_int32);
+	int32 AddExpression(const TInstancedStruct<FActorIOExpressionBase>& Expr, int32 ParentIdx, int32 SlotIdx = INDEX_NONE);
 
 	bool InitFromString(const FString& Str);
 
@@ -168,7 +176,7 @@ public:
 
 	void Empty();
 
-	void MoveExpressionTo(int32 ExprIdx, int32 ParentIdx, int32 SlotIdx);
+	int32 MoveExpressionTo(int32 ExprIdx, int32 ParentIdx, int32 SlotIdx);
 
 	void MoveExpressionTo_OLD(int32 ExprIdx, int32 ParentIdx, int32 SlotIdx); // #todo: debug, remove?
 
@@ -179,6 +187,8 @@ public:
 	int32 GetExpressionIdx(const FActorIOExpressionBase* InExpr) const;
 	int32 GetExpressionParentIdx(int32 Idx) const;
 	int32 GetExpressionSlotIdx(int32 Idx) const;
+
+	bool IsValidIndex(int32 Idx) const;
 
 	TInstancedStruct<FActorIOExpressionBase>& GetExpression(int32 Idx) { return Expressions[Idx]; }
 	const TInstancedStruct<FActorIOExpressionBase>& GetExpression(int32 Idx) const { return Expressions[Idx]; }
@@ -209,9 +219,7 @@ public:
 	void PostSerialize(const FArchive& Ar);
 	bool ImportTextItem(const TCHAR*& Buffer, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText);
 
-#if WITH_EDITOR
 	bool HasAnyErrors() const;
-#endif
 
 	void DebugDumpContainerData() const;
 
@@ -225,6 +233,8 @@ protected:
 
 	UPROPERTY()
 	bool bIsConditionContainer;
+
+	// #todo: container change event?
 
 	FSimpleMulticastDelegate FixupContainerReferencesEvent;
 };
