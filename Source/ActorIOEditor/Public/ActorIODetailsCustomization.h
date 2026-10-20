@@ -88,10 +88,7 @@ public:
 
 	virtual void RefreshError();
 
-	void SetExpression(const TSharedPtr<IPropertyHandle>& InProperty, FActorIOExpressionBase* InExpr);
-
-	template<class T>
-	T* GetExpression() const { return static_cast<T*>(Expr); }
+	void SetExpression(const TSharedPtr<IPropertyHandle>& InProperty, TInstancedStruct<FActorIOExpressionBase>* InExpr);
 
 	void SetParentCustomization(FActorIOExpressionContainerCustomization* InCustomization) { ParentCustomization = InCustomization; }
 
@@ -107,6 +104,8 @@ protected:
 
 	TSharedPtr<class STextBlock> HeaderText;
 
+	TSharedPtr<class SWidget> NegatePrefix;
+
 	TSharedPtr<class SHorizontalBox> ExtensionBox;
 
 	TSharedPtr<class SButton> ErrorButton;
@@ -115,11 +114,11 @@ protected:
 
 	TSharedPtr<IPropertyHandle> PropExpressionArray;
 
-	FActorIOExpressionBase* Expr;
+	TInstancedStruct<FActorIOExpressionBase>* Expr;
 
 	FActorIOExpressionContainerCustomization* ParentCustomization;
 
-	FText HeaderTextOverride;
+	TOptional<FText> HeaderTextOverride;
 
 	bool bAllowRemove;
 
@@ -136,6 +135,8 @@ protected:
 	virtual FReply OnClick_FixErrors();
 
 	void OnClick_Remove();
+
+	void OnClick_Negate();
 };
 
 class ACTORIOEDITOR_API FActorIOExpressionDragDropHandler : public IDetailDragDropHandler
@@ -250,11 +251,41 @@ protected:
 	FSlateColor GetFunctionDisplayColor(FName InFunctionName) const;
 
 	/** @return Tooltip widget to use for I/O functions. */
-	FText GetFunctionTooltip(FName InFunctionName);
+	FText GetFunctionTooltip(FName InFunctionName) const;
 
 	void UpdateSelectableFunctions();
+};
 
-	void OnClick_Negate();
+/**
+ *
+ */
+class ACTORIOEDITOR_API FActorIOCompareExpressionBuilder : public FActorIOExpressionDetailBuilder
+{
+public:
+
+	/** Makes a new instance of this customization. */
+	static TSharedRef<FActorIOExpressionDetailBuilder> MakeInstance();
+
+	//~ Begin FActorIOExpressionDetailBuilder Interface
+	virtual void GenerateHeaderRowContent(FDetailWidgetRow& NodeRow) override;
+	virtual void GenerateChildContent(IDetailChildrenBuilder& ChildrenBuilder) override;
+	virtual bool WholeRowHeader() const override { return true; }
+	virtual void RefreshHeader() override;
+	virtual void RefreshError() override;
+	//~ End FActorIOExpressionDetailBuilder Interface
+
+protected:
+
+	TArray<TSharedPtr<EActorIOComparisonOp>> ComparisonOps;
+
+	/** Called when generating an entry for the event combo box. */
+	TSharedRef<SWidget> OnGenerateComparisonOpComboBoxWidget(TSharedPtr<EActorIOComparisonOp> InComparisonOp);
+
+	FText GetComparisonOpDisplayName(TSharedPtr<EActorIOComparisonOp> InComparisonOp) const;
+
+	FText GetComparisonOpTooltip(TSharedPtr<EActorIOComparisonOp> InComparisonOp) const;
+
+	void OnComparisonOpSelectionChanged(TSharedPtr<EActorIOComparisonOp> InComparisonOp, ESelectInfo::Type InSelectType);
 };
 
 /**
@@ -279,8 +310,6 @@ protected:
 	TSharedRef<SWidget> GenerateAddExpressionMenu();
 
 	void OnClick_AddExpression(FString InType);
-
-	void OnClick_Negate();
 };
 
 class ACTORIOEDITOR_API FActorIOInvalidExpressionBuilder : public FActorIOExpressionDetailBuilder
@@ -291,6 +320,7 @@ public:
 	static TSharedRef<FActorIOExpressionDetailBuilder> MakeInstance();
 
 	//~ Begin FActorIOExpressionDetailBuilder Interface
+	virtual bool WholeRowHeader() const override { return true; }
 	virtual void RefreshHeader() override;
 	//~ End FActorIOExpressionDetailBuilder Interface
 };

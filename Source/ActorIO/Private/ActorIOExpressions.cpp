@@ -226,7 +226,7 @@ bool FActorIOFunctionExpressionBase::InitChildExpressionsFromString(const FStrin
 
 	for (const FString& ExprData : ExprDatas)
 	{
-		ExprContainer->NewExpressionFromString(ExprData, SelfIdx);
+		ExprContainer->AddExpressionFromString(ExprData, SelfIdx);
 	}
 
 	return true;
@@ -317,7 +317,12 @@ bool FActorIOKismetFunctionExpression::InitFromString(const FString& Str)
 			}
 		}
 
-		UE_CLOG(ResolvedClass == nullptr, LogActorIO, Error, TEXT("%s - Could not resolve class: %s"), ANSI_TO_TCHAR(__FUNCTION__), *ClassPath.ToString());
+		if (!ResolvedClass)
+		{
+			UE_LOG(LogActorIO, Error, TEXT("%s - Could not resolve class: %s"), ANSI_TO_TCHAR(__FUNCTION__), *ClassPath.ToString());
+			return false;
+		}
+
 		FunctionClass = ResolvedClass;
 		FunctionName = FName(*FunctionNameStr, FNAME_Find);
 
@@ -605,6 +610,208 @@ void FActorIOKismetFunctionExpression::UpdateArguments()
 }
 
 //=======================================================
+//~ Begin FActorIOCompareExpression
+//=======================================================
+
+FActorIOCompareExpression::FActorIOCompareExpression()
+{
+	ComparisonOp = EActorIOComparisonOp::Equal;
+}
+
+bool FActorIOCompareExpression::Init()
+{
+	FActorIOExpressionContainer* ExprContainer = GetContainer();
+	if (!ExprContainer) return false;
+
+	int32 SelfIdx = ExprContainer->GetExpressionIdx(this);
+	if (!ExprContainer->IsValidIndex(SelfIdx))
+	{
+		return false;
+	}
+
+	ExprContainer->AddExpressionFromString(TEXT("val()"), SelfIdx);
+	ExprContainer->AddExpressionFromString(TEXT("val()"), SelfIdx);
+	return true;
+}
+
+bool FActorIOCompareExpression::InitFromString(const FString& Str)
+{
+	FString Prefix;
+	FString Data;
+	if (!FActorIOExpressionParser::ParseBracket(Str, Prefix, Data))
+	{
+		return false;
+	}
+
+	TOptional<EActorIOComparisonOp> Op = OpFromTypeString(Prefix);
+	if (!Op.IsSet())
+	{
+		return false;
+	}
+
+	ComparisonOp = Op.GetValue();
+
+	if (!Data.IsEmpty())
+	{
+		InitChildExpressionsFromString(Data);
+	}
+
+	return true;
+}
+
+FString FActorIOCompareExpression::ToString() const
+{
+	FString OpStr = OpToTypeString(ComparisonOp);
+	FString ChildsData = ChildExpressionToString();
+	return FString::Printf(TEXT("%s(%s)"), *OpStr, *ChildsData);
+}
+
+bool FActorIOCompareExpression::Evaluate(UObject* Executor, FString& OutReturnValue)
+{
+	FActorIOExpressionContainer* ExprContainer = GetContainer();
+	if (!ExprContainer) return false;
+
+	int32 SelfIdx = ExprContainer->GetExpressionIdx(this);
+
+	TArray<int32> ChildIdxs = ExprContainer->GetChildExpressionIdxs(SelfIdx);
+	if (ChildIdxs.Num() != 2)
+	{
+		return false;
+	}
+
+	FString ValueA;
+	if (!ExprContainer->GetExpressionPtr(ChildIdxs[0])->Evaluate(Executor, ValueA))
+	{
+		return false;
+	}
+
+	FString ValueB;
+	if (!ExprContainer->GetExpressionPtr(ChildIdxs[1])->Evaluate(Executor, ValueB))
+	{
+		return false;
+	}
+
+	bool bReturnValue = false;
+	if (ValueA.IsNumeric() && ValueB.IsNumeric())
+	{
+		const float NumericValueA = FCString::Atof(*ValueA);
+		const float NumericValueB = FCString::Atof(*ValueB);
+		const float ErrorTolerance = 0.001f;
+
+		switch (ComparisonOp)
+		{
+		case EActorIOComparisonOp::Less:
+			bReturnValue = NumericValueA < NumericValueB;
+			break;
+		case EActorIOComparisonOp::LessOrEqual:
+			bReturnValue = NumericValueA < NumericValueB || FMath::IsNearlyEqual(NumericValueA, NumericValueB, ErrorTolerance);
+			break;
+		case EActorIOComparisonOp::Equal:
+			bReturnValue = FMath::IsNearlyEqual(NumericValueA, NumericValueB, ErrorTolerance);
+			break;
+		case EActorIOComparisonOp::NotEqual:
+			bReturnValue = !FMath::IsNearlyEqual(NumericValueA, NumericValueB, ErrorTolerance);
+			break;
+		case EActorIOComparisonOp::GreaterOrEqual:
+			bReturnValue = NumericValueA > NumericValueB || FMath::IsNearlyEqual(NumericValueA, NumericValueB, ErrorTolerance);
+			break;
+		case EActorIOComparisonOp::Greater:
+			bReturnValue = NumericValueA > NumericValueB;
+			break;
+		default:
+			return false;
+		}
+	}
+	else
+	{
+		switch (ComparisonOp)
+		{
+		case EActorIOComparisonOp::Less:
+			bReturnValue = ValueA < ValueB;
+			break;
+		case EActorIOComparisonOp::LessOrEqual:
+			bReturnValue = ValueA <= ValueB;
+			break;
+		case EActorIOComparisonOp::Equal:
+			bReturnValue = ValueA == ValueB;
+			break;
+		case EActorIOComparisonOp::NotEqual:
+			bReturnValue = ValueA != ValueB;
+			break;
+		case EActorIOComparisonOp::GreaterOrEqual:
+			bReturnValue = ValueA >= ValueB;
+			break;
+		case EActorIOComparisonOp::Greater:
+			bReturnValue = ValueA > ValueB;
+			break;
+		default:
+			return false;
+		}
+	}
+
+	if (bNegated)
+	{
+		bReturnValue = !bReturnValue;
+	}
+
+	OutReturnValue = bReturnValue ? TEXT("True") : TEXT("False");
+	return true;
+}
+
+FString FActorIOCompareExpression::CheckForErrors() const
+{
+	if (!CheckArgumentCountValid())
+	{
+		return TEXT("InvalidArgumentCount");
+	}
+
+	return TEXT("");
+}
+
+FString FActorIOCompareExpression::OpToTypeString(const EActorIOComparisonOp& Op)
+{
+	switch (Op)
+	{
+	case EActorIOComparisonOp::Less:
+		return TEXT("lt");
+	case EActorIOComparisonOp::LessOrEqual:
+		return TEXT("le");
+	case EActorIOComparisonOp::Equal:
+		return TEXT("eq");
+	case EActorIOComparisonOp::NotEqual:
+		return TEXT("ne");
+	case EActorIOComparisonOp::GreaterOrEqual:
+		return TEXT("ge");
+	case EActorIOComparisonOp::Greater:
+		return TEXT("gt");
+	default:
+		check(false);
+		return TEXT("");
+	}
+}
+
+TOptional<EActorIOComparisonOp> FActorIOCompareExpression::OpFromTypeString(const FString& Str)
+{
+	if (Str == TEXT("lt")) return EActorIOComparisonOp::Less;
+	else if (Str == TEXT("le")) return EActorIOComparisonOp::LessOrEqual;
+	else if (Str == TEXT("eq")) return EActorIOComparisonOp::Equal;
+	else if (Str == TEXT("ne")) return EActorIOComparisonOp::NotEqual;
+	else if (Str == TEXT("ge")) return EActorIOComparisonOp::GreaterOrEqual;
+	else if (Str == TEXT("gt")) return EActorIOComparisonOp::Greater;
+	return TOptional<EActorIOComparisonOp>();
+}
+
+bool FActorIOCompareExpression::CheckArgumentCountValid() const
+{
+	FActorIOExpressionContainer* ExprContainer = GetContainer();
+	if (!ExprContainer) return false;
+
+	int32 SelfIdx = ExprContainer->GetExpressionIdx(this);
+
+	return ExprContainer->GetNumChildExpressions(SelfIdx) == 2;
+}
+
+//=======================================================
 //~ Begin FActorIOGroupExpression
 //=======================================================
 
@@ -700,6 +907,24 @@ FActorIOExpressionContainer::FActorIOExpressionContainer()
 	bIsConditionContainer = false;
 }
 
+bool FActorIOExpressionContainer::InitFromString(const FString& Str)
+{
+	Empty();
+	int32 ExprIdx = AddExpressionFromString(Str, INDEX_NONE);
+	return ExprIdx != INDEX_NONE;
+}
+
+FString FActorIOExpressionContainer::ToString() const
+{
+	const FActorIOExpressionBase* RootExpr = GetRootExpression();
+	if (RootExpr)
+	{
+		return RootExpr->ToString();
+	}
+
+	return TEXT("");
+}
+
 int32 FActorIOExpressionContainer::AddExpression(const TInstancedStruct<FActorIOExpressionBase>& Expr, int32 ParentIdx, int32 SlotIdx)
 {
 	if (ParentIdx == INDEX_NONE && Expressions.Num() > 0)
@@ -724,50 +949,44 @@ int32 FActorIOExpressionContainer::AddExpression(const TInstancedStruct<FActorIO
 	ParentIndexMapping.Add(ParentIdx);
 
 	Expressions[ExprIdx]->SetContainer(this);
-	MoveExpressionTo(ExprIdx, ParentIdx, SlotIdx);
-
-	return ExprIdx; // #todo: return the modified idx
-}
-
-bool FActorIOExpressionContainer::InitFromString(const FString& Str)
-{
-	Empty();
-	return NewExpressionFromString(Str, INDEX_NONE);
-}
-
-FString FActorIOExpressionContainer::ToString() const
-{
-	const FActorIOExpressionBase* RootExpr = GetRootExpression();
-	if (RootExpr)
+	if (!Expressions[ExprIdx]->Init())
 	{
-		return RootExpr->ToString();
+		RemoveExpression(ExprIdx);
+		return INDEX_NONE;
 	}
 
-	return TEXT("");
+	ExprIdx = MoveExpressionTo(ExprIdx, ParentIdx, SlotIdx);
+	return ExprIdx;
 }
 
-bool FActorIOExpressionContainer::NewExpressionFromString(const FString& Str, int32 ParentIdx)
+int32 FActorIOExpressionContainer::AddExpressionFromString(const FString& Str, int32 ParentIdx, int32 SlotIdx)
 {
 	FString Prefix;
 	FString Data;
 	if (!FActorIOExpressionParser::ParseBracket(Str, Prefix, Data))
 	{
-		return false;
+		return INDEX_NONE;
 	}
 
 	TInstancedStruct<FActorIOExpressionBase> NewExprInstance = FActorIOExpressionParser::NewExpressionOfType(Prefix);
 	if (!NewExprInstance.IsValid())
 	{
-		return false;
+		return INDEX_NONE;
 	}
 
-	int32 NewExprIdx = AddExpression(NewExprInstance, ParentIdx);
-	if (NewExprIdx == INDEX_NONE)
+	int32 ExprIdx = AddExpression(NewExprInstance, ParentIdx, SlotIdx);
+	if (ExprIdx == INDEX_NONE)
 	{
-		return false;
+		return INDEX_NONE;
 	}
 
-	return Expressions[NewExprIdx]->InitFromString(Str);
+	if (!Expressions[ExprIdx]->InitFromString(Str)) // #todo: is it an error if Data is empty?
+	{
+		RemoveExpression(ExprIdx);
+		return INDEX_NONE;
+	}
+
+	return ExprIdx;
 }
 
 void FActorIOExpressionContainer::RemoveExpression(int32 ExprIdx)
@@ -775,6 +994,11 @@ void FActorIOExpressionContainer::RemoveExpression(int32 ExprIdx)
 	if (Expressions.IsValidIndex(ExprIdx))
 	{
 		RemoveChildExpressions(ExprIdx);
+
+		if (Expressions[ExprIdx].IsValid())
+		{
+			Expressions[ExprIdx]->SetContainer(nullptr);
+		}
 
 		Expressions.RemoveAt(ExprIdx);
 		ParentIndexMapping.RemoveAt(ExprIdx);
@@ -805,6 +1029,14 @@ void FActorIOExpressionContainer::RemoveChildExpressions(int32 ExprIdx)
 
 void FActorIOExpressionContainer::Empty()
 {
+	for (TInstancedStruct<FActorIOExpressionBase>& Expr : Expressions)
+	{
+		if (Expr.IsValid())
+		{
+			Expr->SetContainer(nullptr);
+		}
+	}
+
 	Expressions.Empty();
 	ParentIndexMapping.Empty();
 }
@@ -822,6 +1054,16 @@ int32 FActorIOExpressionContainer::MoveExpressionTo(int32 ExprIdx, int32 ParentI
 		return INDEX_NONE;
 	}
 
+	// Validate the whole parent mapping first (everything below follows these values).
+	for (int32 Idx = 0; Idx != Num; ++Idx)
+	{
+		const int32 Parent = ParentIndexMapping[Idx];
+		if (Parent != INDEX_NONE && !ensureMsgf(Expressions.IsValidIndex(Parent), TEXT("Expression %d has out of range parent index %d."), Idx, Parent))
+		{
+			return INDEX_NONE;
+		}
+	}
+
 	// The root cannot be moved.
 	if (ParentIndexMapping[ExprIdx] == INDEX_NONE)
 	{
@@ -832,17 +1074,6 @@ int32 FActorIOExpressionContainer::MoveExpressionTo(int32 ExprIdx, int32 ParentI
 	if (IsExpressionDescendantOf(ParentIdx, ExprIdx))
 	{
 		return INDEX_NONE;
-	}
-
-	// Validate the whole parent mapping up front. Every value must be INDEX_NONE (root) or a valid
-	// expression index. Everything below indexes with these values, bail out before touching them.
-	for (int32 Idx = 0; Idx != Num; ++Idx)
-	{
-		const int32 Parent = ParentIndexMapping[Idx];
-		if (Parent != INDEX_NONE && !ensureMsgf(Expressions.IsValidIndex(Parent), TEXT("Expression %d has out of range parent index %d."), Idx, Parent))
-		{
-			return INDEX_NONE;
-		}
 	}
 
 	// Build ordered child lists (array order == sibling order).
@@ -866,6 +1097,23 @@ int32 FActorIOExpressionContainer::MoveExpressionTo(int32 ExprIdx, int32 ParentI
 	if (RootIdx == INDEX_NONE)
 	{
 		return INDEX_NONE;
+	}
+
+	// Early out: the expression is already under ParentIdx at the requested slot.
+	if (ParentIndexMapping[ExprIdx] == ParentIdx)
+	{
+		const TArray<int32>& CurrentSiblings = Children[ParentIdx];
+		const int32 CurrentSlot = CurrentSiblings.Find(ExprIdx);
+
+		// Slot semantics match the insert below: the position among the siblings once ExprIdx
+		// has been removed, so the valid range is 0..(Num - 1) for the final list.
+		const int32 MaxSlot = CurrentSiblings.Num() - 1;
+		const int32 TargetSlot = (SlotIdx < 0) ? MaxSlot : FMath::Min(SlotIdx, MaxSlot);
+
+		if (CurrentSlot == TargetSlot)
+		{
+			return ExprIdx; // nothing to do, the index is unchanged
+		}
 	}
 
 	// Detach from old parent, attach to new parent at the requested slot.
@@ -1122,7 +1370,7 @@ TArray<int32> FActorIOExpressionContainer::GetChildExpressionIdxs(int32 ExprIdx)
 
 	ensure(Expressions.Num() == ParentIndexMapping.Num());
 
-	for (int32 Idx = 0; Idx != Expressions.Num(); ++Idx)
+	for (int32 Idx = 0; Idx != Expressions.Num(); ++Idx) // #todo: this is now ordered, so loop from ExprIdx?
 	{
 		if (ParentIndexMapping[Idx] == ExprIdx && Expressions[Idx].IsValid())
 		{
@@ -1139,7 +1387,7 @@ int32 FActorIOExpressionContainer::GetNumChildExpressions(int32 ExprIdx) const
 
 	ensure(Expressions.Num() == ParentIndexMapping.Num());
 
-	for (int32 Idx = 0; Idx != Expressions.Num(); ++Idx)
+	for (int32 Idx = 0; Idx != Expressions.Num(); ++Idx) // #todo: this is now ordered, so loop from ExprIdx?
 	{
 		if (ParentIndexMapping[Idx] == ExprIdx && Expressions[Idx].IsValid())
 		{
@@ -1338,19 +1586,34 @@ TInstancedStruct<FActorIOExpressionBase> FActorIOExpressionParser::NewExpression
 	{
 		FActorIOLiteralExpression LiteralExpr;
 		NewExprInstance.InitializeAs<FActorIOLiteralExpression>(LiteralExpr);
+		return NewExprInstance;
 	}
-	else if (TypeStr == TEXT("func"))
+
+	if (TypeStr == TEXT("func"))
 	{
 		FActorIOKismetFunctionExpression FunctionExpr;
 		NewExprInstance.InitializeAs<FActorIOKismetFunctionExpression>(FunctionExpr);
+		return NewExprInstance;
 	}
-	else if (TypeStr == TEXT("and") || TypeStr == TEXT("or"))
+
+	if (TypeStr == TEXT("and") || TypeStr == TEXT("or"))
 	{
 		FActorIOGroupExpression GroupExpr;
 		GroupExpr.SetNegated(TypeStr == TEXT("or"));
 		NewExprInstance.InitializeAs<FActorIOGroupExpression>(GroupExpr);
+		return NewExprInstance;
 	}
 
+	TOptional<EActorIOComparisonOp> Op = FActorIOCompareExpression::OpFromTypeString(TypeStr);
+	if (Op.IsSet())
+	{
+		FActorIOCompareExpression CompareExpr;
+		CompareExpr.SetComparisonOp(Op.GetValue());
+		NewExprInstance.InitializeAs<FActorIOCompareExpression>(CompareExpr);
+		return NewExprInstance;
+	}
+
+	// #todo: handle invalid expression?
 	return NewExprInstance;
 }
 

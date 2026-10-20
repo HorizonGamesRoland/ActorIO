@@ -30,6 +30,7 @@ public:
 	virtual EActorIOExpressionType GetType() const { return EActorIOExpressionType::Invalid; }
 	virtual FName GetTypeName() const { return NAME_None; }
 
+	virtual bool Init() { return true; }
 	virtual bool InitFromString(const FString& Str) { return false; }
 	virtual FString ToString() const { return TEXT(""); }
 
@@ -138,6 +139,47 @@ protected:
 	FName FunctionName;
 };
 
+UENUM()
+enum class EActorIOComparisonOp : uint8
+{
+	Less,
+	LessOrEqual,
+	Equal,
+	NotEqual,
+	GreaterOrEqual,
+	Greater,
+};
+
+USTRUCT()
+struct ACTORIO_API FActorIOCompareExpression : public FActorIOFunctionExpressionBase
+{
+	GENERATED_BODY()
+
+public:
+
+	FActorIOCompareExpression();
+
+	virtual FName GetTypeName() const override { return FName("Compare"); }
+	virtual bool Init() override;
+	virtual bool InitFromString(const FString& Str) override;
+	virtual FString ToString() const override;
+	virtual bool Evaluate(UObject* Executor, FString& OutReturnValue) override;
+	virtual FString CheckForErrors() const override;
+
+	void SetComparisonOp(const EActorIOComparisonOp& Op) { ComparisonOp = Op; }
+	const EActorIOComparisonOp& GetComparisonOp() const { return ComparisonOp; }
+
+	static FString OpToTypeString(const EActorIOComparisonOp& Op);
+	static TOptional<EActorIOComparisonOp> OpFromTypeString(const FString& Str);
+
+	bool CheckArgumentCountValid() const;
+
+protected:
+
+	UPROPERTY()
+	EActorIOComparisonOp ComparisonOp;
+};
+
 USTRUCT()
 struct ACTORIO_API FActorIOGroupExpression : public FActorIOFunctionExpressionBase
 {
@@ -162,13 +204,13 @@ public:
 
 	FActorIOExpressionContainer();
 
-	int32 AddExpression(const TInstancedStruct<FActorIOExpressionBase>& Expr, int32 ParentIdx, int32 SlotIdx = INDEX_NONE);
-
 	bool InitFromString(const FString& Str);
 
 	FString ToString() const;
 
-	bool NewExpressionFromString(const FString& Str, int32 ParentIdx);
+	int32 AddExpression(const TInstancedStruct<FActorIOExpressionBase>& Expr, int32 ParentIdx, int32 SlotIdx = INDEX_NONE);
+
+	int32 AddExpressionFromString(const FString& Str, int32 ParentIdx, int32 SlotIdx = INDEX_NONE);
 
 	void RemoveExpression(int32 ExprIdx);
 
@@ -199,7 +241,7 @@ public:
 	TArray<FActorIOExpressionBase*> GetChildExpressions(int32 ExprIdx);
 	TArray<const FActorIOExpressionBase*> GetChildExpressions(int32 ExprIdx) const;
 	TArray<int32> GetChildExpressionIdxs(int32 ExprIdx) const;
-	int32 GetNumChildExpressions(int32 ExprIdx) const;
+	int32 GetNumChildExpressions(int32 ExprIdx) const; // #todo: add recursive mode
 
 	bool IsExpressionDescendantOf(int32 ExprIdx, int32 AncestorIdx) const;
 
