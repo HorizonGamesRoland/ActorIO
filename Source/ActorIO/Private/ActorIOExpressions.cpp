@@ -240,12 +240,15 @@ FString FActorIOFunctionExpressionBase::ChildExpressionToString() const
 	if (!ExprContainer) return OutStr;
 
 	int32 SelfIdx = ExprContainer->GetExpressionIdx(this);
-	TArray<FActorIOExpressionBase*> ChildExpressions = ExprContainer->GetChildExpressions(SelfIdx);
-
-	for (FActorIOExpressionBase* Expr : ChildExpressions)
+	TArray<int32> ChildExprIdxs = ExprContainer->GetChildExpressionIdxs(SelfIdx);
+	for (int32 Idx = 0; Idx != ChildExprIdxs.Num(); ++Idx)
 	{
-		if (!OutStr.IsEmpty()) OutStr += TEXT(',');
-		OutStr += Expr->ToString();
+		FActorIOExpressionBase* Expr = ExprContainer->GetExpressionPtr(ChildExprIdxs[Idx]);
+		if (Expr)
+		{
+			if (!OutStr.IsEmpty()) OutStr += TEXT(',');
+			OutStr += Expr->ToString();
+		}
 	}
 
 	return OutStr;
@@ -377,11 +380,12 @@ bool FActorIOKismetFunctionExpression::Evaluate(UObject* Executor, FString& OutR
 	if (!ExprContainer) return false;
 
 	int32 SelfIdx = ExprContainer->GetExpressionIdx(this);
-	TArray<FActorIOExpressionBase*> ChildExpressions = ExprContainer->GetChildExpressions(SelfIdx);
+	TArray<int32> ChildExprIdxs = ExprContainer->GetChildExpressionIdxs(SelfIdx);
 
 	FString Cmd = FunctionName.ToString();
-	for (FActorIOExpressionBase* Expr : ChildExpressions)
+	for (int32 Idx = 0; Idx != ChildExprIdxs.Num(); ++Idx)
 	{
+		FActorIOExpressionBase* Expr = ExprContainer->GetExpressionPtr(ChildExprIdxs[Idx]);
 		FString ReturnValue;
 		if (!Expr || !Expr->Evaluate(Executor, ReturnValue))
 		{
@@ -861,20 +865,21 @@ bool FActorIOGroupExpression::Evaluate(UObject* Executor, FString& OutReturnValu
 	if (!ExprContainer) return false;
 
 	int32 SelfIdx = ExprContainer->GetExpressionIdx(this);
-	TArray<FActorIOExpressionBase*> ChildExpressions = ExprContainer->GetChildExpressions(SelfIdx);
+	TArray<int32> ChildExprIdxs = ExprContainer->GetChildExpressionIdxs(SelfIdx);
 
 	// Empty groups are treated as if they are not even there.
-	if (ChildExpressions.Num() == 0)
+	if (ChildExprIdxs.Num() == 0)
 	{
 		OutReturnValue = TEXT("True");
 		return true;
 	}
 
 	bool bReturnValue = true;
-	for (FActorIOExpressionBase* Expr : ChildExpressions)
+	for (int32 Idx = 0; Idx != ChildExprIdxs.Num(); ++Idx)
 	{
+		FActorIOExpressionBase* Expr = ExprContainer->GetExpressionPtr(ChildExprIdxs[Idx]);
 		FString ReturnValue;
-		if (!Expr->Evaluate(Executor, ReturnValue))
+		if (!Expr || !Expr->Evaluate(Executor, ReturnValue))
 		{
 			return false;
 		}
@@ -909,14 +914,18 @@ FActorIOExpressionContainer::FActorIOExpressionContainer()
 
 bool FActorIOExpressionContainer::InitFromString(const FString& Str)
 {
-	Empty();
+	if (!IsEmpty())
+	{
+		Empty();
+	}
+
 	int32 ExprIdx = AddExpressionFromString(Str, INDEX_NONE);
 	return ExprIdx != INDEX_NONE;
 }
 
 FString FActorIOExpressionContainer::ToString() const
 {
-	const FActorIOExpressionBase* RootExpr = GetRootExpression();
+	const FActorIOExpressionBase* RootExpr = GetExpressionPtr(0);
 	if (RootExpr)
 	{
 		return RootExpr->ToString();
@@ -1174,107 +1183,6 @@ int32 FActorIOExpressionContainer::MoveExpressionTo(int32 ExprIdx, int32 ParentI
 	return OldToNew[ExprIdx];
 }
 
-void FActorIOExpressionContainer::MoveExpressionTo_OLD(int32 ExprIdx, int32 ParentIdx, int32 SlotIdx)
-{
-	if (!Expressions.IsValidIndex(ExprIdx) || !Expressions.IsValidIndex(ParentIdx))
-	{
-		return;
-	}
-	
-	TFunction<void(int32, int32)> fnMoveExpression = [this, ParentIdx](int32 OriginalIndex, int32 NewIndex)
-	{
-		// Uses same move implementation as properties in the editor.
-		// @see FPropertyValueImpl::MoveElementTo
-	
-		if (NewIndex > OriginalIndex)
-		{
-			Expressions.InsertDefaulted(NewIndex + 1);
-			Expressions.Swap(OriginalIndex, NewIndex + 1);
-			Expressions.RemoveAt(OriginalIndex);
-	
-			ParentIndexMapping.InsertDefaulted(NewIndex + 1);
-			ParentIndexMapping.Swap(OriginalIndex, NewIndex + 1);
-			ParentIndexMapping.RemoveAt(OriginalIndex);
-	
-			for (int32 Idx = NewIndex; Idx >= 0; --Idx)
-			{
-				if (ParentIndexMapping[Idx] > ParentIdx)
-				{
-					ParentIndexMapping[Idx]--;
-				}
-			}
-		}
-		else if (NewIndex < OriginalIndex)
-		{
-			Expressions.InsertDefaulted(NewIndex);
-			Expressions.Swap(OriginalIndex + 1, NewIndex);
-			Expressions.RemoveAt(OriginalIndex + 1);
-	
-			ParentIndexMapping.InsertDefaulted(NewIndex);
-			ParentIndexMapping.Swap(OriginalIndex + 1, NewIndex);
-			ParentIndexMapping.RemoveAt(OriginalIndex + 1);
-	
-			for (int32 Idx = NewIndex; Idx < ParentIndexMapping.Num() - 1; ++Idx)
-			{
-				if (ParentIndexMapping[Idx] > ParentIdx)
-				{
-					ParentIndexMapping[Idx]++;
-				}
-			}
-		}
-	};
-	
-	int32 OriginalIdx = ExprIdx;
-	int32 NewIdx = (ParentIdx + 1) + FMath::Max(0, FMath::Min(SlotIdx, GetNumChildExpressions(ExprIdx) - 1));
-	
-	TArray<FActorIOExpressionBase*> Childs = GetChildExpressions(OriginalIdx);
-	//TArray<FActorIOExpressionBase*> NewChilds = GetChildExpressions(NewIdx);
-	fnMoveExpression(OriginalIdx, NewIdx);
-	
-	int32 NumChildsProcessed = 0;
-	for (FActorIOExpressionBase* ChildExpr : Childs)
-	{
-		int32 ChildIdx = GetExpressionIdx(ChildExpr);
-		int32 ChildTargetIdx = NewIdx + 1 + NumChildsProcessed;
-		fnMoveExpression(ChildIdx, ChildTargetIdx);
-	
-		ParentIndexMapping[ChildTargetIdx] = NewIdx;
-		NumChildsProcessed++;
-	}
-	
-	//for (int32& ChildIdx : ChildExprIdxs)
-	//{
-	//	if (ChildIdx > NewIdx)
-	//	{
-	//		ChildIdx++;
-	//	}
-	//	else if (ChildIdx < NewIdx)
-	//	{
-	//		ChildIdx--;
-	//	}
-	//}
-	
-	//for (int32& OldParentIdx : ParentIndexMapping)
-	//{
-	//	if (OldParentIdx == OriginalIdx)
-	//	{
-	//		OldParentIdx = NewIdx;
-	//	}
-	//	else if (OldParentIdx >= NewIdx)
-	//	{
-	//		OldParentIdx++;
-	//	}
-	//}
-	
-	//TArray<int32> ChildExprIdxs = GetChildExpressionIdxs(NewIdx);
-	//int32 ChildsProcessed = 0;
-	//for (const int32 ChildIdx : ChildExprIdxs)
-	//{
-	//	MoveExpressionTo(ChildIdx, NewIdx, ChildsProcessed);
-	//	ChildsProcessed++;
-	//}
-}
-
 int32 FActorIOExpressionContainer::GetExpressionIdx(const FActorIOExpressionBase* InExpr) const
 {
 	if (InExpr->GetContainer() == this)
@@ -1296,72 +1204,45 @@ int32 FActorIOExpressionContainer::GetExpressionParentIdx(int32 Idx) const
 	return ParentIndexMapping[Idx]; // #todo: return bool to support error checking?
 }
 
+int32 FActorIOExpressionContainer::GetExpressionSlotIdx(int32 Idx) const
+{
+	const int32 ParentIdx = ParentIndexMapping[Idx];
+	const TArray<int32> ChildIdxs = GetChildExpressionIdxs(ParentIdx);
+	return ChildIdxs.IndexOfByKey(Idx);
+}
+
+bool FActorIOExpressionContainer::IsEmpty() const
+{
+	return Expressions.IsEmpty(); // #todo: keep checking ParentIndexMapping.IsEmpty?
+}
+
 bool FActorIOExpressionContainer::IsValidIndex(int32 Idx) const
 {
 	return Expressions.IsValidIndex(Idx); // #todo: keep checking for ParentIndexMapping.IsValidIndex?
 }
 
-int32 FActorIOExpressionContainer::GetExpressionSlotIdx(int32 Idx) const
+int32 FActorIOExpressionContainer::GetNumChildExpressions(int32 ExprIdx, bool bRecursive) const
 {
-	int32 ParentIdx = ParentIndexMapping[Idx];
-	TArray<int32> ChildIdxs = GetChildExpressionIdxs(ParentIdx);
-	return ChildIdxs.IndexOfByKey(Idx);
-}
+	int32 OutNumExpressions = 0;
 
-FActorIOExpressionBase* FActorIOExpressionContainer::GetExpressionPtr(int32 Idx)
-{
-	if (Expressions.IsValidIndex(Idx) && Expressions[Idx].IsValid())
+	ensure(Expressions.Num() == ParentIndexMapping.Num()); // #todo: convert to ensureMsgf
+
+	if (Expressions.IsValidIndex(ExprIdx))
 	{
-		return Expressions[Idx].GetMutablePtr<FActorIOExpressionBase>();
-	}
-
-	return nullptr;
-}
-
-const FActorIOExpressionBase* FActorIOExpressionContainer::GetExpressionPtr(int32 Idx) const
-{
-	if (Expressions.IsValidIndex(Idx) && Expressions[Idx].IsValid())
-	{
-		return Expressions[Idx].GetPtr<FActorIOExpressionBase>();
-	}
-
-	return nullptr;
-}
-
-TArray<FActorIOExpressionBase*> FActorIOExpressionContainer::GetChildExpressions(int32 ExprIdx)
-{
-	TArray<FActorIOExpressionBase*> OutExpressions;
-
-	ensure(Expressions.Num() == ParentIndexMapping.Num());
-
-	for (int32 Idx = 0; Idx != Expressions.Num(); ++Idx)
-	{
-		if (ParentIndexMapping[Idx] == ExprIdx && Expressions[Idx].IsValid())
+		for (int32 Idx = ExprIdx + 1; Idx != Expressions.Num(); ++Idx)
 		{
-			FActorIOExpressionBase* ExpressionPtr = Expressions[Idx].GetMutablePtr<FActorIOExpressionBase>();
-			OutExpressions.Add(ExpressionPtr);
+			if (ParentIndexMapping[Idx] == ExprIdx)
+			{
+				OutNumExpressions++;
+				if (bRecursive)
+				{
+					OutNumExpressions += GetNumChildExpressions(Idx, bRecursive);
+				}
+			}
 		}
 	}
 
-	return OutExpressions;
-}
-
-TArray<const FActorIOExpressionBase*> FActorIOExpressionContainer::GetChildExpressions(int32 ExprIdx) const
-{
-	TArray<const FActorIOExpressionBase*> OutExpressions;
-
-	ensure(Expressions.Num() == ParentIndexMapping.Num());
-
-	for (int32 Idx = 0; Idx != Expressions.Num(); ++Idx)
-	{
-		if (ParentIndexMapping[Idx] == ExprIdx && Expressions[Idx].IsValid())
-		{
-			const FActorIOExpressionBase* ExpressionPtr = Expressions[Idx].GetPtr<FActorIOExpressionBase>();
-			OutExpressions.Add(ExpressionPtr);
-		}
-	}
-
-	return OutExpressions;
+	return OutNumExpressions;
 }
 
 TArray<int32> FActorIOExpressionContainer::GetChildExpressionIdxs(int32 ExprIdx) const
@@ -1379,23 +1260,6 @@ TArray<int32> FActorIOExpressionContainer::GetChildExpressionIdxs(int32 ExprIdx)
 	}
 
 	return OutExpressionIdxs;
-}
-
-int32 FActorIOExpressionContainer::GetNumChildExpressions(int32 ExprIdx) const
-{
-	int32 OutNumExpressions = 0;
-
-	ensure(Expressions.Num() == ParentIndexMapping.Num());
-
-	for (int32 Idx = 0; Idx != Expressions.Num(); ++Idx) // #todo: this is now ordered, so loop from ExprIdx?
-	{
-		if (ParentIndexMapping[Idx] == ExprIdx && Expressions[Idx].IsValid())
-		{
-			OutNumExpressions++;
-		}
-	}
-
-	return OutNumExpressions;
 }
 
 bool FActorIOExpressionContainer::IsExpressionDescendantOf(int32 ExprIdx, int32 AncestorIdx) const
@@ -1417,51 +1281,6 @@ bool FActorIOExpressionContainer::IsExpressionDescendantOf(int32 ExprIdx, int32 
 	return false;
 }
 
-FActorIOExpressionBase* FActorIOExpressionContainer::GetRootExpression()
-{
-	ensure(Expressions.Num() == ParentIndexMapping.Num());
-
-	for (int32 Idx = 0; Idx != Expressions.Num(); ++Idx)
-	{
-		if (ParentIndexMapping[Idx] == INDEX_NONE && Expressions[Idx].IsValid())
-		{
-			return Expressions[Idx].GetMutablePtr<FActorIOExpressionBase>();
-		}
-	}
-
-	return nullptr;
-}
-
-const FActorIOExpressionBase* FActorIOExpressionContainer::GetRootExpression() const
-{
-	ensure(Expressions.Num() == ParentIndexMapping.Num());
-
-	for (int32 Idx = 0; Idx != Expressions.Num(); ++Idx)
-	{
-		if (ParentIndexMapping[Idx] == INDEX_NONE && Expressions[Idx].IsValid())
-		{
-			return Expressions[Idx].GetPtr<FActorIOExpressionBase>();
-		}
-	}
-
-	return nullptr;
-}
-
-int32 FActorIOExpressionContainer::GetRootExpressionIdx() const
-{
-	ensure(Expressions.Num() == ParentIndexMapping.Num());
-
-	for (int32 Idx = 0; Idx != Expressions.Num(); ++Idx)
-	{
-		if (ParentIndexMapping[Idx] == INDEX_NONE && Expressions[Idx].IsValid())
-		{
-			return Idx;
-		}
-	}
-
-	return INDEX_NONE;
-}
-
 void FActorIOExpressionContainer::FixupContainerReferences()
 {
 	for (TInstancedStruct<FActorIOExpressionBase>& ExprInstance : Expressions)
@@ -1474,7 +1293,7 @@ void FActorIOExpressionContainer::FixupContainerReferences()
 
 bool FActorIOExpressionContainer::Evaluate(UObject* Executor)
 {
-	FActorIOExpressionBase* RootExpr = GetRootExpression();
+	FActorIOExpressionBase* RootExpr = GetExpressionPtr(0);
 	FString Result;
 	if (RootExpr && RootExpr->Evaluate(Executor, Result))
 	{
@@ -1523,11 +1342,18 @@ bool FActorIOExpressionContainer::ImportTextItem(const TCHAR*& Buffer, int32 Por
 	return false;
 }
 
-bool FActorIOExpressionContainer::HasAnyErrors() const
+bool FActorIOExpressionContainer::HasAnyErrors(FString& OutErrorCode) const
 {
 	for (const TInstancedStruct<FActorIOExpressionBase>& Expr : Expressions)
 	{
-		if (!Expr.IsValid() || !Expr->CheckForErrors().IsEmpty())
+		if (!Expr.IsValid())
+		{
+			OutErrorCode = TEXT("InvalidExpression");
+			return true;
+		}
+
+		OutErrorCode = Expr->CheckForErrors();
+		if (!OutErrorCode.IsEmpty())
 		{
 			return true;
 		}

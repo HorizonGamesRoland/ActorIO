@@ -160,14 +160,11 @@ void FActorIOExpressionContainerCustomization::CustomizeChildren(TSharedRef<IPro
 	if (PropStruct->GetNumOuterObjects() > 1) return;
 
 	FActorIOExpressionContainer* ExprContainer = GetContainerData();
-	if (!ExprContainer) return;
-
-	int32 RootIdx = ExprContainer->GetRootExpressionIdx();
-	if (RootIdx == INDEX_NONE) return;
+	if (!ExprContainer || ExprContainer->IsEmpty()) return;
 
 	if (bRootExpressionHidden)
 	{
-		for (int32 ChildIdx : ExprContainer->GetChildExpressionIdxs(RootIdx))
+		for (int32 ChildIdx : ExprContainer->GetChildExpressionIdxs(0))
 		{
 			TInstancedStruct<FActorIOExpressionBase>& ChildExpr = ExprContainer->GetExpression(ChildIdx);
 			TSharedPtr<IPropertyHandle> PropChildExpr = GetExpressionProperty(ChildIdx);
@@ -180,8 +177,8 @@ void FActorIOExpressionContainerCustomization::CustomizeChildren(TSharedRef<IPro
 	}
 	else
 	{
-		TInstancedStruct<FActorIOExpressionBase>& RootExpr = ExprContainer->GetExpression(RootIdx);
-		TSharedPtr<IPropertyHandle> PropRootExpr = GetExpressionProperty(RootIdx);
+		TInstancedStruct<FActorIOExpressionBase>& RootExpr = ExprContainer->GetExpression(0);
+		TSharedPtr<IPropertyHandle> PropRootExpr = GetExpressionProperty(0);
 
 		TSharedRef<FActorIOExpressionDetailBuilder> Builder = FActorIODetailCustomizationHelper::NewExpressionDetailBuilderOfType(RootExpr->GetTypeName());
 		Builder->SetExpression(PropRootExpr, &RootExpr);
@@ -259,7 +256,7 @@ TSharedRef<SWidget> FActorIOExpressionContainerCustomization::GenerateAddExpress
 
 	MenuBuilder.BeginSection(TEXT("AddExpression"), LOCTEXT("ExpressionEd_AddExpressionMenu", "Add Expression"));
 
-	const FActorIOExpressionBase* RootExpr = ExprContainer->GetRootExpression();
+	const FActorIOExpressionBase* RootExpr = ExprContainer->GetExpressionPtr(0);
 
 	bool bCanAddNew = !RootExpr || (RootExpr->CanContainChildExpressions() && RootExpr->CanEditChildExpressions());
 	if (!bCanAddNew)
@@ -340,7 +337,7 @@ void FActorIOExpressionContainerCustomization::OnClick_AddExpression(FString InT
 
 	PropExpressionArray->NotifyPreChange();
 
-	int32 ExprParentIdx = ExprContainer->GetRootExpression() ? 0 : INDEX_NONE;
+	int32 ExprParentIdx = ExprContainer->IsEmpty() ? INDEX_NONE : 0;
 	ExprContainer->AddExpression(NewExprInstance, ExprParentIdx);
 
 	PropExpressionArray->NotifyPostChange(EPropertyChangeType::ArrayAdd);
@@ -366,8 +363,7 @@ void FActorIOExpressionContainerCustomization::OnClick_ClearExpressions()
 
 	if (bRootExpressionHidden)
 	{
-		int32 RootIdx = ExprContainer->GetRootExpressionIdx();
-		ExprContainer->RemoveChildExpressions(RootIdx);
+		ExprContainer->RemoveChildExpressions(0);
 	}
 	else
 	{
@@ -1138,6 +1134,7 @@ void FActorIOCompareExpressionBuilder::GenerateChildContent(IDetailChildrenBuild
 		return;
 	}
 
+	// Add row: Value A
 	{
 		TInstancedStruct<FActorIOExpressionBase>& ChildExpr = ExprContainer->GetExpression(ChildExpressionIdxs[0]);
 		TSharedPtr<IPropertyHandle> PropChildExpr = ParentCustomization->GetExpressionProperty(ChildExpressionIdxs[0]);
@@ -1151,6 +1148,7 @@ void FActorIOCompareExpressionBuilder::GenerateChildContent(IDetailChildrenBuild
 		ChildrenBuilder.AddCustomBuilder(Builder);
 	}
 
+	// Add row: Comparison Operator
 	{
 		int32 CurrentComparisonOpIdx = 0;
 		for (int32 OpIdx = 0; OpIdx != ComparisonOps.Num(); ++OpIdx)
@@ -1186,6 +1184,7 @@ void FActorIOCompareExpressionBuilder::GenerateChildContent(IDetailChildrenBuild
 		];
 	}
 
+	// Add row: Value B
 	{
 		TInstancedStruct<FActorIOExpressionBase>& ChildExpr = ExprContainer->GetExpression(ChildExpressionIdxs[1]);
 		TSharedPtr<IPropertyHandle> PropChildExpr = ParentCustomization->GetExpressionProperty(ChildExpressionIdxs[1]);
