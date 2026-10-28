@@ -42,7 +42,7 @@ public:
 	virtual FName GetTypeName() const { return NAME_None; }
 
 	/**
-	 * Initializer called by the ActorIOExpressionContainer when adding to the expression tree.
+	 * Initializer called by the ActorIOExpressionContainer when the expression is added to the tree.
 	 * At this point the expression container is set, and child expressions can be created.
 	 * 
 	 * @return If false, the expression will be immediately removed from the expression tree.
@@ -50,7 +50,7 @@ public:
 	virtual bool Init() { return true; }
 
 	/**
-	 * Initializer called by the ActorIOExpressionContainer when adding to the expression tree by string.
+	 * Initializer called by the ActorIOExpressionContainer when the expression is added to the tree by string.
 	 * Called after Init().
 	 *
 	 * @return If false, the expression will be immediately removed from the expression tree.
@@ -149,6 +149,9 @@ struct ACTORIO_API FActorIOLiteralExpression : public FActorIOExpressionBase
 
 public:
 
+	/** Makes a new instance of this expression. */
+	static TInstancedStruct<FActorIOExpressionBase> MakeInstance(const FString& Keyword);
+
 	//~ Begin FActorIOExpressionBase Interface
 	virtual EActorIOExpressionType GetType() const override { return EActorIOExpressionType::Literal; }
 	virtual FName GetTypeName() const override { return FName("Literal"); }
@@ -216,6 +219,9 @@ struct ACTORIO_API FActorIOKismetFunctionExpression : public FActorIOFunctionExp
 	GENERATED_BODY()
 
 public:
+
+	/** Makes a new instance of this expression. */
+	static TInstancedStruct<FActorIOExpressionBase> MakeInstance(const FString& Keyword);
 
 	//~ Begin FActorIOExpressionBase Interface
 	virtual FName GetTypeName() const override { return FName("KismetFunction"); }
@@ -287,6 +293,9 @@ public:
 	/** Default constructor. */
 	FActorIOCompareExpression();
 
+	/** Makes a new instance of this expression. */
+	static TInstancedStruct<FActorIOExpressionBase> MakeInstance(const FString& Keyword);
+
 	//~ Begin FActorIOExpressionBase Interface
 	virtual FName GetTypeName() const override { return FName("Compare"); }
 	virtual bool Init() override;
@@ -303,10 +312,10 @@ public:
 	const EActorIOComparisonOp& GetComparisonOp() const { return ComparisonOp; }
 
 	/** Convert an operator to string. */
-	static FString OpToTypeString(const EActorIOComparisonOp& Op);
+	static FString OpToKeyword(const EActorIOComparisonOp& Op);
 
 	/** Convert a string into an operator. */
-	static TOptional<EActorIOComparisonOp> OpFromTypeString(const FString& Str);
+	static TOptional<EActorIOComparisonOp> OpFromKeyword(const FString& Keyword);
 
 	/** @return Whether child expressions are exactly two. */
 	bool CheckArgumentCountValid() const;
@@ -328,6 +337,9 @@ struct ACTORIO_API FActorIOGroupExpression : public FActorIOFunctionExpressionBa
 	GENERATED_BODY()
 
 public:
+
+	/** Makes a new instance of this expression. */
+	static TInstancedStruct<FActorIOExpressionBase> MakeInstance(const FString& Keyword);
 
 	//~ Begin FActorIOExpressionBase Interface
 	virtual EActorIOExpressionType GetType() const override { return EActorIOExpressionType::Group; }
@@ -551,6 +563,69 @@ struct TStructOpsTypeTraits<FActorIOExpressionContainer> : public TStructOpsType
 	};
 };
 
+/** Delegate when a new expression instance is requested. Keyword can be empty. */
+DECLARE_DELEGATE_RetVal_OneParam(TInstancedStruct<FActorIOExpressionBase>, FOnGetExpressionInstance, const FString& /** Keyword */);
+
+/**
+ * Description of a registered expression in FActorIOExpressionRegistry.
+ */
+struct ACTORIO_API FActorIOExpressionDesc
+{
+	/** Display name of the expression. */
+	FText DisplayName;
+
+	/** Delegate that creates a new instance of the expression. */
+	FOnGetExpressionInstance InstanceDelegate;
+
+	/** List of keywords associated with the expression. (val, and, or, etc...) */
+	TArray<FString> Keywords;
+};
+
+/**
+ * Registry class for storing known expression types.
+ */
+class ACTORIO_API FActorIOExpressionRegistry : public TSharedFromThis<FActorIOExpressionRegistry>
+{
+public:
+
+	/** @return The global registry instance of the module. */
+	static FActorIOExpressionRegistry& Get();
+
+	/** Register core expression types on module startup. */
+	void Initialize();
+
+	/** Cleanup before module shutdown. */
+	void Shutdown();
+
+	/**
+	 * Register a new expression type.
+	 * 
+	 * @param TypeName The type name of the expression.
+	 * @param InstanceDelegate Delegate that creates a new instance of the expression.
+	 * @param Keywords List of keywords associated with the expression (val, and, or, etc...). Use comma "," as separator, and avoid whitespaces.
+	 */
+	void RegisterExpression(FName TypeName, const FText& DisplayName, const FOnGetExpressionInstance& InstanceDelegate, const FString& Keywords);
+
+	/**
+	 * Unregister the expression from the registry.
+	 * 
+	 * @param TypeName The type name of the expression.
+	 */
+	void UnregisterExpression(FName TypeName);
+
+	/** @return Description of a registered expression. */
+	FActorIOExpressionDesc* GetExpression(FName TypeName) { return ExpressionsMap.Find(TypeName); }
+	const FActorIOExpressionDesc* GetExpression(FName TypeName) const { return ExpressionsMap.Find(TypeName); }
+
+	/** @return All registered expressions. */
+	const TMap<FName, FActorIOExpressionDesc>& GetExpressions() const { return ExpressionsMap; }
+
+private:
+
+	/** List of registered expressions. */
+	TMap<FName, FActorIOExpressionDesc> ExpressionsMap;
+};
+
 /**
  * Helper functions for parsing actor I/O expressions.
  */
@@ -559,11 +634,11 @@ class ACTORIO_API FActorIOExpressionParser
 public:
 
 	/**
-	 * Create a new expression instance for the given type string.
+	 * Create a new expression instance from the given keyword.
 	 * This is the short name of the expression when initializing from string (val, and, or, etc...)
-	 * Does not call the initializer as that's done by the expression container.
+	 * Does not call the initializer, that will be done by the expression container.
 	 */
-	static TInstancedStruct<FActorIOExpressionBase> NewExpressionOfType(FString TypeStr);
+	static TInstancedStruct<FActorIOExpressionBase> NewExpressionFromKeyword(FString Keyword);
 
 	/**
 	 * Parse the string for the next bracket, breaking the string into prefix and data.

@@ -1,6 +1,7 @@
 // Copyright 2024-2026 Horizon Games and all contributors at https://github.com/HorizonGamesRoland/ActorIO/graphs/contributors
 
 #include "ActorIODetailsCustomization.h"
+#include "ActorIOEditor.h"
 #include "ActorIOEditorStyle.h"
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/Layout/SBox.h"
@@ -58,41 +59,24 @@ void FActorIOExpressionContainerCustomization::CustomizeHeader(TSharedRef<IPrope
 	PropExpressionArray = StructPropertyHandle->GetChildHandle(FName("Expressions"));
 	PropUtilities = StructCustomizationUtils.GetPropertyUtilities();
 
-	if (PropStruct->GetNumOuterObjects() > 1)
+	const bool bMultipleSelected = PropStruct->GetNumOuterObjects() > 1;
+	if (!bMultipleSelected)
 	{
-		HeaderRow
-		.NameContent()
-		[
-			StructPropertyHandle->CreatePropertyNameWidget()
-		]
-		.ValueContent()
-		[
-			SNew(SBox)
-			.VAlign(VAlign_Center)
-			[
-				SNew(STextBlock)
-				.Text(LOCTEXT("ExpressionEd_MultiSelectError", "Can't edit multiple objects"))
-				.Font(IDetailLayoutBuilder::GetDetailFont())
-				.OverflowPolicy(ETextOverflowPolicy::Ellipsis)
-			]
-		];
-		return;
-	}
+		PropStruct->SetOnPropertyValueChanged(FSimpleDelegate::CreateSP(this, &FActorIOExpressionContainerCustomization::RefreshDetails));
+		PropExpressionArray->SetOnPropertyValueChanged(FSimpleDelegate::CreateSP(this, &FActorIOExpressionContainerCustomization::RefreshDetails));
 
-	PropStruct->SetOnPropertyValueChanged(FSimpleDelegate::CreateSP(this, &FActorIOExpressionContainerCustomization::RefreshDetails));
-	PropExpressionArray->SetOnPropertyValueChanged(FSimpleDelegate::CreateSP(this, &FActorIOExpressionContainerCustomization::RefreshDetails));
+		bRootExpressionHidden = PropStruct->HasMetaData("HideRootExpression");
 
-	bRootExpressionHidden = PropStruct->HasMetaData("HideRootExpression");
+		FActorIOExpressionContainer* ExprContainer = GetContainerData();
+		if (!DelegateHandle_FixupContainerReferences.IsValid() && ExprContainer)
+		{
+			DelegateHandle_FixupContainerReferences = ExprContainer->OnFixupContainerReferences().AddSP(this, &FActorIOExpressionContainerCustomization::RefreshDetails);
+		}
 
-	FActorIOExpressionContainer* ExprContainer = GetContainerData();
-	if (!DelegateHandle_FixupContainerReferences.IsValid() && ExprContainer)
-	{
-		DelegateHandle_FixupContainerReferences = ExprContainer->OnFixupContainerReferences().AddSP(this, &FActorIOExpressionContainerCustomization::RefreshDetails);
-	}
-
-	if (!DelegateHandle_BlueprintCompiled.IsValid() && GEditor)
-	{
-		DelegateHandle_BlueprintCompiled = GEditor->OnBlueprintCompiled().AddSP(this, &FActorIOExpressionContainerCustomization::RefreshDetails);
+		if (!DelegateHandle_BlueprintCompiled.IsValid() && GEditor)
+		{
+			DelegateHandle_BlueprintCompiled = GEditor->OnBlueprintCompiled().AddSP(this, &FActorIOExpressionContainerCustomization::RefreshDetails);
+		}
 	}
 
 	HeaderRow
@@ -121,6 +105,7 @@ void FActorIOExpressionContainerCustomization::CustomizeHeader(TSharedRef<IPrope
 			SNew(SComboButton)
 			.ComboButtonStyle(FAppStyle::Get(), "SimpleComboButtonWithIcon")
 			.HasDownArrow(false)
+			.IsEnabled(!bMultipleSelected)
 			.MenuPlacement(EMenuPlacement::MenuPlacement_CenteredAboveAnchor)
 			.MenuContent()
 			[
@@ -141,7 +126,7 @@ void FActorIOExpressionContainerCustomization::CustomizeHeader(TSharedRef<IPrope
 		.AutoWidth()
 		[
 			PropertyCustomizationHelpers::MakeDeleteButton(FSimpleDelegate::CreateSP(this, &FActorIOExpressionContainerCustomization::OnClick_ClearExpressions),
-				LOCTEXT("ExpressionEd_ClearExpressions", "Remove All Expressions"))
+				LOCTEXT("ExpressionEd_ClearExpressions", "Remove All Expressions"), !bMultipleSelected)
 		]
 		+ SHorizontalBox::Slot()
 		.Padding(4.0f, 1.0f, 0.0f, 1.0f)
@@ -150,7 +135,7 @@ void FActorIOExpressionContainerCustomization::CustomizeHeader(TSharedRef<IPrope
 		.AutoWidth()
 		[
 			PropertyCustomizationHelpers::MakeCustomButton(FCoreStyle::Get().GetBrush("Icons.Info"), FSimpleDelegate::CreateSP(this, &FActorIOExpressionContainerCustomization::OnClick_DebugExpressions),
-				LOCTEXT("ExpressionEd_DebugExpression", "Debug Expression"))
+				LOCTEXT("ExpressionEd_DebugExpression", "Debug Expression"), !bMultipleSelected)
 		]
 	];
 }
@@ -161,6 +146,16 @@ void FActorIOExpressionContainerCustomization::CustomizeChildren(TSharedRef<IPro
 
 	FActorIOExpressionContainer* ExprContainer = GetContainerData();
 	if (!ExprContainer || ExprContainer->IsEmpty()) return;
+
+	// Workaround for a very specific issue regarding copy pasting the container property, and the old-new values match exactly.
+	// In this case, the container reference becomes invalid but no serialization is triggered in the editor.
+	// This messes up the container pointer, so we are going to trigger a fixup now.
+	// In reality this should be handled by the paste action / property text import but overriding these are complicated.
+	TInstancedStruct<FActorIOExpressionBase>& RootExpr = ExprContainer->GetExpression(0);
+	if (RootExpr->GetContainer() != ExprContainer)
+	{
+		ExprContainer->FixupContainerReferences();
+	}
 
 	if (bRootExpressionHidden)
 	{
@@ -177,9 +172,7 @@ void FActorIOExpressionContainerCustomization::CustomizeChildren(TSharedRef<IPro
 	}
 	else
 	{
-		TInstancedStruct<FActorIOExpressionBase>& RootExpr = ExprContainer->GetExpression(0);
 		TSharedPtr<IPropertyHandle> PropRootExpr = GetExpressionProperty(0);
-
 		TSharedRef<FActorIOExpressionDetailBuilder> Builder = FActorIODetailCustomizationHelper::NewExpressionDetailBuilderOfType(RootExpr->GetTypeName());
 		Builder->SetExpression(PropRootExpr, &RootExpr);
 		Builder->SetParentCustomization(this);
@@ -225,6 +218,11 @@ TSharedPtr<IPropertyHandle> FActorIOExpressionContainerCustomization::GetExpress
 
 FText FActorIOExpressionContainerCustomization::GetHeaderText() const
 {
+	if (PropStruct->GetNumOuterObjects() > 1)
+	{
+		return LOCTEXT("ExpressionEd_MultipleValues", "Multiple Values");
+	}
+
 	uint32 NumExpressions = 0;
 	PropExpressionArray->AsArray()->GetNumElements(NumExpressions);
 
@@ -253,12 +251,10 @@ TSharedRef<SWidget> FActorIOExpressionContainerCustomization::GenerateAddExpress
 	if (!ExprContainer) return SNullWidget::NullWidget;
 
 	FMenuBuilder MenuBuilder(true, NULL, NULL);
-
 	MenuBuilder.BeginSection(TEXT("AddExpression"), LOCTEXT("ExpressionEd_AddExpressionMenu", "Add Expression"));
 
 	const FActorIOExpressionBase* RootExpr = ExprContainer->GetExpressionPtr(0);
-
-	bool bCanAddNew = !RootExpr || (RootExpr->CanContainChildExpressions() && RootExpr->CanEditChildExpressions());
+	const bool bCanAddNew = !RootExpr || (RootExpr->CanContainChildExpressions() && RootExpr->CanEditChildExpressions());
 	if (!bCanAddNew)
 	{
 		MenuBuilder.AddWidget
@@ -272,58 +268,42 @@ TSharedRef<SWidget> FActorIOExpressionContainerCustomization::GenerateAddExpress
 			true
 		);
 	}
-	
-	MenuBuilder.AddMenuEntry
-	(
-		LOCTEXT("ExpressionEd_AddExpression_Group", "Add Group"),
-		FText::GetEmpty(),
-		FSlateIcon(),
-		FUIAction
-		(
-			FExecuteAction::CreateSP(this, &FActorIOExpressionContainerCustomization::OnClick_AddExpression, FString(TEXT("and"))),
-			FCanExecuteAction::CreateLambda([bCanAddNew]() { return bCanAddNew; })
-		)
-	);
 
-	MenuBuilder.AddMenuEntry
-	(
-		LOCTEXT("ExpressionEd_AddExpression_Func", "Add Function"),
-		FText::GetEmpty(),
-		FSlateIcon(),
-		FUIAction
-		(
-			FExecuteAction::CreateSP(this, &FActorIOExpressionContainerCustomization::OnClick_AddExpression, FString(TEXT("func"))),
-			FCanExecuteAction::CreateLambda([bCanAddNew]() { return bCanAddNew; })
-		)
-	);
+	FActorIOExpressionRegistry& ExprRegistry = FActorIOExpressionRegistry::Get();
+	FActorIOExpressionBuilderRegistry& ExprBuilderRegistry = FActorIOExpressionBuilderRegistry::Get();
 
-	if (ExprContainer->IsConditionContainer())
+	for (const auto& Elem : ExprRegistry.GetExpressions())
 	{
-		MenuBuilder.AddMenuEntry
-		(
-			LOCTEXT("ExpressionEd_AddExpression_Compare", "Add Compare"),
-			FText::GetEmpty(),
-			FSlateIcon(),
-			FUIAction
-			(
-				FExecuteAction::CreateSP(this, &FActorIOExpressionContainerCustomization::OnClick_AddExpression, FString(TEXT("eq"))),
-				FCanExecuteAction::CreateLambda([bCanAddNew]() { return bCanAddNew; })
+		const FActorIOExpressionDesc ExprDesc = Elem.Value;
+		const FActorIOExpressionBuilderDesc* ExprBuilderDesc = ExprBuilderRegistry.GetExpressionBuilder(Elem.Key);
 
-			)
-		);
+		const bool bCanAddToContainer = ExprContainer->IsConditionContainer() ? ExprBuilderDesc->bCanAddToConditionContainer : ExprBuilderDesc->bCanAddToNonConditionContainer;
+		if (bCanAddToContainer)
+		{
+			MenuBuilder.AddMenuEntry
+			(
+				FText::Format(LOCTEXT("ExpressionEd_AddExpressionMenuEntry", "Add {0}"), ExprDesc.DisplayName),
+				FText::GetEmpty(),
+				FSlateIcon(),
+				FUIAction
+				(
+					FExecuteAction::CreateSP(this, &FActorIOExpressionContainerCustomization::OnClick_AddExpression, ExprDesc.Keywords[0]),
+					FCanExecuteAction::CreateLambda([bCanAddNew]() { return bCanAddNew; })
+				)
+			);
+		}
 	}
 
 	MenuBuilder.EndSection();
-
 	return MenuBuilder.MakeWidget();
 }
 
-void FActorIOExpressionContainerCustomization::OnClick_AddExpression(FString InType)
+void FActorIOExpressionContainerCustomization::OnClick_AddExpression(FString InKeyword)
 {
 	FActorIOExpressionContainer* ExprContainer = GetContainerData();
 	if (!ExprContainer) return;
 
-	TInstancedStruct<FActorIOExpressionBase> NewExprInstance = FActorIOExpressionParser::NewExpressionOfType(InType);
+	TInstancedStruct<FActorIOExpressionBase> NewExprInstance = FActorIOExpressionParser::NewExpressionFromKeyword(InKeyword);
 	if (!NewExprInstance.IsValid()) return;
 
 	TArray<UObject*> OuterObjects;
@@ -399,13 +379,6 @@ void FActorIOExpressionDetailBuilder::GenerateHeaderRowContent(FDetailWidgetRow&
 	FActorIOExpressionBase* ExprBase = Expr ? Expr->GetMutablePtr() : nullptr;
 	FActorIOExpressionContainer* ExprContainer = ExprBase ? ExprBase->GetContainer() : nullptr;
 	if (!ExprBase || !ExprContainer) return;
-
-	//FActorIOExpressionBase* ExprBase = nullptr;
-	//FActorIOExpressionContainer* ExprContainer = nullptr;
-	//if (!GetExpressionData(ExprBase, ExprContainer))
-	//{
-	//	return;
-	//}
 
 	if (WholeRowHeader())
 	{
@@ -1296,35 +1269,40 @@ void FActorIOCompareExpressionBuilder::OnComparisonOpSelectionChanged(TSharedPtr
 
 TSharedRef<FActorIOExpressionDetailBuilder> FActorIOGroupExpressionBuilder::MakeInstance()
 {
-	return MakeShareable(new FActorIOGroupExpressionBuilder);
+	TSharedRef<FActorIOGroupExpressionBuilder> Builder = MakeShareable(new FActorIOGroupExpressionBuilder);
+	Builder->SetAllowDragDropOnto(true);
+	return Builder;
 }
 
 void FActorIOGroupExpressionBuilder::GenerateHeaderRowContent(FDetailWidgetRow& NodeRow)
 {
 	FActorIOExpressionDetailBuilder::GenerateHeaderRowContent(NodeRow);
 
-	ExtensionBox->InsertSlot(1)
-	.Padding(4.0f, 1.0f, 0.0f, 1.0f)
-	.HAlign(HAlign_Left)
-	.VAlign(VAlign_Center)
-	.AutoWidth()
-	[
-		SNew(SComboButton)
-		.ComboButtonStyle(FAppStyle::Get(), "SimpleComboButtonWithIcon")
-		.HasDownArrow(false)
-		.MenuPlacement(EMenuPlacement::MenuPlacement_CenteredAboveAnchor)
-		.MenuContent()
+	if (ExtensionBox.IsValid())
+	{
+		ExtensionBox->InsertSlot(1)
+		.Padding(4.0f, 1.0f, 0.0f, 1.0f)
+		.HAlign(HAlign_Left)
+		.VAlign(VAlign_Center)
+		.AutoWidth()
 		[
-			GenerateAddExpressionMenu()
-		]
-		.ButtonContent()
-		[
-			SNew(SImage)
-			.Image(FAppStyle::GetBrush("Icons.PlusCircle"))
-			.ColorAndOpacity(FSlateColor::UseForeground())
-			.ToolTipText(LOCTEXT("ExpressionEd_AddExpression", "Add Expression"))
-		]
-	];
+			SNew(SComboButton)
+			.ComboButtonStyle(FAppStyle::Get(), "SimpleComboButtonWithIcon")
+			.HasDownArrow(false)
+			.MenuPlacement(EMenuPlacement::MenuPlacement_CenteredAboveAnchor)
+			.MenuContent()
+			[
+				GenerateAddExpressionMenu()
+			]
+			.ButtonContent()
+			[
+				SNew(SImage)
+				.Image(FAppStyle::GetBrush("Icons.PlusCircle"))
+				.ColorAndOpacity(FSlateColor::UseForeground())
+				.ToolTipText(LOCTEXT("ExpressionEd_AddExpression", "Add Expression"))
+			]
+		];
+	}
 }
 
 void FActorIOGroupExpressionBuilder::GenerateChildContent(IDetailChildrenBuilder& ChildrenBuilder)
@@ -1378,48 +1356,40 @@ TSharedRef<SWidget> FActorIOGroupExpressionBuilder::GenerateAddExpressionMenu()
 	if (!GroupExpr || !ExprContainer) return SNullWidget::NullWidget;
 
 	FMenuBuilder MenuBuilder(true, NULL, NULL);
+	MenuBuilder.BeginSection(TEXT("AddExpression"), LOCTEXT("ExpressionEd_AddExpressionMenu", "Add Expression"));
 
-	MenuBuilder.BeginSection(TEXT("ExpressionType"), LOCTEXT("ExpressionEd_AddExpressionMenu", "Add Expression"));
+	FActorIOExpressionRegistry& ExprRegistry = FActorIOExpressionRegistry::Get();
+	FActorIOExpressionBuilderRegistry& ExprBuilderRegistry = FActorIOExpressionBuilderRegistry::Get();
 
-	MenuBuilder.AddMenuEntry
-	(
-		LOCTEXT("ExpressionEd_AddExpression_Group", "Add Group"),
-		FText::GetEmpty(),
-		FSlateIcon(),
-		FExecuteAction::CreateSP(this, &FActorIOGroupExpressionBuilder::OnClick_AddExpression, FString(TEXT("and")))
-	);
-
-	MenuBuilder.AddMenuEntry
-	(
-		LOCTEXT("ExpressionEd_AddExpression_Func", "Add Function"),
-		FText::GetEmpty(),
-		FSlateIcon(),
-		FExecuteAction::CreateSP(this, &FActorIOGroupExpressionBuilder::OnClick_AddExpression, FString(TEXT("func")))
-	);
-
-	if (ExprContainer->IsConditionContainer())
+	for (const auto& Elem : ExprRegistry.GetExpressions())
 	{
-		MenuBuilder.AddMenuEntry
-		(
-			LOCTEXT("ExpressionEd_AddExpression_Compare", "Add Compare"),
-			FText::GetEmpty(),
-			FSlateIcon(),
-			FExecuteAction::CreateSP(this, &FActorIOGroupExpressionBuilder::OnClick_AddExpression, FString(TEXT("eq")))
-		);
+		const FActorIOExpressionDesc ExprDesc = Elem.Value;
+		const FActorIOExpressionBuilderDesc* ExprBuilderDesc = ExprBuilderRegistry.GetExpressionBuilder(Elem.Key);
+
+		const bool bCanAddToContainer = ExprContainer->IsConditionContainer() ? ExprBuilderDesc->bCanAddToConditionContainer : ExprBuilderDesc->bCanAddToNonConditionContainer;
+		if (bCanAddToContainer)
+		{
+			MenuBuilder.AddMenuEntry
+			(
+				FText::Format(LOCTEXT("ExpressionEd_AddExpressionMenuEntry", "Add {0}"), ExprDesc.DisplayName),
+				FText::GetEmpty(),
+				FSlateIcon(),
+				FExecuteAction::CreateSP(this, &FActorIOGroupExpressionBuilder::OnClick_AddExpression, ExprDesc.Keywords[0])
+			);
+		}
 	}
 
 	MenuBuilder.EndSection();
-
 	return MenuBuilder.MakeWidget();
 }
 
-void FActorIOGroupExpressionBuilder::OnClick_AddExpression(FString InType)
+void FActorIOGroupExpressionBuilder::OnClick_AddExpression(FString InKeyword)
 {
 	FActorIOGroupExpression* GroupExpr = Expr ? Expr->GetMutablePtr<FActorIOGroupExpression>() : nullptr;
 	FActorIOExpressionContainer* ExprContainer = GroupExpr ? GroupExpr->GetContainer() : nullptr;
 	if (!GroupExpr || !ExprContainer) return;
 
-	TInstancedStruct<FActorIOExpressionBase> NewExprInstance = FActorIOExpressionParser::NewExpressionOfType(InType);
+	TInstancedStruct<FActorIOExpressionBase> NewExprInstance = FActorIOExpressionParser::NewExpressionFromKeyword(InKeyword);
 	if (!NewExprInstance.IsValid()) return;
 
 	TArray<UObject*> OuterObjects;
@@ -1457,30 +1427,60 @@ void FActorIOInvalidExpressionBuilder::RefreshHeader()
 }
 
 //=======================================================
+//~ Begin FActorIOExpressionBuilderRegistry
+//=======================================================
+
+FActorIOExpressionBuilderRegistry& FActorIOExpressionBuilderRegistry::Get()
+{
+	return *FActorIOEditor::Get().GetExpressionBuilderRegistry();
+}
+
+void FActorIOExpressionBuilderRegistry::Initialize()
+{
+	RegisterExpressionBuilder(TEXT("Literal"), FOnGetExpressionDetailBuilder::CreateStatic(FActorIOLiteralExpressionBuilder::MakeInstance), false, false);
+	RegisterExpressionBuilder(TEXT("KismetFunction"), FOnGetExpressionDetailBuilder::CreateStatic(FActorIOKismetFunctionExpressionBuilder::MakeInstance), true, true);
+	RegisterExpressionBuilder(TEXT("Compare"), FOnGetExpressionDetailBuilder::CreateStatic(FActorIOCompareExpressionBuilder::MakeInstance), true, false);
+	RegisterExpressionBuilder(TEXT("Group"), FOnGetExpressionDetailBuilder::CreateStatic(FActorIOGroupExpressionBuilder::MakeInstance), true, false);
+}
+
+void FActorIOExpressionBuilderRegistry::Shutdown()
+{
+}
+
+void FActorIOExpressionBuilderRegistry::RegisterExpressionBuilder(FName TypeName, const FOnGetExpressionDetailBuilder& DetailBuilderDelegate, bool bCanAddToConditionContainer, bool bCanAddToNonConditionContainer)
+{
+	if (TypeName == NAME_None || !DetailBuilderDelegate.IsBound())
+	{
+		ensureAlwaysMsgf(false, TEXT("Expression type, and detail builder delegate must be provided."));
+		return;
+	}
+
+	FActorIOExpressionBuilderDesc Desc;
+	Desc.DetailBuilderDelegate = DetailBuilderDelegate;
+	Desc.bCanAddToConditionContainer = bCanAddToConditionContainer;
+	Desc.bCanAddToNonConditionContainer = bCanAddToNonConditionContainer;
+
+	ExpressionBuilderMap.Add(TypeName, Desc);
+}
+
+void FActorIOExpressionBuilderRegistry::UnregisterExpressionBuilder(FName TypeName)
+{
+	ExpressionBuilderMap.Remove(TypeName);
+}
+
+//=======================================================
 //~ Begin FActorIODetailCustomizationHelper
 //=======================================================
 
 TSharedRef<FActorIOExpressionDetailBuilder> FActorIODetailCustomizationHelper::NewExpressionDetailBuilderOfType(FName TypeName)
 {
-	if (TypeName == FName("Literal"))
+	FActorIOExpressionBuilderRegistry& Registry = FActorIOExpressionBuilderRegistry::Get();
+	FActorIOExpressionBuilderDesc* Desc = Registry.GetExpressionBuilder(TypeName);
+	if (Desc)
 	{
-		return FActorIOLiteralExpressionBuilder::MakeInstance();
+		return Desc->DetailBuilderDelegate.Execute();
 	}
-	else if (TypeName == FName("KismetFunction"))
-	{
-		return FActorIOKismetFunctionExpressionBuilder::MakeInstance();
-	}
-	else if (TypeName == FName("Compare"))
-	{
-		return FActorIOCompareExpressionBuilder::MakeInstance();
-	}
-	else if (TypeName == FName("Group"))
-	{
-		TSharedRef<FActorIOExpressionDetailBuilder> GroupBuilder = FActorIOGroupExpressionBuilder::MakeInstance();
-		GroupBuilder->SetAllowDragDropOnto(true);
-		return GroupBuilder;
-	}
-	
+
 	return FActorIOInvalidExpressionBuilder::MakeInstance();
 }
 

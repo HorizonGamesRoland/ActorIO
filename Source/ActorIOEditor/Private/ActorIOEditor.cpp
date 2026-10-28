@@ -45,6 +45,10 @@ void FActorIOEditor::StartupModule()
 	PropertyModule.RegisterCustomPropertyTypeLayout("ActorIOExpressionContainer", FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FActorIOExpressionContainerCustomization::MakeInstance));
 	PropertyModule.NotifyCustomizationModuleChanged();
 
+	// Initialize expression detail builder registry.
+	ExpressionBuilderRegistry = MakeUnique<FActorIOExpressionBuilderRegistry>();
+	ExpressionBuilderRegistry->Initialize();
+
 	// Register component visualizer to draw I/O lines between actors.
 	// The GUnrealEd check is important here for packaging.
 	if (GUnrealEd)
@@ -79,6 +83,10 @@ void FActorIOEditor::ShutdownModule()
 {
 	// Unregister Actor I/O editor tab.
 	FGlobalTabmanager::Get()->UnregisterNomadTabSpawner("ActorIO");
+
+	// Clear expression detail builder registry. 
+	ExpressionBuilderRegistry->Shutdown();
+	ExpressionBuilderRegistry.Reset();
 
 	// Unregister property customizations.
 	if (FModuleManager::Get().IsModuleLoaded("PropertyEditor"))

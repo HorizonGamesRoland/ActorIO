@@ -9,7 +9,7 @@
 ALogicScriptCondition::ALogicScriptCondition()
 {
 	Conditions.SetIsConditionContainer(true);
-	Conditions.InitFromString(TEXT("and()"));
+	Conditions.AddExpression(FActorIOGroupExpression::MakeInstance(TEXT("and")), INDEX_NONE);
 }
 
 void ALogicScriptCondition::RegisterIOEvents(FActorIOEventList& EventRegistry)
@@ -41,7 +41,8 @@ void ALogicScriptCondition::CheckForErrors()
 {
 	Super::CheckForErrors();
 
-	if (Conditions.HasAnyErrors())
+	FString ErrorCode;
+	if (Conditions.HasAnyErrors(ErrorCode))
 	{
 		FMessageLog("MapCheck").Error()
 			->AddToken(FTextToken::Create(LOCTEXT("MapCheck_Message_IOPrefix", "[I/O]")))

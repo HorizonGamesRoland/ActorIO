@@ -3,8 +3,11 @@
 #include "ActorIOExpressions.h"
 #include "ActorIOSubsystemBase.h"
 #include "ActorIOVersions.h"
+#include "ActorIOModule.h"
 #include "Engine/Engine.h"
 #include "Misc/OutputDeviceNull.h"
+
+#define LOCTEXT_NAMESPACE "ActorIO"
 
 //=======================================================
 //~ Begin FActorIOExpressionBase
@@ -136,6 +139,13 @@ bool FActorIOExpressionBase::GetMetadata(const FString& InName, FString& OutValu
 //~ Begin FActorIOLiteralExpression
 //=======================================================
 
+TInstancedStruct<FActorIOExpressionBase> FActorIOLiteralExpression::MakeInstance(const FString& Keyword)
+{
+	TInstancedStruct<FActorIOExpressionBase> OutInstance;
+	OutInstance.InitializeAs<FActorIOLiteralExpression>();
+	return OutInstance;
+}
+
 bool FActorIOLiteralExpression::InitFromString(const FString& Str)
 {
 	// Example valid strings:
@@ -257,6 +267,13 @@ FString FActorIOFunctionExpressionBase::ChildExpressionToString() const
 //=======================================================
 //~ Begin FActorIOKismetFunctionExpression
 //=======================================================
+
+TInstancedStruct<FActorIOExpressionBase> FActorIOKismetFunctionExpression::MakeInstance(const FString& Keyword)
+{
+	TInstancedStruct<FActorIOExpressionBase> OutInstance;
+	OutInstance.InitializeAs<FActorIOKismetFunctionExpression>();
+	return OutInstance;
+}
 
 bool FActorIOKismetFunctionExpression::InitFromString(const FString& Str)
 {
@@ -573,11 +590,10 @@ void FActorIOKismetFunctionExpression::UpdateArguments()
 
 		if (MatchingChildIdx == INDEX_NONE)
 		{
-			FActorIOLiteralExpression NewExpr;
+			TInstancedStruct<FActorIOExpressionBase> NewExprInstance;
+			FActorIOLiteralExpression& NewExpr = NewExprInstance.InitializeAs<FActorIOLiteralExpression>();
 			NewExpr.SetMetadata(TEXT("PropName"), PropName);
 			NewExpr.SetMetadata(TEXT("PropType"), PropType);
-			TInstancedStruct<FActorIOExpressionBase> NewExprInstance;
-			NewExprInstance.InitializeAs<FActorIOLiteralExpression>(NewExpr);
 
 			ExprContainer->AddExpression(NewExprInstance, SelfIdx, ParamIdx);
 			bChildExprIdxsDirty = true;
@@ -622,6 +638,15 @@ FActorIOCompareExpression::FActorIOCompareExpression()
 	ComparisonOp = EActorIOComparisonOp::Equal;
 }
 
+TInstancedStruct<FActorIOExpressionBase> FActorIOCompareExpression::MakeInstance(const FString& Keyword)
+{
+	TInstancedStruct<FActorIOExpressionBase> OutInstance;
+	FActorIOCompareExpression& CompareExpr = OutInstance.InitializeAs<FActorIOCompareExpression>();
+	TOptional<EActorIOComparisonOp> Op = FActorIOCompareExpression::OpFromKeyword(Keyword);
+	if (Op.IsSet()) CompareExpr.SetComparisonOp(Op.GetValue());
+	return OutInstance;
+}
+
 bool FActorIOCompareExpression::Init()
 {
 	FActorIOExpressionContainer* ExprContainer = GetContainer();
@@ -647,7 +672,7 @@ bool FActorIOCompareExpression::InitFromString(const FString& Str)
 		return false;
 	}
 
-	TOptional<EActorIOComparisonOp> Op = OpFromTypeString(Prefix);
+	TOptional<EActorIOComparisonOp> Op = OpFromKeyword(Prefix);
 	if (!Op.IsSet())
 	{
 		return false;
@@ -665,7 +690,7 @@ bool FActorIOCompareExpression::InitFromString(const FString& Str)
 
 FString FActorIOCompareExpression::ToString() const
 {
-	FString OpStr = OpToTypeString(ComparisonOp);
+	FString OpStr = OpToKeyword(ComparisonOp);
 	FString ChildsData = ChildExpressionToString();
 	return FString::Printf(TEXT("%s(%s)"), *OpStr, *ChildsData);
 }
@@ -772,7 +797,7 @@ FString FActorIOCompareExpression::CheckForErrors() const
 	return TEXT("");
 }
 
-FString FActorIOCompareExpression::OpToTypeString(const EActorIOComparisonOp& Op)
+FString FActorIOCompareExpression::OpToKeyword(const EActorIOComparisonOp& Op)
 {
 	switch (Op)
 	{
@@ -789,19 +814,19 @@ FString FActorIOCompareExpression::OpToTypeString(const EActorIOComparisonOp& Op
 	case EActorIOComparisonOp::Greater:
 		return TEXT("gt");
 	default:
-		check(false);
+		checkNoEntry();
 		return TEXT("");
 	}
 }
 
-TOptional<EActorIOComparisonOp> FActorIOCompareExpression::OpFromTypeString(const FString& Str)
+TOptional<EActorIOComparisonOp> FActorIOCompareExpression::OpFromKeyword(const FString& Keyword)
 {
-	if (Str == TEXT("lt")) return EActorIOComparisonOp::Less;
-	else if (Str == TEXT("le")) return EActorIOComparisonOp::LessOrEqual;
-	else if (Str == TEXT("eq")) return EActorIOComparisonOp::Equal;
-	else if (Str == TEXT("ne")) return EActorIOComparisonOp::NotEqual;
-	else if (Str == TEXT("ge")) return EActorIOComparisonOp::GreaterOrEqual;
-	else if (Str == TEXT("gt")) return EActorIOComparisonOp::Greater;
+	if (Keyword == TEXT("lt")) return EActorIOComparisonOp::Less;
+	else if (Keyword == TEXT("le")) return EActorIOComparisonOp::LessOrEqual;
+	else if (Keyword == TEXT("eq")) return EActorIOComparisonOp::Equal;
+	else if (Keyword == TEXT("ne")) return EActorIOComparisonOp::NotEqual;
+	else if (Keyword == TEXT("ge")) return EActorIOComparisonOp::GreaterOrEqual;
+	else if (Keyword == TEXT("gt")) return EActorIOComparisonOp::Greater;
 	return TOptional<EActorIOComparisonOp>();
 }
 
@@ -818,6 +843,14 @@ bool FActorIOCompareExpression::CheckArgumentCountValid() const
 //=======================================================
 //~ Begin FActorIOGroupExpression
 //=======================================================
+
+TInstancedStruct<FActorIOExpressionBase> FActorIOGroupExpression::MakeInstance(const FString& Keyword)
+{
+	TInstancedStruct<FActorIOExpressionBase> OutInstance;
+	FActorIOGroupExpression& GroupExpr = OutInstance.InitializeAs<FActorIOGroupExpression>();
+	GroupExpr.SetNegated(Keyword == TEXT("or"));
+	return OutInstance;
+}
 
 bool FActorIOGroupExpression::InitFromString(const FString& Str)
 {
@@ -977,7 +1010,7 @@ int32 FActorIOExpressionContainer::AddExpressionFromString(const FString& Str, i
 		return INDEX_NONE;
 	}
 
-	TInstancedStruct<FActorIOExpressionBase> NewExprInstance = FActorIOExpressionParser::NewExpressionOfType(Prefix);
+	TInstancedStruct<FActorIOExpressionBase> NewExprInstance = FActorIOExpressionParser::NewExpressionFromKeyword(Prefix);
 	if (!NewExprInstance.IsValid())
 	{
 		return INDEX_NONE;
@@ -1106,23 +1139,6 @@ int32 FActorIOExpressionContainer::MoveExpressionTo(int32 ExprIdx, int32 ParentI
 	if (RootIdx == INDEX_NONE)
 	{
 		return INDEX_NONE;
-	}
-
-	// Early out: the expression is already under ParentIdx at the requested slot.
-	if (ParentIndexMapping[ExprIdx] == ParentIdx)
-	{
-		const TArray<int32>& CurrentSiblings = Children[ParentIdx];
-		const int32 CurrentSlot = CurrentSiblings.Find(ExprIdx);
-
-		// Slot semantics match the insert below: the position among the siblings once ExprIdx
-		// has been removed, so the valid range is 0..(Num - 1) for the final list.
-		const int32 MaxSlot = CurrentSiblings.Num() - 1;
-		const int32 TargetSlot = (SlotIdx < 0) ? MaxSlot : FMath::Min(SlotIdx, MaxSlot);
-
-		if (CurrentSlot == TargetSlot)
-		{
-			return ExprIdx; // nothing to do, the index is unchanged
-		}
 	}
 
 	// Detach from old parent, attach to new parent at the requested slot.
@@ -1401,46 +1417,65 @@ void FActorIOExpressionContainer::DebugDumpContainerData() const
 }
 
 //=======================================================
+//~ Begin FActorIOExpressionRegistry
+//=======================================================
+
+FActorIOExpressionRegistry& FActorIOExpressionRegistry::Get()
+{
+	return *FModuleManager::GetModuleChecked<FActorIOModule>("ActorIO").GetExpressionRegistry();
+}
+
+void FActorIOExpressionRegistry::Initialize()
+{
+	RegisterExpression(TEXT("Literal"), LOCTEXT("LiteralExpressionName", "Literal"), FOnGetExpressionInstance::CreateStatic(FActorIOLiteralExpression::MakeInstance), TEXT("val"));
+	RegisterExpression(TEXT("KismetFunction"), LOCTEXT("KismetFunctionExpressionName", "Kismet Function"), FOnGetExpressionInstance::CreateStatic(FActorIOKismetFunctionExpression::MakeInstance), TEXT("func"));
+	RegisterExpression(TEXT("Compare"), LOCTEXT("CompareExpressionName", "Compare"), FOnGetExpressionInstance::CreateStatic(FActorIOCompareExpression::MakeInstance), TEXT("eq,ne,lt,le,gt,ge"));
+	RegisterExpression(TEXT("Group"), LOCTEXT("GroupExpressionName", "Group"), FOnGetExpressionInstance::CreateStatic(FActorIOGroupExpression::MakeInstance), TEXT("and,or"));
+}
+
+void FActorIOExpressionRegistry::Shutdown()
+{
+}
+
+void FActorIOExpressionRegistry::RegisterExpression(FName TypeName, const FText& DisplayName, const FOnGetExpressionInstance& InstanceDelegate, const FString& Keywords)
+{
+	if (TypeName == NAME_None || !InstanceDelegate.IsBound() || Keywords.IsEmpty())
+	{
+		ensureAlwaysMsgf(false, TEXT("Expression type, instance delegate, and at least one keyword must be provided."));
+		return;
+	}
+
+	FActorIOExpressionDesc Desc;
+	Desc.DisplayName = DisplayName;
+	Desc.InstanceDelegate = InstanceDelegate;
+	Keywords.ParseIntoArray(Desc.Keywords, TEXT(","));
+
+	ExpressionsMap.Add(TypeName, Desc);
+}
+
+void FActorIOExpressionRegistry::UnregisterExpression(FName TypeName)
+{
+	ExpressionsMap.Remove(TypeName);
+}
+
+//=======================================================
 //~ Begin FActorIOExpressionParser
 //=======================================================
 
-TInstancedStruct<FActorIOExpressionBase> FActorIOExpressionParser::NewExpressionOfType(FString TypeStr)
+TInstancedStruct<FActorIOExpressionBase> FActorIOExpressionParser::NewExpressionFromKeyword(FString Keyword)
 {
-	TInstancedStruct<FActorIOExpressionBase> NewExprInstance;
-
-	if (TypeStr == TEXT("val"))
+	FActorIOExpressionRegistry& Registry = FActorIOExpressionRegistry::Get();
+	for (auto& Elem : Registry.GetExpressions())
 	{
-		FActorIOLiteralExpression LiteralExpr;
-		NewExprInstance.InitializeAs<FActorIOLiteralExpression>(LiteralExpr);
-		return NewExprInstance;
+		FActorIOExpressionDesc Desc = Elem.Value;
+		if (Desc.Keywords.Contains(Keyword))
+		{
+			return Desc.InstanceDelegate.Execute(Keyword);
+		}
 	}
 
-	if (TypeStr == TEXT("func"))
-	{
-		FActorIOKismetFunctionExpression FunctionExpr;
-		NewExprInstance.InitializeAs<FActorIOKismetFunctionExpression>(FunctionExpr);
-		return NewExprInstance;
-	}
-
-	if (TypeStr == TEXT("and") || TypeStr == TEXT("or"))
-	{
-		FActorIOGroupExpression GroupExpr;
-		GroupExpr.SetNegated(TypeStr == TEXT("or"));
-		NewExprInstance.InitializeAs<FActorIOGroupExpression>(GroupExpr);
-		return NewExprInstance;
-	}
-
-	TOptional<EActorIOComparisonOp> Op = FActorIOCompareExpression::OpFromTypeString(TypeStr);
-	if (Op.IsSet())
-	{
-		FActorIOCompareExpression CompareExpr;
-		CompareExpr.SetComparisonOp(Op.GetValue());
-		NewExprInstance.InitializeAs<FActorIOCompareExpression>(CompareExpr);
-		return NewExprInstance;
-	}
-
-	// #todo: handle invalid expression?
-	return NewExprInstance;
+	TInstancedStruct<FActorIOExpressionBase> InvalidExprInstance;
+	return InvalidExprInstance;
 }
 
 bool FActorIOExpressionParser::ParseBracket(const FString& Str, FString& OutPrefix, FString& OutData)
@@ -1461,3 +1496,5 @@ bool FActorIOExpressionParser::ParseBracket(const FString& Str, FString& OutPref
 	OutData = Str.Mid(OpenBracketIdx + 1, Str.Len() - (OpenBracketIdx + 2));
 	return true;
 }
+
+#undef LOCTEXT_NAMESPACE

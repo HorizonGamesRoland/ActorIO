@@ -2,11 +2,11 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
 #include "Modules/ModuleManager.h"
 #include "ActorIOPIEAuthorizer.h"
 #include "Misc/Optional.h"
 
+class FActorIOExpressionBuilderRegistry;
 class SActorIOEditor;
 class SDockTab;
 class FSpawnTabArgs;
@@ -28,10 +28,16 @@ private:
 	/** List of actors that we have added to the placement module. */
 	TArray<TOptional<FPlacementModeID>> PlaceActors;
 
+	/** The global expression builder registry instance. */
+	TUniquePtr<FActorIOExpressionBuilderRegistry> ExpressionBuilderRegistry;
+
 public:
 
 	/** @return The editor module of the Actor I/O plugin. */
 	static FActorIOEditor& Get();
+
+	/** @return The global expression builder registry instance. */
+	FActorIOExpressionBuilderRegistry* GetExpressionBuilderRegistry() const { return ExpressionBuilderRegistry.Get(); }
 
 	/** Request a refresh with the editor widget. */
 	void RefreshEditorWidget(bool bImmediate = false);
