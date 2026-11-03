@@ -1,6 +1,7 @@
 // Copyright 2024-2026 Horizon Games and all contributors at https://github.com/HorizonGamesRoland/ActorIO/graphs/contributors
 
 #include "LogicActors/LogicScriptCondition.h"
+#include "Expressions/ActorIOExpressions.h"
 #include "Logging/MessageLog.h"
 #include "Misc/UObjectToken.h"
 

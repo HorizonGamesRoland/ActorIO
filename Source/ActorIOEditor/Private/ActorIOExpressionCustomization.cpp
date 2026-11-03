@@ -1,8 +1,12 @@
 // Copyright 2024-2026 Horizon Games and all contributors at https://github.com/HorizonGamesRoland/ActorIO/graphs/contributors
 
-#include "ActorIODetailsCustomization.h"
+#include "ActorIOExpressionCustomization.h"
+#include "ActorIOExpressionBuilderRegistry.h"
 #include "ActorIOEditor.h"
 #include "ActorIOEditorStyle.h"
+#include "Expressions/ActorIOExpressions.h"
+#include "Expressions/ActorIOExpressionContainer.h"
+#include "Expressions/ActorIOExpressionRegistry.h"
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/Input/SButton.h"
@@ -1075,7 +1079,7 @@ void FActorIOKismetFunctionExpressionBuilder::UpdateSelectableFunctions()
 }
 
 //=======================================================
-//~ Begin FActorIOGroupExpressionBuilder
+//~ Begin FActorIOCompareExpressionBuilder
 //=======================================================
 
 TSharedRef<FActorIOExpressionDetailBuilder> FActorIOCompareExpressionBuilder::MakeInstance()
@@ -1424,48 +1428,6 @@ void FActorIOInvalidExpressionBuilder::RefreshHeader()
 
 	HeaderText->SetText(LOCTEXT("ExpressionEd_InvalidExpression", "Unknown expression!"));
 	HeaderText->SetColorAndOpacity(FStyleColors::Error);
-}
-
-//=======================================================
-//~ Begin FActorIOExpressionBuilderRegistry
-//=======================================================
-
-FActorIOExpressionBuilderRegistry& FActorIOExpressionBuilderRegistry::Get()
-{
-	return *FActorIOEditor::Get().GetExpressionBuilderRegistry();
-}
-
-void FActorIOExpressionBuilderRegistry::Initialize()
-{
-	RegisterExpressionBuilder(TEXT("Literal"), FOnGetExpressionDetailBuilder::CreateStatic(FActorIOLiteralExpressionBuilder::MakeInstance), false, false);
-	RegisterExpressionBuilder(TEXT("KismetFunction"), FOnGetExpressionDetailBuilder::CreateStatic(FActorIOKismetFunctionExpressionBuilder::MakeInstance), true, true);
-	RegisterExpressionBuilder(TEXT("Compare"), FOnGetExpressionDetailBuilder::CreateStatic(FActorIOCompareExpressionBuilder::MakeInstance), true, false);
-	RegisterExpressionBuilder(TEXT("Group"), FOnGetExpressionDetailBuilder::CreateStatic(FActorIOGroupExpressionBuilder::MakeInstance), true, false);
-}
-
-void FActorIOExpressionBuilderRegistry::Shutdown()
-{
-}
-
-void FActorIOExpressionBuilderRegistry::RegisterExpressionBuilder(FName TypeName, const FOnGetExpressionDetailBuilder& DetailBuilderDelegate, bool bCanAddToConditionContainer, bool bCanAddToNonConditionContainer)
-{
-	if (TypeName == NAME_None || !DetailBuilderDelegate.IsBound())
-	{
-		ensureAlwaysMsgf(false, TEXT("Expression type, and detail builder delegate must be provided."));
-		return;
-	}
-
-	FActorIOExpressionBuilderDesc Desc;
-	Desc.DetailBuilderDelegate = DetailBuilderDelegate;
-	Desc.bCanAddToConditionContainer = bCanAddToConditionContainer;
-	Desc.bCanAddToNonConditionContainer = bCanAddToNonConditionContainer;
-
-	ExpressionBuilderMap.Add(TypeName, Desc);
-}
-
-void FActorIOExpressionBuilderRegistry::UnregisterExpressionBuilder(FName TypeName)
-{
-	ExpressionBuilderMap.Remove(TypeName);
 }
 
 //=======================================================

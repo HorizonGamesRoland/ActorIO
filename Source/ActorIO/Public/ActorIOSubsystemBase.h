@@ -7,6 +7,7 @@
 #include "ActorIOSubsystemBase.generated.h"
 
 class UActorIOAction;
+class ULevel;
 
 /**
  * Base implementation of the Actor I/O Subsystem.

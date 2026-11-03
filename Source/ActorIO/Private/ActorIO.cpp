@@ -48,7 +48,7 @@ void FActionExecutionContext::EnterContext(UActorIOAction* InAction, void* InScr
     check(!HasContext());
     ActionPtr = InAction;
     ScriptParams = InScriptParams;
-    NamedArguments.Reset();
+    NamedArguments.Empty();
     bAborted = false;
     bProcessResult = false;
 }
@@ -67,9 +67,9 @@ bool FActionExecutionContext::HasContext() const
 
 void FActionExecutionContext::SetNamedArgument(const FString& InName, const FString& InValue)
 {
-    if (HasContext() && !InName.IsEmpty())
+    if (HasContext())
     {
-        if (!InName.StartsWith(NAMEDARGUMENT_PREFIX))
+        if (InName.IsEmpty() || !InName.StartsWith(NAMEDARGUMENT_PREFIX))
         {
             UE_LOG(LogActorIO, Error, TEXT("ActionExecutionContext: Attempted to set named argument without the required '%s' prefix. Name was: %s"), NAMEDARGUMENT_PREFIX, *InName);
             return;

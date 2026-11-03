@@ -3,8 +3,8 @@
 #pragma once
 
 #include "ActorIO.h"
-#include "ActorIOExpressions.h"
 #include "LogicActors/LogicActorBase.h"
+#include "Expressions/ActorIOExpressionContainer.h"
 #include "LogicScriptAction.generated.h"
 
 /**
