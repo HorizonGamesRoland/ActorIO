@@ -46,8 +46,15 @@ FActorIOExpressionBase::FActorIOExpressionBase()
 
 void FActorIOExpressionBase::SetMetadata(const FString& InName, const FString& InValue)
 {
-	if (InName.IsEmpty())
+	if (InName.IsEmpty() || InName.Contains(TEXT(" ")))
 	{
+		ensureMsgf(false, TEXT("Attempted to set expression metadata with invalid name (%s). Empty, or contains whitespace."), *InName);
+		return;
+	}
+
+	if (InValue.Contains(TEXT(" ")))
+	{
+		ensureMsgf(false, TEXT("Attempted to set expression metadata with invalid value (%s). Empty, or contains whitespace."), *InValue);
 		return;
 	}
 
@@ -57,7 +64,7 @@ void FActorIOExpressionBase::SetMetadata(const FString& InName, const FString& I
 	while (*Stream)
 	{
 		FString NewMetadata;
-		if (FParse::Token(Stream, NewMetadata, true, TEXT(',')))
+		if (FParse::Token(Stream, NewMetadata, true))
 		{
 			MetadataLines.Emplace(NewMetadata);
 		}
@@ -81,7 +88,7 @@ void FActorIOExpressionBase::SetMetadata(const FString& InName, const FString& I
 
 	if (!bFound)
 	{
-		if (!Metadata.IsEmpty()) Metadata += TEXT(',');
+		if (!Metadata.IsEmpty()) Metadata += TEXT(' ');
 		Metadata += FString::Printf(TEXT("%s=%s"), *InName, *InValue);
 	}
 	else
@@ -89,7 +96,7 @@ void FActorIOExpressionBase::SetMetadata(const FString& InName, const FString& I
 		Metadata.Empty();
 		for (const FString& Line : MetadataLines)
 		{
-			if (!Metadata.IsEmpty()) Metadata += TEXT(',');
+			if (!Metadata.IsEmpty()) Metadata += TEXT(' ');
 			Metadata += Line;
 		}
 	}
@@ -108,7 +115,7 @@ bool FActorIOExpressionBase::RemoveMetadata(const FString& InName)
 	while (*Stream)
 	{
 		FString NewMetadata;
-		if (FParse::Token(Stream, NewMetadata, true, TEXT(',')))
+		if (FParse::Token(Stream, NewMetadata, true))
 		{
 			MetadataLines.Emplace(NewMetadata);
 		}
@@ -135,7 +142,7 @@ bool FActorIOExpressionBase::RemoveMetadata(const FString& InName)
 		Metadata.Empty();
 		for (const FString& Line : MetadataLines)
 		{
-			if (!Metadata.IsEmpty()) Metadata += TEXT(',');
+			if (!Metadata.IsEmpty()) Metadata += TEXT(' ');
 			Metadata += Line;
 		}
 	}
@@ -152,13 +159,13 @@ bool FActorIOExpressionBase::HasMetadata(const FString& InName) const
 {
 	FString Match = InName + TEXT('=');
 	FString Value; // unused
-	return FParse::Value(*Metadata, *Match, Value);
+	return FParse::Value(*Metadata, *Match, Value, false);
 }
 
 bool FActorIOExpressionBase::GetMetadata(const FString& InName, FString& OutValue) const
 {
 	FString Match = InName + TEXT('=');
-	return FParse::Value(*Metadata, *Match, OutValue);
+	return FParse::Value(*Metadata, *Match, OutValue, false);
 }
 
 //=======================================================

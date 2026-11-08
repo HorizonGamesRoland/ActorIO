@@ -264,13 +264,33 @@ public:
 	virtual void RefreshHeader() override;
 	//~ End FActorIOExpressionDetailBuilder Interface
 
+	/** Modify the literal value of the expression instance. */
+	void SetLiteralValue(const FString& InValue);
+
 protected:
 
-	/** @return Text value of the literal. */
-	FText OnGetValueText() const;
+	/**
+	 * The current value stored within the row widget.
+	 * Depending on the edited value type, this can be a float, int32, bool, etc...
+	 */
+	FVariant CurrentValue;
 
-	/** Called when the literal value is committed in the text box. */
-	void OnValueCommitted(const FText& InText, ETextCommit::Type InCommitType);
+protected:
+
+	/** @return Value widget for editing a string. */
+	TSharedRef<SWidget> GenerateDefaultValueWidget(struct FActorIOLiteralExpression* LiteralExpr);
+
+	/** @return Value widget for editing a float or integer number. */
+	TSharedRef<SWidget> GenerateNumericValueWidget(struct FActorIOLiteralExpression* LiteralExpr, bool bInteger);
+
+	/** @return Value widget for editing a bool. */
+	TSharedRef<SWidget> GenerateBoolValueWidget(struct FActorIOLiteralExpression* LiteralExpr);
+
+	/** @return Value widget for editing a 3D or 2D vector. */
+	TSharedRef<SWidget> GenerateVectorValueWidget(struct FActorIOLiteralExpression* LiteralExpr, bool bVector2D);
+
+	/** @return Value widget for editing a FRotator. */
+	TSharedRef<SWidget> GenerateRotatorValueWidget(struct FActorIOLiteralExpression* LiteralExpr);
 };
 
 /**
@@ -325,6 +345,9 @@ protected:
 
 	/** Refresh the list of selectable function names. */
 	void UpdateSelectableFunctions();
+
+	/** Called when the replace function button is pressed. */
+	void OnClick_ReplaceFunction();
 };
 
 /**

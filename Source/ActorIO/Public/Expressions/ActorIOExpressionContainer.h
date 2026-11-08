@@ -130,7 +130,7 @@ public:
 	FORCEINLINE const FActorIOExpressionBase* GetExpressionPtr(int32 Idx) const { return GetExpressionPtr<FActorIOExpressionBase>(Idx); }
 
 	/** @return Number of expressions owned by the expression at the given index. */
-	int32 GetNumChildExpressions(int32 ExprIdx, bool bRecursive = false) const; // #todo: check bRecursive
+	int32 GetNumChildExpressions(int32 ExprIdx, bool bRecursive = false) const;
 
 	/** @return Indexes of expressions owned by the expression at the given index. */
 	TArray<int32> GetChildExpressionIdxs(int32 ExprIdx) const;
@@ -181,7 +181,7 @@ protected:
 	/**
 	 * First half of the expression tree, the expression instances themselves.
 	 * Expressions are wrapped in TInstancedStruct, so that they can be allocated and stored dynamically.
-	 * The EditAnywhere tag is needed because the editor UI needs pointers to this property.
+	 * Marked as EditAnywhere to generate an IPropertyHandle, used by the container property customization.
 	 */
 	UPROPERTY(EditAnywhere)
 	TArray<TInstancedStruct<FActorIOExpressionBase>> Expressions;

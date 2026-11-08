@@ -35,19 +35,19 @@ int32 FActorIOExpressionContainer::AddExpression(const TInstancedStruct<FActorIO
 {
 	if (ParentIdx == INDEX_NONE && Expressions.Num() > 0)
 	{
-		// #todo: error
+		UE_LOG(LogActorIO, Error, TEXT("FActorIOExpressionContainer: Attempted to add an expression (%s) as root, but root already exists."), *Expr->GetTypeName().ToString());
 		return INDEX_NONE;
 	}
 
 	if (ParentIdx != INDEX_NONE && !Expressions.IsValidIndex(ParentIdx))
 	{
-		// #todo: error
+		UE_LOG(LogActorIO, Error, TEXT("FActorIOExpressionContainer: Attempted to add an expression (%s) to an invalid parent (%d) index."), *Expr->GetTypeName().ToString(), ParentIdx);
 		return INDEX_NONE;
 	}
 
 	if (ParentIdx != INDEX_NONE && !Expressions[ParentIdx]->CanContainChildExpressions())
 	{
-		// #todo: error
+		UE_LOG(LogActorIO, Error, TEXT("FActorIOExpressionContainer: Attempted to add an expression (%s) to a parent (%d) that has CanContainChildExpressions() == false."), *Expr->GetTypeName().ToString(), ParentIdx);
 		return INDEX_NONE;
 	}
 
@@ -64,6 +64,7 @@ int32 FActorIOExpressionContainer::AddExpression(const TInstancedStruct<FActorIO
 
 	if (!Expressions[ExprIdx]->Init())
 	{
+		UE_LOG(LogActorIO, Error, TEXT("FActorIOExpressionContainer: Expression (%s) Init() failed during add."), *Expr->GetTypeName().ToString());
 		RemoveExpression(ExprIdx);
 		return INDEX_NONE;
 	}
@@ -77,23 +78,26 @@ int32 FActorIOExpressionContainer::AddExpressionFromString(const FString& Str, i
 	FString Data;
 	if (!FActorIOExpressionParser::ParseBracket(Str, Prefix, Data))
 	{
+		UE_LOG(LogActorIO, Error, TEXT("FActorIOExpressionContainer: Failed to parse expression to add: %s"), *Str);
 		return INDEX_NONE;
 	}
 
-	TInstancedStruct<FActorIOExpressionBase> NewExprInstance = FActorIOExpressionParser::NewExpressionFromKeyword(Prefix);
-	if (!NewExprInstance.IsValid())
+	TInstancedStruct<FActorIOExpressionBase> Expr = FActorIOExpressionParser::NewExpressionFromKeyword(Prefix);
+	if (!Expr.IsValid())
 	{
+		UE_LOG(LogActorIO, Error, TEXT("FActorIOExpressionContainer: Failed to add expression from keyword: %s"), *Prefix);
 		return INDEX_NONE;
 	}
 
-	int32 ExprIdx = AddExpression(NewExprInstance, ParentIdx, SlotIdx);
+	int32 ExprIdx = AddExpression(Expr, ParentIdx, SlotIdx);
 	if (ExprIdx == INDEX_NONE)
 	{
 		return INDEX_NONE;
 	}
 
-	if (!Expressions[ExprIdx]->InitFromString(Str)) // #todo: is it an error if Data is empty?
+	if (!Expressions[ExprIdx]->InitFromString(Str))
 	{
+		UE_LOG(LogActorIO, Error, TEXT("FActorIOExpressionContainer: Expression (%s) InitFromString() failed during add. String was: %s."), *Expr->GetTypeName().ToString(), *Str);
 		RemoveExpression(ExprIdx);
 		return INDEX_NONE;
 	}
@@ -156,7 +160,7 @@ void FActorIOExpressionContainer::Empty()
 int32 FActorIOExpressionContainer::MoveExpressionTo(int32 ExprIdx, int32 ParentIdx, int32 SlotIdx)
 {
 	const int32 Num = Expressions.Num();
-	if (!ensure(Num == ParentIndexMapping.Num())) // #todo: make the same check everywhere
+	if (!ensureMsgf(Num == ParentIndexMapping.Num(), TEXT("Expression count and parent index count is mismatching! Container is corrupt.")))
 	{
 		return INDEX_NONE;
 	}
@@ -287,7 +291,13 @@ int32 FActorIOExpressionContainer::GetExpressionIdx(const FActorIOExpressionBase
 
 int32 FActorIOExpressionContainer::GetExpressionParentIdx(int32 Idx) const
 {
-	return ParentIndexMapping[Idx]; // #todo: return bool to support error checking?
+	const int32 Num = Expressions.Num();
+	if (!ensureMsgf(Num == ParentIndexMapping.Num(), TEXT("Expression count and parent index count is mismatching! Container is corrupt.")))
+	{
+		return INDEX_NONE;
+	}
+
+	return ParentIndexMapping[Idx];
 }
 
 int32 FActorIOExpressionContainer::GetExpressionSlotIdx(int32 Idx) const
@@ -299,23 +309,26 @@ int32 FActorIOExpressionContainer::GetExpressionSlotIdx(int32 Idx) const
 
 bool FActorIOExpressionContainer::IsEmpty() const
 {
-	return Expressions.IsEmpty(); // #todo: keep checking ParentIndexMapping.IsEmpty?
+	return Expressions.IsEmpty();
 }
 
 bool FActorIOExpressionContainer::IsValidIndex(int32 Idx) const
 {
-	return Expressions.IsValidIndex(Idx); // #todo: keep checking for ParentIndexMapping.IsValidIndex?
+	return Expressions.IsValidIndex(Idx);
 }
 
 int32 FActorIOExpressionContainer::GetNumChildExpressions(int32 ExprIdx, bool bRecursive) const
 {
+	const int32 Num = Expressions.Num();
+	if (!ensureMsgf(Num == ParentIndexMapping.Num(), TEXT("Expression count and parent index count is mismatching! Container is corrupt.")))
+	{
+		return 0;
+	}
+
 	int32 OutNumExpressions = 0;
-
-	ensure(Expressions.Num() == ParentIndexMapping.Num()); // #todo: convert to ensureMsgf
-
 	if (Expressions.IsValidIndex(ExprIdx))
 	{
-		for (int32 Idx = ExprIdx + 1; Idx != Expressions.Num(); ++Idx)
+		for (int32 Idx = ExprIdx + 1; Idx != Num; ++Idx)
 		{
 			if (ParentIndexMapping[Idx] == ExprIdx)
 			{
@@ -333,15 +346,21 @@ int32 FActorIOExpressionContainer::GetNumChildExpressions(int32 ExprIdx, bool bR
 
 TArray<int32> FActorIOExpressionContainer::GetChildExpressionIdxs(int32 ExprIdx) const
 {
-	TArray<int32> OutExpressionIdxs;
-
-	ensure(Expressions.Num() == ParentIndexMapping.Num());
-
-	for (int32 Idx = 0; Idx != Expressions.Num(); ++Idx) // #todo: this is now ordered, so loop from ExprIdx?
+	const int32 Num = Expressions.Num();
+	if (!ensureMsgf(Num == ParentIndexMapping.Num(), TEXT("Expression count and parent index count is mismatching! Container is corrupt.")))
 	{
-		if (ParentIndexMapping[Idx] == ExprIdx && Expressions[Idx].IsValid())
+		return TArray<int32>();
+	}
+
+	TArray<int32> OutExpressionIdxs;
+	if (Expressions.IsValidIndex(ExprIdx))
+	{
+		for (int32 Idx = ExprIdx + 1; Idx != Num; ++Idx)
 		{
-			OutExpressionIdxs.Add(Idx);
+			if (ParentIndexMapping[Idx] == ExprIdx)
+			{
+				OutExpressionIdxs.Add(Idx);
+			}
 		}
 	}
 
@@ -371,7 +390,10 @@ void FActorIOExpressionContainer::FixupContainerReferences()
 {
 	for (TInstancedStruct<FActorIOExpressionBase>& ExprInstance : Expressions)
 	{
-		ExprInstance->SetContainer(this);
+		if (ExprInstance.IsValid())
+		{
+			ExprInstance->SetContainer(this);
+		}
 	}
 
 	FixupContainerReferencesEvent.Broadcast();
@@ -379,6 +401,12 @@ void FActorIOExpressionContainer::FixupContainerReferences()
 
 bool FActorIOExpressionContainer::Evaluate(UObject* Executor)
 {
+	const int32 Num = Expressions.Num();
+	if (!ensureMsgf(Num == ParentIndexMapping.Num(), TEXT("Expression count and parent index count is mismatching! Container is corrupt.")))
+	{
+		return false;
+	}
+
 	FActorIOExpressionBase* RootExpr = GetExpressionPtr(0);
 	if (RootExpr && Executor)
 	{
@@ -406,7 +434,7 @@ bool FActorIOExpressionContainer::Serialize(FArchive& Ar)
 {
 	Ar.UsingCustomVersion(FActorIOExpressionVersion::GUID);
 	
-	// doesn't actually serialize, just write the custom version for PostSerialize (for use in the future)
+	// Doesn't actually serialize, just write the custom version for PostSerialize (for use in the future).
 	return false;
 }
 
@@ -414,6 +442,8 @@ void FActorIOExpressionContainer::PostSerialize(const FArchive& Ar)
 {
 	if (Ar.IsLoading() || Ar.IsTransacting())
 	{
+		// Automatically fixup container references during load and after any transaction.
+		// This ensures that the reference is initialized after load, and stays valid after any change happens.
 		FixupContainerReferences();
 	}
 }
@@ -423,14 +453,14 @@ bool FActorIOExpressionContainer::ImportTextItem(const TCHAR*& Buffer, int32 Por
 	bool bValue = false;
 	if (FParse::Bool(Buffer, TEXT("bIsConditionContainer="), bValue))
 	{
-		// do not allow importing from a different container type
+		// Do not allow importing from a different container type.
 		if (bValue != bIsConditionContainer)
 		{
 			return true;
 		}
 	}
 
-	// falls back to default tagged property import
+	// Falls back to default tagged property import.
 	return false;
 }
 
@@ -458,36 +488,44 @@ void FActorIOExpressionContainer::DebugDumpContainerData() const
 {
 	UE_LOG(LogActorIO, Log, TEXT("Dumping expression container data:"));
 
-	int32 NumExpression = GetNumExpressions();
-	if (NumExpression == 0)
+	const int32 Num = Expressions.Num();
+	if (!ensureMsgf(Num == ParentIndexMapping.Num(), TEXT("Expression count and parent index count is mismatching! Container is corrupt.")))
+	{
+		UE_LOG(LogActorIO, Log, TEXT("  Corrupt. Expression count and parent index count is mismatching!"));
+		return;
+	}
+
+	if (Num == 0)
 	{
 		UE_LOG(LogActorIO, Log, TEXT("  Empty"));
 		return;
 	}
 
-	TArray<FString> ExprLines;
-	int32 LongestLineLength = 0;
-	for (int32 Idx = 0; Idx != NumExpression; ++Idx)
+	TArray<FString> ExprTypes;
+	TArray<FString> ExprValues;
+	int32 LongestTypeLength = 0;
+	for (int32 Idx = 0; Idx != Num; ++Idx)
 	{
 		const FActorIOExpressionBase* Expr = GetExpressionPtr(Idx);
-		const FString NewLine = Expr->GetTypeName().ToString();
-		LongestLineLength = FMath::Max(LongestLineLength, NewLine.Len());
-		ExprLines.Add(NewLine);
+		const FString& TypeStr = ExprTypes.Add_GetRef(Expr->GetTypeName().ToString());
+		const FString& ValueStr = ExprValues.Add_GetRef(Expr->ToString());
+		LongestTypeLength = FMath::Max(LongestTypeLength, TypeStr.Len());
 	}
 
-	for (int32 Idx = 0; Idx != NumExpression; ++Idx)
+	for (int32 Idx = 0; Idx != Num; ++Idx)
 	{
-		FString Line = ExprLines[Idx];
+		FString TypeStr = ExprTypes[Idx];
+		const FString& ValueStr = ExprValues[Idx];
 
-		int32 LineCharDiff = LongestLineLength - Line.Len();
-		while (LineCharDiff > 0)
+		int32 LengthDiff = LongestTypeLength - TypeStr.Len();
+		while (LengthDiff > 0)
 		{
-			Line.AppendChar(TEXT(' '));
-			LineCharDiff--;
+			TypeStr.AppendChar(TEXT(' '));
+			LengthDiff--;
 		}
 
 		// %-3d prints the index left aligned, and space padded up to minimum of 3 characters.
 		const int32 ParentIdx = GetExpressionParentIdx(Idx);
-		UE_LOG(LogActorIO, Log, TEXT("  %-3d %s\t%d"), Idx, *Line, ParentIdx);
+		UE_LOG(LogActorIO, Log, TEXT("  %-3d %s\t%-3d %s"), Idx, *TypeStr, ParentIdx, *ValueStr);
 	}
 }

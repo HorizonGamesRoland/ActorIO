@@ -185,7 +185,6 @@ bool FActorIOKismetFunctionExpression::Evaluate(FExpressionEvaluationContext& In
 	UFunction* FunctionPtr = ResolveUFunction();
 	if (!FunctionPtr)
 	{
-		// #TODO: log error
 		return false;
 	}
 
@@ -298,7 +297,7 @@ bool FActorIOKismetFunctionExpression::CheckArgumentsNeedUpdate() const
 	FActorIOExpressionContainer* ExprContainer = GetContainer();
 	if (!ExprContainer) return false;
 
-	int32 SelfIdx = ExprContainer->GetExpressionIdx(this);
+	const int32 SelfIdx = ExprContainer->GetExpressionIdx(this);
 
 	UFunction* FunctionPtr = ResolveUFunction();
 	if (!FunctionPtr)
@@ -342,7 +341,7 @@ void FActorIOKismetFunctionExpression::UpdateArguments()
 	FActorIOExpressionContainer* ExprContainer = GetContainer();
 	if (!ExprContainer) return;
 
-	int32 SelfIdx = ExprContainer->GetExpressionIdx(this);
+	const int32 SelfIdx = ExprContainer->GetExpressionIdx(this);
 
 	UFunction* FunctionPtr = ResolveUFunction();
 	if (!FunctionPtr)
@@ -357,6 +356,10 @@ void FActorIOKismetFunctionExpression::UpdateArguments()
 	TArray<FProperty*> FunctionParams = IActorIO::GetUFunctionInputParams(FunctionPtr);
 	for (int32 ParamIdx = 0; ParamIdx != FunctionParams.Num(); ++ParamIdx)
 	{
+		// For each function param, try to find a child expression that matches that param.
+		// If it exists, make sure it is at the same index as the param (in case param order changed).
+		// Otherwise add a new child expression for that param.
+
 		if (bChildExprIdxsDirty)
 		{
 			ChildExprIdxs = ExprContainer->GetChildExpressionIdxs(SelfIdx);
@@ -391,6 +394,14 @@ void FActorIOKismetFunctionExpression::UpdateArguments()
 			NewExpr.SetMetadata(TEXT("PropName"), PropName);
 			NewExpr.SetMetadata(TEXT("PropType"), PropType);
 
+			// Auto assign value for world context param.
+			// Not initializing blueprint generated "__WorldContext" because the I/O system takes care of that.
+			// It is also skipped by IActorIO::GetUFunctionInputParams, so it never shows up here.
+			if (PropName == TEXT("WorldContextObject") || PropName == TEXT("WorldContext") || PropName == TEXT("WorldContextObj"))
+			{
+				NewExpr.SetLiteralValue(TEXT("$Executor"));
+			}
+
 			ExprContainer->AddExpression(NewExprInstance, SelfIdx, ParamIdx);
 			bChildExprIdxsDirty = true;
 			continue;
@@ -415,6 +426,9 @@ void FActorIOKismetFunctionExpression::UpdateArguments()
 		ChildExprIdxs = ExprContainer->GetChildExpressionIdxs(SelfIdx);
 		bChildExprIdxsDirty = false;
 	}
+
+	// At this point all params have a corresponding child expression.
+	// We now just have to remove the excess childs.
 
 	int32 Diff = ChildExprIdxs.Num() - FunctionParams.Num();
 	while (Diff > 0)
@@ -448,7 +462,7 @@ bool FActorIOCompareExpression::Init()
 	FActorIOExpressionContainer* ExprContainer = GetContainer();
 	if (!ExprContainer) return false;
 
-	int32 SelfIdx = ExprContainer->GetExpressionIdx(this);
+	const int32 SelfIdx = ExprContainer->GetExpressionIdx(this);
 	if (!ExprContainer->IsValidIndex(SelfIdx))
 	{
 		return false;
@@ -496,7 +510,7 @@ bool FActorIOCompareExpression::Evaluate(FExpressionEvaluationContext& InContext
 	FActorIOExpressionContainer* ExprContainer = GetContainer();
 	if (!ExprContainer) return false;
 
-	int32 SelfIdx = ExprContainer->GetExpressionIdx(this);
+	const int32 SelfIdx = ExprContainer->GetExpressionIdx(this);
 
 	TArray<int32> ChildIdxs = ExprContainer->GetChildExpressionIdxs(SelfIdx);
 	if (ChildIdxs.Num() != 2)
@@ -631,8 +645,7 @@ bool FActorIOCompareExpression::CheckArgumentCountValid() const
 	FActorIOExpressionContainer* ExprContainer = GetContainer();
 	if (!ExprContainer) return false;
 
-	int32 SelfIdx = ExprContainer->GetExpressionIdx(this);
-
+	const int32 SelfIdx = ExprContainer->GetExpressionIdx(this);
 	return ExprContainer->GetNumChildExpressions(SelfIdx) == 2;
 }
 
@@ -654,7 +667,7 @@ bool FActorIOGroupExpression::InitFromString(const FString& Str)
 	// - and()
 	// - or
 	// - and(func(...),func(...))
-	// - or(func(...),func(...),func(...))     #todo: add eq, neq examples
+	// - or(func(...),func(...),eq(...))
 
 	FString Prefix;
 	FString Data;

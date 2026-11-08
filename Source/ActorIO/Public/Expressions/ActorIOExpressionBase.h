@@ -168,7 +168,7 @@ private:
 	 */
 	FActorIOExpressionContainer* ParentContainer;
 
-	/** List of Key=Value pairs for storing contextual information about this expression. */
+	/** List of space delimited Key=Value pairs for storing contextual information about this expression. */
 	UPROPERTY()
 	FString Metadata;
 };

@@ -10,7 +10,11 @@
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/Input/SButton.h"
+#include "Widgets/Input/SCheckBox.h"
 #include "Widgets/Input/SComboBox.h"
+#include "Widgets/Input/SNumericEntryBox.h"
+#include "Widgets/Input/SVectorInputBox.h"
+#include "Widgets/Input/SRotatorInputBox.h"
 #include "Widgets/Input/SEditableTextBox.h"
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/Images/SImage.h"
@@ -60,7 +64,7 @@ TSharedRef<IPropertyTypeCustomization> FActorIOExpressionContainerCustomization:
 void FActorIOExpressionContainerCustomization::CustomizeHeader(TSharedRef<IPropertyHandle> StructPropertyHandle, FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
 {
 	PropStruct = StructPropertyHandle.ToSharedPtr();
-	PropExpressionArray = StructPropertyHandle->GetChildHandle(FName("Expressions"));
+	PropExpressionArray = StructPropertyHandle->GetChildHandle("Expressions");
 	PropUtilities = StructCustomizationUtils.GetPropertyUtilities();
 
 	const bool bMultipleSelected = PropStruct->GetNumOuterObjects() > 1;
@@ -705,13 +709,78 @@ void FActorIOLiteralExpressionBuilder::GenerateHeaderRowContent(FDetailWidgetRow
 {
 	FActorIOExpressionDetailBuilder::GenerateHeaderRowContent(NodeRow);
 
-	NodeRow
-	.ValueContent()
-	[
-		SNew(SEditableTextBox)
-		.Text(OnGetValueText())
-		.OnTextCommitted(FOnTextCommitted::CreateSP(this, &FActorIOLiteralExpressionBuilder::OnValueCommitted))
-	];
+	FActorIOLiteralExpression* LiteralExpr = Expr ? Expr->GetMutablePtr<FActorIOLiteralExpression>() : nullptr;
+	if (!LiteralExpr) return;
+
+	FString PropType;
+	LiteralExpr->GetMetadata(TEXT("PropType"), PropType);
+	if (!PropType.IsEmpty())
+	{
+		HeaderText->SetToolTipText(FText::Format(LOCTEXT("ExpressionEd_LiteralValueType", "Value Type: {0}"), FText::FromString(PropType)));
+	}
+
+	if (PropType == TEXT("Int32") || PropType == TEXT("Int64"))
+	{
+		NodeRow
+		.ValueContent()
+		[
+			GenerateNumericValueWidget(LiteralExpr, true)
+		];
+	}
+	else if (PropType == TEXT("Float") || PropType == TEXT("Double"))
+	{
+		NodeRow
+		.ValueContent()
+		[
+			GenerateNumericValueWidget(LiteralExpr, false)
+		];
+	}
+	else if (PropType == TEXT("Bool"))
+	{
+		NodeRow
+		.ValueContent()
+		[
+			GenerateBoolValueWidget(LiteralExpr)
+		];
+	}
+	else if (PropType == TEXT("FVector"))
+	{
+		NodeRow
+		.ValueContent()
+		.MinDesiredWidth(375.0f)
+		.MaxDesiredWidth(375.0f)
+		[
+			GenerateVectorValueWidget(LiteralExpr, false)
+		];
+	}
+	else if (PropType == TEXT("FVector2D"))
+	{
+		NodeRow
+		.ValueContent()
+		.MinDesiredWidth(250.0f)
+		.MaxDesiredWidth(250.0f)
+		[
+			GenerateVectorValueWidget(LiteralExpr, true)
+		];
+	}
+	else if (PropType == TEXT("FRotator"))
+	{
+		NodeRow
+		.ValueContent()
+		.MinDesiredWidth(375.0f)
+		.MaxDesiredWidth(375.0f)
+		[
+			GenerateRotatorValueWidget(LiteralExpr)
+		];
+	}
+	else
+	{
+		NodeRow
+		.ValueContent()
+		[
+			GenerateDefaultValueWidget(LiteralExpr)
+		];
+	}
 }
 
 void FActorIOLiteralExpressionBuilder::RefreshHeader()
@@ -724,15 +793,7 @@ void FActorIOLiteralExpressionBuilder::RefreshHeader()
 	}
 }
 
-FText FActorIOLiteralExpressionBuilder::OnGetValueText() const
-{
-	FActorIOLiteralExpression* LiteralExpr = Expr ? Expr->GetMutablePtr<FActorIOLiteralExpression>() : nullptr;
-	if (!LiteralExpr) return FText::GetEmpty();
-
-	return FText::FromString(LiteralExpr->GetLiteralValue());
-}
-
-void FActorIOLiteralExpressionBuilder::OnValueCommitted(const FText& InText, ETextCommit::Type InCommitType)
+void FActorIOLiteralExpressionBuilder::SetLiteralValue(const FString& InValue)
 {
 	FActorIOLiteralExpression* LiteralExpr = Expr ? Expr->GetMutablePtr<FActorIOLiteralExpression>() : nullptr;
 	if (!LiteralExpr) return;
@@ -748,9 +809,283 @@ void FActorIOLiteralExpressionBuilder::OnValueCommitted(const FText& InText, ETe
 
 	PropExpression->NotifyPreChange();
 
-	LiteralExpr->SetLiteralValue(InText.ToString());
+	LiteralExpr->SetLiteralValue(InValue);
 
 	PropExpression->NotifyPostChange(EPropertyChangeType::ValueSet);
+}
+
+TSharedRef<SWidget> FActorIOLiteralExpressionBuilder::GenerateDefaultValueWidget(FActorIOLiteralExpression* LiteralExpr)
+{
+	CurrentValue = LiteralExpr->GetLiteralValue();
+	return SNew(SEditableTextBox)
+		.Font(IDetailLayoutBuilder::GetDetailFont())
+		.Text(FText::FromString(LiteralExpr->GetLiteralValue()))
+		.OnTextCommitted_Lambda([this](const FText& InText, ETextCommit::Type InCommitType)
+		{
+			CurrentValue = InText.ToString();
+			SetLiteralValue(InText.ToString());
+		});
+}
+
+TSharedRef<SWidget> FActorIOLiteralExpressionBuilder::GenerateNumericValueWidget(FActorIOLiteralExpression* LiteralExpr, bool bInteger)
+{
+	if (bInteger)
+	{
+		CurrentValue = FCString::Atoi(*LiteralExpr->GetLiteralValue());
+		return SNew(SNumericEntryBox<int32>)
+			.Font(IDetailLayoutBuilder::GetDetailFont())
+			.AllowSpin(false)
+			.Value_Lambda([this]()
+			{
+				return CurrentValue.GetValue<int32>();
+			})
+			.OnValueChanged_Lambda([this](const int32 InNewValue)
+			{
+				CurrentValue = InNewValue;
+			})
+			.OnValueCommitted_Lambda([this](const int32 InNewValue, ETextCommit::Type InCommitType)
+			{
+				CurrentValue = InNewValue;
+				SetLiteralValue(FString::FromInt(InNewValue));
+			});
+	}
+	else
+	{
+		CurrentValue = FCString::Atof(*LiteralExpr->GetLiteralValue());
+		return SNew(SNumericEntryBox<float>)
+			.Font(IDetailLayoutBuilder::GetDetailFont())
+			.AllowSpin(true)
+			.MinValue(TOptional<float>()) // clear all min-max values because otherwise there will be a slider! this literally took 45 minutes to figure out...
+			.MaxValue(TOptional<float>())
+			.MinSliderValue(TOptional<float>())
+			.MaxSliderValue(TOptional<float>())
+			.Value_Lambda([this]()
+			{
+				return CurrentValue.GetValue<float>();
+			})
+			.OnValueChanged_Lambda([this](const float InNewValue)
+			{
+				CurrentValue = InNewValue;
+			})
+			.OnValueCommitted_Lambda([this](const float InNewValue, ETextCommit::Type InCommitType)
+			{
+				CurrentValue = InNewValue;
+				SetLiteralValue(FString::SanitizeFloat(InNewValue));
+			});
+	}
+}
+
+TSharedRef<SWidget> FActorIOLiteralExpressionBuilder::GenerateBoolValueWidget(FActorIOLiteralExpression* LiteralExpr)
+{
+	CurrentValue = FCString::ToBool(*LiteralExpr->GetLiteralValue());
+	return SNew(SCheckBox)
+		.IsChecked(CurrentValue.GetValue<bool>())
+		.OnCheckStateChanged_Lambda([this](ECheckBoxState InNewState)
+		{
+			CurrentValue = InNewState == ECheckBoxState::Checked;
+			SetLiteralValue(InNewState == ECheckBoxState::Checked ? TEXT("True") : TEXT("False"));
+		});
+}
+
+TSharedRef<SWidget> FActorIOLiteralExpressionBuilder::GenerateVectorValueWidget(FActorIOLiteralExpression* LiteralExpr, bool bVector2D)
+{
+	using SNumericVectorInputBox2D = SNumericVectorInputBox<float, UE::Math::TVector2<float>, 2>;
+	using SNumericVectorInputBox3D = SNumericVectorInputBox<float, UE::Math::TVector<float>, 3>;
+
+	if (bVector2D)
+	{
+		FVector2D VectorFromStr;
+		VectorFromStr.InitFromString(LiteralExpr->GetLiteralValue());
+
+		CurrentValue = VectorFromStr; // Input box is FVector2f but we use FVector2D due to FVariant!
+		return SNew(SNumericVectorInputBox2D)
+			.Font(IDetailLayoutBuilder::GetDetailFont())
+			.bColorAxisLabels(true)
+			.AllowSpin(true)
+			.X_Lambda([this]()
+			{
+				return CurrentValue.GetValue<FVector2D>().X;
+			})
+			.Y_Lambda([this]()
+			{
+				return CurrentValue.GetValue<FVector2D>().Y;
+			})
+			.OnXChanged_Lambda([this](const float InNewValue)
+			{
+				FVector2D Vector = CurrentValue.GetValue<FVector2D>();
+				Vector.X = InNewValue;
+				CurrentValue = Vector;
+			})
+			.OnYChanged_Lambda([this](const float InNewValue)
+			{
+				FVector2D Vector = CurrentValue.GetValue<FVector2D>();
+				Vector.Y = InNewValue;
+				CurrentValue = Vector;
+			})
+			.OnXCommitted_Lambda([this](const float InNewValue, ETextCommit::Type InCommitType)
+			{
+				FVector2D Vector = CurrentValue.GetValue<FVector2D>();
+				Vector.X = InNewValue;
+				CurrentValue = Vector;
+
+				FString ValueStr = Vector.ToString();
+				ValueStr.ReplaceInline(TEXT(" "), TEXT(","));
+				SetLiteralValue(ValueStr);
+			})
+			.OnYCommitted_Lambda([this](const float InNewValue, ETextCommit::Type InCommitType)
+			{
+				FVector2D Vector = CurrentValue.GetValue<FVector2D>();
+				Vector.Y = InNewValue;
+				CurrentValue = Vector;
+
+				FString ValueStr = Vector.ToString();
+				ValueStr.ReplaceInline(TEXT(" "), TEXT(","));
+				SetLiteralValue(ValueStr);
+			});
+	}
+	else
+	{
+		FVector VectorFromStr;
+		VectorFromStr.InitFromString(LiteralExpr->GetLiteralValue());
+
+		CurrentValue = VectorFromStr; // Input box is FVector3f but we use FVector due to FVariant!
+		return SNew(SNumericVectorInputBox3D)
+			.Font(IDetailLayoutBuilder::GetDetailFont())
+			.bColorAxisLabels(true)
+			.AllowSpin(true)
+			.X_Lambda([this]()
+			{
+				return CurrentValue.GetValue<FVector>().X;
+			})
+			.Y_Lambda([this]()
+			{
+				return CurrentValue.GetValue<FVector>().Y;
+			})
+			.Z_Lambda([this]()
+			{
+				return CurrentValue.GetValue<FVector>().Z;
+			})
+			.OnXChanged_Lambda([this](const float InNewValue)
+			{
+				FVector Vector = CurrentValue.GetValue<FVector>();
+				Vector.X = InNewValue;
+				CurrentValue = Vector;
+			})
+			.OnYChanged_Lambda([this](const float InNewValue)
+			{
+				FVector Vector = CurrentValue.GetValue<FVector>();
+				Vector.Y = InNewValue;
+				CurrentValue = Vector;
+			})
+			.OnZChanged_Lambda([this](const float InNewValue)
+			{
+				FVector Vector = CurrentValue.GetValue<FVector>();
+				Vector.Z = InNewValue;
+				CurrentValue = Vector;
+			})
+			.OnXCommitted_Lambda([this](const float InNewValue, ETextCommit::Type InCommitType)
+			{
+				FVector Vector = CurrentValue.GetValue<FVector>();
+				Vector.X = InNewValue;
+				CurrentValue = Vector;
+
+				FString ValueStr = Vector.ToString();
+				ValueStr.ReplaceInline(TEXT(" "), TEXT(","));
+				SetLiteralValue(ValueStr);
+			})
+			.OnYCommitted_Lambda([this](const float InNewValue, ETextCommit::Type InCommitType)
+			{
+				FVector Vector = CurrentValue.GetValue<FVector>();
+				Vector.Y = InNewValue;
+				CurrentValue = Vector;
+
+				FString ValueStr = Vector.ToString();
+				ValueStr.ReplaceInline(TEXT(" "), TEXT(","));
+				SetLiteralValue(ValueStr);
+			})
+			.OnZCommitted_Lambda([this](const float InNewValue, ETextCommit::Type InCommitType)
+			{
+				FVector Vector = CurrentValue.GetValue<FVector>();
+				Vector.Z = InNewValue;
+				CurrentValue = Vector;
+
+				FString ValueStr = Vector.ToString();
+				ValueStr.ReplaceInline(TEXT(" "), TEXT(","));
+				SetLiteralValue(ValueStr);
+			});
+	}
+}
+
+TSharedRef<SWidget> FActorIOLiteralExpressionBuilder::GenerateRotatorValueWidget(FActorIOLiteralExpression* LiteralExpr)
+{
+	FRotator RotatorFromStr;
+	RotatorFromStr.InitFromString(LiteralExpr->GetLiteralValue());
+
+	CurrentValue = RotatorFromStr;
+	return SNew(SNumericRotatorInputBox<FRotator::FReal>)
+		.Font(IDetailLayoutBuilder::GetDetailFont())
+		.bColorAxisLabels(true)
+		.AllowSpin(true)
+		.Roll_Lambda([this]()
+		{
+			return CurrentValue.GetValue<FRotator>().Roll;
+		})
+		.Pitch_Lambda([this]()
+		{
+			return CurrentValue.GetValue<FRotator>().Pitch;
+		})
+		.Yaw_Lambda([this]()
+		{
+			return CurrentValue.GetValue<FRotator>().Yaw;
+		})
+		.OnRollChanged_Lambda([this](const float InNewValue)
+		{
+			FRotator Rotator = CurrentValue.GetValue<FRotator>();
+			Rotator.Roll = InNewValue;
+			CurrentValue = Rotator;
+		})
+		.OnPitchChanged_Lambda([this](const float InNewValue)
+		{
+			FRotator Rotator = CurrentValue.GetValue<FRotator>();
+			Rotator.Pitch = InNewValue;
+			CurrentValue = Rotator;
+		})
+		.OnYawChanged_Lambda([this](const float InNewValue)
+		{
+			FRotator Rotator = CurrentValue.GetValue<FRotator>();
+			Rotator.Yaw = InNewValue;
+			CurrentValue = Rotator;
+		})
+		.OnRollCommitted_Lambda([this](const float InNewValue, ETextCommit::Type InCommitType)
+		{
+			FRotator Rotator = CurrentValue.GetValue<FRotator>();
+			Rotator.Roll = InNewValue;
+			CurrentValue = Rotator;
+
+			FString ValueStr = Rotator.ToString();
+			ValueStr.ReplaceInline(TEXT(" "), TEXT(","));
+			SetLiteralValue(ValueStr);
+		})
+		.OnPitchCommitted_Lambda([this](const float InNewValue, ETextCommit::Type InCommitType)
+		{
+			FRotator Rotator = CurrentValue.GetValue<FRotator>();
+			Rotator.Pitch = InNewValue;
+			CurrentValue = Rotator;
+
+			FString ValueStr = Rotator.ToString();
+			ValueStr.ReplaceInline(TEXT(" "), TEXT(","));
+			SetLiteralValue(ValueStr);
+		})
+		.OnYawCommitted_Lambda([this](const float InNewValue, ETextCommit::Type InCommitType)
+		{
+			FRotator Rotator = CurrentValue.GetValue<FRotator>();
+			Rotator.Yaw = InNewValue;
+			CurrentValue = Rotator;
+
+			FString ValueStr = Rotator.ToString();
+			ValueStr.ReplaceInline(TEXT(" "), TEXT(","));
+			SetLiteralValue(ValueStr);
+		});
 }
 
 //=======================================================
@@ -765,6 +1100,13 @@ TSharedRef<FActorIOExpressionDetailBuilder> FActorIOKismetFunctionExpressionBuil
 void FActorIOKismetFunctionExpressionBuilder::GenerateHeaderRowContent(FDetailWidgetRow& NodeRow)
 {
 	FActorIOExpressionDetailBuilder::GenerateHeaderRowContent(NodeRow);
+
+	FUIAction Action_ReplaceFunction(FExecuteAction::CreateSP(this, &FActorIOKismetFunctionExpressionBuilder::OnClick_ReplaceFunction));
+	NodeRow.AddCustomContextMenuAction(Action_ReplaceFunction,
+		LOCTEXT("ExpressionEd_ReplaceFunction", "Replace Function"),
+		LOCTEXT("ExpressionEd_ReplaceFunctionTooltip", "Replace the selected function"),
+		FSlateIcon(FAppStyle::GetAppStyleSetName(), "GraphEditor.OverrideFunction_16x")
+	);
 }
 
 void FActorIOKismetFunctionExpressionBuilder::GenerateChildContent(IDetailChildrenBuilder& ChildrenBuilder)
@@ -1076,6 +1418,29 @@ void FActorIOKismetFunctionExpressionBuilder::UpdateSelectableFunctions()
 			SelectableFunctions.AddUnique(FunctionPtr->GetFName());
 		}
 	}
+}
+
+void FActorIOKismetFunctionExpressionBuilder::OnClick_ReplaceFunction()
+{
+	FActorIOKismetFunctionExpression* FunctionExpr = Expr ? Expr->GetMutablePtr<FActorIOKismetFunctionExpression>() : nullptr;
+	if (!FunctionExpr) return;
+
+	TArray<UObject*> OuterObjects;
+	PropExpressionArray->GetOuterObjects(OuterObjects);
+
+	const FScopedTransaction Transaction(LOCTEXT("ModifyActorIOExpression", "Modify ActorIO Expression"));
+	for (UObject* OuterObject : OuterObjects)
+	{
+		OuterObject->Modify();
+	}
+
+	PropExpression->NotifyPreChange();
+	PropExpressionArray->NotifyPreChange();
+
+	FunctionExpr->SetFunctionName(NAME_None);
+
+	PropExpression->NotifyPostChange(EPropertyChangeType::ValueSet);
+	PropExpressionArray->NotifyPostChange(EPropertyChangeType::ValueSet);
 }
 
 //=======================================================
