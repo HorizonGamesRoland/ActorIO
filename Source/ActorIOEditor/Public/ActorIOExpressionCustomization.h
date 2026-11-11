@@ -262,12 +262,29 @@ public:
 	//~ Begin FActorIOExpressionDetailBuilder Interface
 	virtual void GenerateHeaderRowContent(FDetailWidgetRow& NodeRow) override;
 	virtual void RefreshHeader() override;
+	virtual void RefreshError() override;
+	virtual FReply OnClick_FixErrors() override;
 	//~ End FActorIOExpressionDetailBuilder Interface
 
 	/** Modify the literal value of the expression instance. */
 	void SetLiteralValue(const FString& InValue);
 
+	/** Set a list of values for the expression. If set, the row will display a value selector combo box. */
+	void SetSelectableValues(const TArray<FString>& InValues);
+
+	/** Clear the list of selectable values. */
+	void ClearSelectableValues();
+
+	/** @return The optional list of selectable values. */
+	const TOptional<TArray<TSharedPtr<FString>>>& GetSelectableValues() const { return SelectableValues; }
+
 protected:
+
+	/**
+	 * Optional list of selectable values.
+	 * If set, the row will display a value selector combo box.
+	 */
+	TOptional<TArray<TSharedPtr<FString>>> SelectableValues;
 
 	/**
 	 * The current value stored within the row widget.
@@ -276,6 +293,9 @@ protected:
 	FVariant CurrentValue;
 
 protected:
+
+	/** @return Value widget for picking from the optional list of selectable values. */
+	TSharedRef<SWidget> GenerateValueSelectorWidget(struct FActorIOLiteralExpression* LiteralExpr);
 
 	/** @return Value widget for editing a string. */
 	TSharedRef<SWidget> GenerateDefaultValueWidget(struct FActorIOLiteralExpression* LiteralExpr);

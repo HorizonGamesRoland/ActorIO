@@ -60,6 +60,189 @@ bool FActorIOLiteralExpression::Evaluate(FExpressionEvaluationContext& InContext
 	return true;
 }
 
+FString FActorIOLiteralExpression::CheckForErrors() const
+{
+	FString PropType;
+	GetMetadata(TEXT("PropType"), PropType);
+	if (!PropType.IsEmpty())
+	{
+		if (!CheckValueValidForPropType(PropType))
+		{
+			return TEXT("InvalidValueForPropType");
+		}
+	}
+
+	return TEXT("");
+}
+
+TOptional<int32> FActorIOLiteralExpression::GetLiteralValueAsInt32() const
+{
+	if (!LiteralValue.IsEmpty() && LiteralValue.IsNumeric())
+	{
+		return FCString::Atoi(*LiteralValue);
+	}
+
+	return TOptional<int32>();
+}
+
+TOptional<float> FActorIOLiteralExpression::GetLiteralValueAsFloat() const
+{
+	if (!LiteralValue.IsEmpty() && LiteralValue.IsNumeric())
+	{
+		return FCString::Atof(*LiteralValue);
+	}
+
+	return TOptional<float>();
+}
+
+TOptional<bool> FActorIOLiteralExpression::GetLiteralValueAsBool() const
+{
+	const FCoreTexts& CoreTexts = FCoreTexts::Get();
+
+	// FString::ToBool supports more edge cases, but these should be enough.
+	if (LiteralValue == TEXT("True")
+		|| LiteralValue == TEXT("Yes")
+		|| LiteralValue == TEXT("On")
+		|| LiteralValue == *(CoreTexts.True.ToString())
+		|| LiteralValue == *(CoreTexts.Yes.ToString()))
+	{
+		return LiteralValue.ToBool();
+	}
+	else if (LiteralValue == TEXT("False")
+		|| LiteralValue == TEXT("No")
+		|| LiteralValue == TEXT("Off")
+		|| LiteralValue == *(CoreTexts.False.ToString())
+		|| LiteralValue == *(CoreTexts.No.ToString()))
+	{
+		return LiteralValue.ToBool();
+	}
+	
+	return TOptional<bool>();
+}
+
+TOptional<FVector> FActorIOLiteralExpression::GetLiteralValueAsVector() const
+{
+	FVector VectorFromStr;
+	if (VectorFromStr.InitFromString(LiteralValue))
+	{
+		return VectorFromStr;
+	}
+
+	return TOptional<FVector>();
+}
+
+TOptional<FVector2D> FActorIOLiteralExpression::GetLiteralValueAsVector2D() const
+{
+	FVector2D VectorFromStr;
+	if (VectorFromStr.InitFromString(LiteralValue))
+	{
+		return VectorFromStr;
+	}
+
+	return TOptional<FVector2D>();
+}
+
+TOptional<FRotator> FActorIOLiteralExpression::GetLiteralValueAsRotator() const
+{
+	FRotator RotatorFromStr;
+	if (RotatorFromStr.InitFromString(LiteralValue))
+	{
+		return RotatorFromStr;
+	}
+
+	return TOptional<FRotator>();
+}
+
+void FActorIOLiteralExpression::SetLiteralValueToDefault()
+{
+	FString PropType;
+	GetMetadata(TEXT("PropType"), PropType);
+	if (!PropType.IsEmpty())
+	{
+		TOptional<FString> DefaultValueStr = GetDefaultValueForPropType(PropType);
+		if (DefaultValueStr.IsSet())
+		{
+			SetLiteralValue(*DefaultValueStr);
+			return;
+		}
+	}
+
+	SetLiteralValue(TEXT(""));
+}
+
+TOptional<FString> FActorIOLiteralExpression::GetDefaultValueForPropType(const FString& InPropType) const
+{
+	TOptional<FString> OutValue;
+	if (InPropType == TEXT("Int32") || InPropType == TEXT("Int64"))
+	{
+		OutValue = TEXT("0");
+		return OutValue;
+	}
+	else if (InPropType == TEXT("Float") || InPropType == TEXT("Double"))
+	{
+		OutValue = TEXT("0.0");
+		return OutValue;
+	}
+	else if (InPropType == TEXT("Bool"))
+	{
+		OutValue = TEXT("False");
+		return OutValue;
+	}
+	else if (InPropType == TEXT("FVector"))
+	{
+		OutValue = FVector::ZeroVector.ToString();
+		return OutValue;
+	}
+	else if (InPropType == TEXT("FVector2D"))
+	{
+		OutValue = FVector2D::ZeroVector.ToString();
+		return OutValue;
+	}
+	else if (InPropType == TEXT("FRotator"))
+	{
+		OutValue = FRotator::ZeroRotator.ToString();
+		return OutValue;
+	}
+
+	return OutValue;
+}
+
+bool FActorIOLiteralExpression::CheckValueValidForPropType(const FString& InPropType) const
+{
+	if (InPropType == TEXT("Int32") || InPropType == TEXT("Int64"))
+	{
+		TOptional<int32> ValueFromStr = GetLiteralValueAsInt32();
+		return ValueFromStr.IsSet();
+	}
+	else if (InPropType == TEXT("Float") || InPropType == TEXT("Double"))
+	{
+		TOptional<float> ValueFromStr = GetLiteralValueAsFloat();
+		return ValueFromStr.IsSet();
+	}
+	else if (InPropType == TEXT("Bool"))
+	{
+		TOptional<bool> ValueFromStr = GetLiteralValueAsBool();
+		return ValueFromStr.IsSet();
+	}
+	else if (InPropType == TEXT("FVector"))
+	{
+		TOptional<FVector> ValueFromStr = GetLiteralValueAsVector();
+		return ValueFromStr.IsSet();
+	}
+	else if (InPropType == TEXT("FVector2D"))
+	{
+		TOptional<FVector2D> ValueFromStr = GetLiteralValueAsVector2D();
+		return ValueFromStr.IsSet();
+	}
+	else if (InPropType == TEXT("FRotator"))
+	{
+		TOptional<FRotator> ValueFromStr = GetLiteralValueAsRotator();
+		return ValueFromStr.IsSet();
+	}
+
+	return true;
+}
+
 //=======================================================
 //~ Begin FActorIOKismetFunctionExpression
 //=======================================================
@@ -393,6 +576,7 @@ void FActorIOKismetFunctionExpression::UpdateArguments()
 			FActorIOLiteralExpression& NewExpr = NewExprInstance.InitializeAs<FActorIOLiteralExpression>();
 			NewExpr.SetMetadata(TEXT("PropName"), PropName);
 			NewExpr.SetMetadata(TEXT("PropType"), PropType);
+			NewExpr.SetLiteralValueToDefault();
 
 			// Auto assign value for world context param.
 			// Not initializing blueprint generated "__WorldContext" because the I/O system takes care of that.

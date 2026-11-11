@@ -9,18 +9,6 @@ FActorIOExpressionBuilderRegistry& FActorIOExpressionBuilderRegistry::Get()
 	return *FActorIOEditor::Get().GetExpressionBuilderRegistry();
 }
 
-void FActorIOExpressionBuilderRegistry::Initialize()
-{
-	RegisterExpressionBuilder(TEXT("Literal"), FOnGetExpressionDetailBuilder::CreateStatic(FActorIOLiteralExpressionBuilder::MakeInstance), false, false);
-	RegisterExpressionBuilder(TEXT("KismetFunction"), FOnGetExpressionDetailBuilder::CreateStatic(FActorIOKismetFunctionExpressionBuilder::MakeInstance), true, true);
-	RegisterExpressionBuilder(TEXT("Compare"), FOnGetExpressionDetailBuilder::CreateStatic(FActorIOCompareExpressionBuilder::MakeInstance), true, false);
-	RegisterExpressionBuilder(TEXT("Group"), FOnGetExpressionDetailBuilder::CreateStatic(FActorIOGroupExpressionBuilder::MakeInstance), true, false);
-}
-
-void FActorIOExpressionBuilderRegistry::Shutdown()
-{
-}
-
 void FActorIOExpressionBuilderRegistry::RegisterExpressionBuilder(FName TypeName, const FOnGetExpressionDetailBuilder& DetailBuilderDelegate, bool bCanAddToConditionContainer, bool bCanAddToNonConditionContainer)
 {
 	if (TypeName == NAME_None || !DetailBuilderDelegate.IsBound())

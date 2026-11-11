@@ -7,6 +7,7 @@
 #include "Misc/Optional.h"
 
 class FActorIOExpressionBuilderRegistry;
+class FActorIOExpressionValueProvider;
 class SActorIOEditor;
 class SDockTab;
 class FSpawnTabArgs;
@@ -31,6 +32,9 @@ private:
 	/** The global expression builder registry instance. */
 	TUniquePtr<FActorIOExpressionBuilderRegistry> ExpressionBuilderRegistry;
 
+	/** The global expression value provider instance. */
+	TUniquePtr<FActorIOExpressionValueProvider> ExpressionValueProvider;
+
 public:
 
 	/** @return The editor module of the Actor I/O plugin. */
@@ -38,6 +42,9 @@ public:
 
 	/** @return The global expression builder registry instance. */
 	FActorIOExpressionBuilderRegistry* GetExpressionBuilderRegistry() const { return ExpressionBuilderRegistry.Get(); }
+
+	/** @return The global expression value provider instance. */
+	FActorIOExpressionValueProvider* GetExpressionValueProvider() const { return ExpressionValueProvider.Get(); }
 
 	/** Request a refresh with the editor widget. */
 	void RefreshEditorWidget(bool bImmediate = false);

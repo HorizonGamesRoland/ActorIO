@@ -27,6 +27,7 @@ public:
 	virtual bool InitFromString(const FString& Str) override;
 	virtual FString ToString() const override;
 	virtual bool Evaluate(FExpressionEvaluationContext& InContext, FString& OutReturnValue) override;
+	virtual FString CheckForErrors() const override;
 	//~ End FActorIOExpressionBase Interface
 
 	/** Set the literal value of the expression. */
@@ -34,6 +35,23 @@ public:
 
 	/** @return The literal value of the expression. */
 	const FString& GetLiteralValue() const { return LiteralValue; }
+
+	/** @return The literal value of the expression as a specific type. */
+	TOptional<int32> GetLiteralValueAsInt32() const;
+	TOptional<float> GetLiteralValueAsFloat() const;
+	TOptional<bool> GetLiteralValueAsBool() const;
+	TOptional<FVector> GetLiteralValueAsVector() const;
+	TOptional<FVector2D> GetLiteralValueAsVector2D() const;
+	TOptional<FRotator> GetLiteralValueAsRotator() const;
+
+	/** Set the literal value of the expression to the default based on the property type. */
+	void SetLiteralValueToDefault();
+
+	/** @return Default value to use for the given property type. */
+	TOptional<FString> GetDefaultValueForPropType(const FString& InPropType) const;
+
+	/** @return Whether the current value of the expression can be parsed as a given property type (e.g. int32, float, bool, etc...) */
+	bool CheckValueValidForPropType(const FString& InPropType) const;
 
 protected:
 

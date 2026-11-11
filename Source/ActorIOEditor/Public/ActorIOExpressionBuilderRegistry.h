@@ -17,10 +17,16 @@ struct ACTORIOEDITOR_API FActorIOExpressionBuilderDesc
 	/** Delegate that creates a new instance of the expression builder. */
 	FOnGetExpressionDetailBuilder DetailBuilderDelegate;
 
-	/** Whether the expression should appear in the add menu of condition containers. */
+	/**
+	 * Whether the expression should appear in the add menu of condition containers.
+	 * @see FActorIOExpressionContainer::IsConditionContainer
+	 */
 	bool bCanAddToConditionContainer = true;
 
-	/** Whether the expression should appear in the add menu of non-condition containers. */
+	/**
+	 * Whether the expression should appear in the add menu of non-condition containers.
+	 * @see FActorIOExpressionContainer::IsConditionContainer
+	 */
 	bool bCanAddToNonConditionContainer = true;
 };
 
@@ -33,12 +39,6 @@ public:
 
 	/** @return The global registry instance of the module. */
 	static FActorIOExpressionBuilderRegistry& Get();
-
-	/** Register builders for core expressions on module startup. */
-	void Initialize();
-
-	/** Cleanup before module shutdown. */
-	void Shutdown();
 
 	/**
 	 * Register the detail builder of an expression.

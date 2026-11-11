@@ -5,8 +5,9 @@
 #include "ActorIOAction.h"
 #include "ActorIOComponent.h"
 #include "ActorIOComponentVisualizer.h"
-#include "ActorIOExpressionCustomization.h"
 #include "ActorIOExpressionBuilderRegistry.h"
+#include "ActorIOExpressionValueProvider.h"
+#include "ActorIOExpressionCustomization.h"
 #include "LogicActors/LogicActorBase.h"
 #include "Widgets/SActorIOEditor.h"
 #include "Widgets/Docking/SDockTab.h"
@@ -48,7 +49,13 @@ void FActorIOEditor::StartupModule()
 
 	// Initialize expression detail builder registry.
 	ExpressionBuilderRegistry = MakeUnique<FActorIOExpressionBuilderRegistry>();
-	ExpressionBuilderRegistry->Initialize();
+	ExpressionBuilderRegistry->RegisterExpressionBuilder(TEXT("Literal"), FOnGetExpressionDetailBuilder::CreateStatic(FActorIOLiteralExpressionBuilder::MakeInstance), false, false);
+	ExpressionBuilderRegistry->RegisterExpressionBuilder(TEXT("KismetFunction"), FOnGetExpressionDetailBuilder::CreateStatic(FActorIOKismetFunctionExpressionBuilder::MakeInstance), true, true);
+	ExpressionBuilderRegistry->RegisterExpressionBuilder(TEXT("Compare"), FOnGetExpressionDetailBuilder::CreateStatic(FActorIOCompareExpressionBuilder::MakeInstance), true, false);
+	ExpressionBuilderRegistry->RegisterExpressionBuilder(TEXT("Group"), FOnGetExpressionDetailBuilder::CreateStatic(FActorIOGroupExpressionBuilder::MakeInstance), true, false);
+
+	// Initialize expression value provider.
+	ExpressionValueProvider = MakeUnique<FActorIOExpressionValueProvider>();
 
 	// Register component visualizer to draw I/O lines between actors.
 	// The GUnrealEd check is important here for packaging.
@@ -85,10 +92,6 @@ void FActorIOEditor::ShutdownModule()
 	// Unregister Actor I/O editor tab.
 	FGlobalTabmanager::Get()->UnregisterNomadTabSpawner("ActorIO");
 
-	// Clear expression detail builder registry. 
-	ExpressionBuilderRegistry->Shutdown();
-	ExpressionBuilderRegistry.Reset();
-
 	// Unregister property customizations.
 	if (FModuleManager::Get().IsModuleLoaded("PropertyEditor"))
 	{
@@ -96,6 +99,10 @@ void FActorIOEditor::ShutdownModule()
 		PropertyModule.UnregisterCustomPropertyTypeLayout("ActorIOExpressionContainer");
 		PropertyModule.NotifyCustomizationModuleChanged();
 	}
+
+	// Clear expression detail builder and value providers.
+	ExpressionBuilderRegistry.Reset();
+	ExpressionValueProvider.Reset();
 
 	// Unregister component visualizer.
 	if (GUnrealEd)

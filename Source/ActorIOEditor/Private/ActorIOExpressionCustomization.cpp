@@ -150,14 +150,17 @@ void FActorIOExpressionContainerCustomization::CustomizeHeader(TSharedRef<IPrope
 
 void FActorIOExpressionContainerCustomization::CustomizeChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
 {
-	if (PropStruct->GetNumOuterObjects() > 1) return;
+	TArray<UObject*> OuterObjects;
+	PropStruct->GetOuterObjects(OuterObjects);
+
+	if (OuterObjects.Num() > 1) return;
 
 	FActorIOExpressionContainer* ExprContainer = GetContainerData();
 	if (!ExprContainer || ExprContainer->IsEmpty()) return;
 
 	// Workaround for a very specific issue regarding copy pasting the container property, and the old-new values match exactly.
 	// In this case, the container reference becomes invalid but no serialization is triggered in the editor.
-	// This messes up the container pointer, so we are going to trigger a fixup now.
+	// This messes up the container pointer for some reason, so we are going to trigger a fixup now.
 	// In reality this should be handled by the paste action / property text import but overriding these are complicated.
 	TInstancedStruct<FActorIOExpressionBase>& RootExpr = ExprContainer->GetExpression(0);
 	if (RootExpr->GetContainer() != ExprContainer)
@@ -522,7 +525,7 @@ void FActorIOExpressionDetailBuilder::RefreshHeader()
 
 void FActorIOExpressionDetailBuilder::RefreshError()
 {
-	FActorIOExpressionBase* ExprBase = Expr ? Expr->GetMutablePtr() : nullptr;
+	const FActorIOExpressionBase* ExprBase = Expr ? Expr->GetPtr() : nullptr;
 	if (ExprBase)
 	{
 		ErrorCode = ExprBase->CheckForErrors();
@@ -719,7 +722,15 @@ void FActorIOLiteralExpressionBuilder::GenerateHeaderRowContent(FDetailWidgetRow
 		HeaderText->SetToolTipText(FText::Format(LOCTEXT("ExpressionEd_LiteralValueType", "Value Type: {0}"), FText::FromString(PropType)));
 	}
 
-	if (PropType == TEXT("Int32") || PropType == TEXT("Int64"))
+	if (SelectableValues.IsSet())
+	{
+		NodeRow
+		.ValueContent()
+		[
+			GenerateValueSelectorWidget(LiteralExpr)
+		];
+	}
+	else if (PropType == TEXT("Int32") || PropType == TEXT("Int64"))
 	{
 		NodeRow
 		.ValueContent()
@@ -793,6 +804,49 @@ void FActorIOLiteralExpressionBuilder::RefreshHeader()
 	}
 }
 
+void FActorIOLiteralExpressionBuilder::RefreshError()
+{
+	FActorIOExpressionDetailBuilder::RefreshError();
+
+	FActorIOLiteralExpression* LiteralExpr = Expr ? Expr->GetMutablePtr<FActorIOLiteralExpression>() : nullptr;
+	if (!LiteralExpr) return;
+
+	if (ErrorCode == TEXT("InvalidValueForPropType"))
+	{
+		FString PropType;
+		LiteralExpr->GetMetadata(TEXT("PropType"), PropType);
+		ErrorButton->SetToolTipText(FText::Format(LOCTEXT("ExpressionEd_InvalidValueForPropTypeTooltip", "The current value ({0}) is invalid for type: {1}. Click to fix."),
+			FText::FromString(LiteralExpr->GetLiteralValue()),
+			FText::FromString(PropType)));
+	}
+}
+
+FReply FActorIOLiteralExpressionBuilder::OnClick_FixErrors()
+{
+	FActorIOLiteralExpression* LiteralExpr = Expr ? Expr->GetMutablePtr<FActorIOLiteralExpression>() : nullptr;
+	if (!LiteralExpr) return FReply::Handled();
+
+	if (ErrorCode == TEXT("InvalidValueForPropType"))
+	{
+		TArray<UObject*> OuterObjects;
+		PropExpression->GetOuterObjects(OuterObjects);
+
+		const FScopedTransaction Transaction(LOCTEXT("FixActorIOExpression", "Fix ActorIO Expression"));
+		for (UObject* OuterObject : OuterObjects)
+		{
+			OuterObject->Modify();
+		}
+
+		PropExpression->NotifyPreChange();
+
+		LiteralExpr->SetLiteralValueToDefault();
+
+		PropExpression->NotifyPostChange(EPropertyChangeType::ValueSet);
+	}
+
+	return FReply::Handled();
+}
+
 void FActorIOLiteralExpressionBuilder::SetLiteralValue(const FString& InValue)
 {
 	FActorIOLiteralExpression* LiteralExpr = Expr ? Expr->GetMutablePtr<FActorIOLiteralExpression>() : nullptr;
@@ -814,6 +868,63 @@ void FActorIOLiteralExpressionBuilder::SetLiteralValue(const FString& InValue)
 	PropExpression->NotifyPostChange(EPropertyChangeType::ValueSet);
 }
 
+void FActorIOLiteralExpressionBuilder::SetSelectableValues(const TArray<FString>& InValues)
+{
+	SelectableValues = TArray<TSharedPtr<FString>>();
+	for (const FString& ValueStr : InValues)
+	{
+		SelectableValues->Emplace(new FString(ValueStr));
+	}
+}
+
+void FActorIOLiteralExpressionBuilder::ClearSelectableValues()
+{
+	SelectableValues.Reset();
+}
+
+TSharedRef<SWidget> FActorIOLiteralExpressionBuilder::GenerateValueSelectorWidget(FActorIOLiteralExpression* LiteralExpr)
+{
+	CurrentValue = LiteralExpr->GetLiteralValue();
+	return SNew(SComboBox<TSharedPtr<FString>>)
+		.OptionsSource(&SelectableValues.GetValue())
+		.OnGenerateWidget_Lambda([](TSharedPtr<FString> InItem)
+		{
+			return SNew(STextBlock)
+				.Font(IDetailLayoutBuilder::GetDetailFont())
+				.Text(FText::FromString(*InItem));
+		})
+		.OnSelectionChanged_Lambda([this](TSharedPtr<FString> InItem, ESelectInfo::Type InSelectType)
+		{
+			CurrentValue = *InItem;
+			SetLiteralValue(*InItem);
+		})
+		.Content()
+		[
+			SNew(STextBlock)
+			.Font(IDetailLayoutBuilder::GetDetailFont())
+			.Text(FText::FromString(LiteralExpr->GetLiteralValue()))
+			.ColorAndOpacity_Lambda([this]()
+			{
+				const FString ValueStr = CurrentValue.GetValue<FString>();
+				if (!ValueStr.IsEmpty())
+				{
+					// Check whether the list of selectable values contain the current value.
+					const bool bIsValidValue = SelectableValues->ContainsByPredicate([ValueStr](const TSharedPtr<FString>& Other)
+					{
+						return *Other == ValueStr;
+					});
+					
+					if (!bIsValidValue)
+					{
+						return FStyleColors::Error;
+					}
+				}
+
+				return FSlateColor::UseForeground();
+			})
+		];
+}
+
 TSharedRef<SWidget> FActorIOLiteralExpressionBuilder::GenerateDefaultValueWidget(FActorIOLiteralExpression* LiteralExpr)
 {
 	CurrentValue = LiteralExpr->GetLiteralValue();
@@ -831,7 +942,9 @@ TSharedRef<SWidget> FActorIOLiteralExpressionBuilder::GenerateNumericValueWidget
 {
 	if (bInteger)
 	{
-		CurrentValue = FCString::Atoi(*LiteralExpr->GetLiteralValue());
+		TOptional<int32> ValueFromStr = LiteralExpr->GetLiteralValueAsInt32();
+		CurrentValue = ValueFromStr.IsSet() ? *ValueFromStr : int32(0);
+
 		return SNew(SNumericEntryBox<int32>)
 			.Font(IDetailLayoutBuilder::GetDetailFont())
 			.AllowSpin(false)
@@ -851,7 +964,9 @@ TSharedRef<SWidget> FActorIOLiteralExpressionBuilder::GenerateNumericValueWidget
 	}
 	else
 	{
-		CurrentValue = FCString::Atof(*LiteralExpr->GetLiteralValue());
+		TOptional<float> ValueFromStr = LiteralExpr->GetLiteralValueAsFloat();
+		CurrentValue = ValueFromStr.IsSet() ? *ValueFromStr : 0.0f;
+
 		return SNew(SNumericEntryBox<float>)
 			.Font(IDetailLayoutBuilder::GetDetailFont())
 			.AllowSpin(true)
@@ -877,7 +992,9 @@ TSharedRef<SWidget> FActorIOLiteralExpressionBuilder::GenerateNumericValueWidget
 
 TSharedRef<SWidget> FActorIOLiteralExpressionBuilder::GenerateBoolValueWidget(FActorIOLiteralExpression* LiteralExpr)
 {
-	CurrentValue = FCString::ToBool(*LiteralExpr->GetLiteralValue());
+	TOptional<bool> ValueFromStr = LiteralExpr->GetLiteralValueAsBool();
+	CurrentValue = ValueFromStr.IsSet() ? *ValueFromStr : false;
+
 	return SNew(SCheckBox)
 		.IsChecked(CurrentValue.GetValue<bool>())
 		.OnCheckStateChanged_Lambda([this](ECheckBoxState InNewState)
@@ -894,10 +1011,9 @@ TSharedRef<SWidget> FActorIOLiteralExpressionBuilder::GenerateVectorValueWidget(
 
 	if (bVector2D)
 	{
-		FVector2D VectorFromStr;
-		VectorFromStr.InitFromString(LiteralExpr->GetLiteralValue());
+		TOptional<FVector2D> ValueFromStr = LiteralExpr->GetLiteralValueAsVector2D();
+		CurrentValue = ValueFromStr.IsSet() ? *ValueFromStr : FVector2D::ZeroVector;
 
-		CurrentValue = VectorFromStr; // Input box is FVector2f but we use FVector2D due to FVariant!
 		return SNew(SNumericVectorInputBox2D)
 			.Font(IDetailLayoutBuilder::GetDetailFont())
 			.bColorAxisLabels(true)
@@ -945,10 +1061,9 @@ TSharedRef<SWidget> FActorIOLiteralExpressionBuilder::GenerateVectorValueWidget(
 	}
 	else
 	{
-		FVector VectorFromStr;
-		VectorFromStr.InitFromString(LiteralExpr->GetLiteralValue());
+		TOptional<FVector> ValueFromStr = LiteralExpr->GetLiteralValueAsVector();
+		CurrentValue = ValueFromStr.IsSet() ? *ValueFromStr : FVector::ZeroVector;
 
-		CurrentValue = VectorFromStr; // Input box is FVector3f but we use FVector due to FVariant!
 		return SNew(SNumericVectorInputBox3D)
 			.Font(IDetailLayoutBuilder::GetDetailFont())
 			.bColorAxisLabels(true)
@@ -1018,10 +1133,9 @@ TSharedRef<SWidget> FActorIOLiteralExpressionBuilder::GenerateVectorValueWidget(
 
 TSharedRef<SWidget> FActorIOLiteralExpressionBuilder::GenerateRotatorValueWidget(FActorIOLiteralExpression* LiteralExpr)
 {
-	FRotator RotatorFromStr;
-	RotatorFromStr.InitFromString(LiteralExpr->GetLiteralValue());
+	TOptional<FRotator> ValueFromStr = LiteralExpr->GetLiteralValueAsRotator();
+	CurrentValue = ValueFromStr.IsSet() ? *ValueFromStr : FRotator::ZeroRotator;
 
-	CurrentValue = RotatorFromStr;
 	return SNew(SNumericRotatorInputBox<FRotator::FReal>)
 		.Font(IDetailLayoutBuilder::GetDetailFont())
 		.bColorAxisLabels(true)
@@ -1127,7 +1241,7 @@ void FActorIOKismetFunctionExpressionBuilder::GenerateChildContent(IDetailChildr
 			TInstancedStruct<FActorIOExpressionBase>& ChildExpr = ExprContainer->GetExpression(ChildExpressionIdxs[Idx]);
 			TSharedPtr<IPropertyHandle> PropChildExpr = ParentCustomization->GetExpressionProperty(ChildExpressionIdxs[Idx]);
 
-			FText ChildExprDisplayName = LOCTEXT("ExpressionEd_InvalidParamName", "<Invalid>");
+			FText ChildExprDisplayName = LOCTEXT("ExpressionEd_UnknownParamName", "<Unknown>"); // #todo: rename ExpressionEd?
 			FString ChildExprPropName;
 			if (ChildExpr->GetMetadata(TEXT("PropName"), ChildExprPropName))
 			{
@@ -1140,6 +1254,8 @@ void FActorIOKismetFunctionExpressionBuilder::GenerateChildContent(IDetailChildr
 					}
 				}
 			}
+
+			// #todo: set value providers
 
 			TSharedRef<FActorIOExpressionDetailBuilder> Builder = FActorIODetailCustomizationHelper::NewExpressionDetailBuilderOfType(ChildExpr->GetTypeName());
 			Builder->SetExpression(PropChildExpr, &ChildExpr);
@@ -1395,10 +1511,10 @@ void FActorIOKismetFunctionExpressionBuilder::UpdateSelectableFunctions()
 	const UClass* ClassPtr = FunctionExpr->GetFunctionClass();
 	if (ClassPtr)
 	{
+		TArray<FName> FunctionNames;
 		for (TFieldIterator<UFunction> FunctIt(ClassPtr, EFieldIteratorFlags::IncludeSuper); FunctIt; ++FunctIt)
 		{
 			UFunction* FunctionPtr = *FunctIt;
-
 			if (ExprContainer->IsConditionContainer())
 			{
 				FProperty* ReturnProp = IActorIO::GetUFunctionReturnProperty(FunctionPtr);
@@ -1415,7 +1531,13 @@ void FActorIOKismetFunctionExpressionBuilder::UpdateSelectableFunctions()
 				}
 			}
 
-			SelectableFunctions.AddUnique(FunctionPtr->GetFName());
+			FunctionNames.Emplace(FunctionPtr->GetFName());
+		}
+
+		// Reverse iterate function names to get A-Z order.
+		for (int32 Idx = FunctionNames.Num() - 1; Idx >= 0; --Idx)
+		{
+			SelectableFunctions.AddUnique(FunctionNames[Idx]);
 		}
 	}
 }
@@ -1708,12 +1830,12 @@ void FActorIOGroupExpressionBuilder::RefreshHeader()
 		if (GroupExpr && GroupExpr->IsNegated())
 		{
 			HeaderText->SetText(LOCTEXT("ExpressionEd_GroupNameNegated", "OR"));
-			HeaderText->SetToolTipText(LOCTEXT("ExpressionEd_GroupTooltipNegated", "A group that is true if *Any* of its childs are true."));
+			HeaderText->SetToolTipText(LOCTEXT("ExpressionEd_GroupTooltipNegated", "OR group: True if ANY of its child expressions are true."));
 		}
 		else
 		{
 			HeaderText->SetText(LOCTEXT("ExpressionEd_GroupName", "AND"));
-			HeaderText->SetToolTipText(LOCTEXT("ExpressionEd_GroupTooltip", "A group that is true if *All* of its childs are true."));
+			HeaderText->SetToolTipText(LOCTEXT("ExpressionEd_GroupTooltip", "AND group: True if ALL of its child expressions are true."));
 		}
 	}
 }
