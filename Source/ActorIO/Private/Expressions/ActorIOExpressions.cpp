@@ -3,7 +3,11 @@
 #include "Expressions/ActorIOExpressions.h"
 #include "Expressions/ActorIOExpressionContainer.h"
 #include "ActorIOSubsystemBase.h"
-#include "Misc/OutputDeviceNull.h"
+#include "Misc/EngineVersionComparison.h"
+
+#if UE_VERSION_NEWER_THAN(5, 6, ENGINE_PATCH_VERSION)
+#include "Misc/StringOutputDevice.h"
+#endif
 
 //=======================================================
 //~ Begin FActorIOLiteralExpression
@@ -335,26 +339,58 @@ bool FActorIOKismetFunctionExpression::InitFromString(const FString& Str)
 	return true;
 }
 
+bool FActorIOKismetFunctionExpression::InitChildExpressionsFromString(const FString& Str)
+{
+	if (!Super::InitChildExpressionsFromString(Str))
+	{
+		return false;
+	}
+
+	UFunction* FunctionPtr = ResolveUFunction();
+	if (FunctionPtr)
+	{
+		// Initialize child expression property name and type metadata.
+		// This is needed because we are initializing from string directly, which doesn't contain that information.
+		// It is possible that the expression's value isn't valid for the given property type. If so, the editor will show an error so we are not handling it here.
+
+		const int32 SelfIdx = GetContainer()->GetExpressionIdx(this);
+		TArray<int32> ChildExprIdxs = GetContainer()->GetChildExpressionIdxs(SelfIdx);
+
+		TArray<FProperty*> FunctionParams = IActorIO::GetUFunctionInputParams(FunctionPtr);
+		for (int32 ParamIdx = 0; ParamIdx != FunctionParams.Num(); ++ParamIdx)
+		{
+			if (!ChildExprIdxs.IsValidIndex(ParamIdx))
+			{
+				break;
+			}
+
+			FString ExtendedTypeText;
+			FString PropType = FunctionParams[ParamIdx]->GetCPPType(&ExtendedTypeText) + ExtendedTypeText;
+			FString PropName = FunctionParams[ParamIdx]->GetAuthoredName();
+
+			FActorIOExpressionBase* ChildExpr = GetContainer()->GetExpressionPtr(ChildExprIdxs[ParamIdx]);
+			ChildExpr->SetMetadata(TEXT("PropName"), PropName);
+			ChildExpr->SetMetadata(TEXT("PropType"), PropType);
+		}
+	}
+
+	return true;
+}
+
 FString FActorIOKismetFunctionExpression::ToString() const
 {
-	FString FuncData;
-	if (FunctionClass)
+	FString FuncData = GetFunctionPath();
+	
+	FString ChildsData = ChildExpressionsToString();
+	if (!ChildsData.IsEmpty())
 	{
-		FuncData += FunctionClass->GetPathName();
-		FuncData += TEXT(':');
-		FuncData += FunctionName.ToString();
+		FuncData += FString::Printf(TEXT("(%s)"), *ChildsData);
+	}
 
-		FString ChildsData = ChildExpressionsToString();
-		if (!ChildsData.IsEmpty())
-		{
-			FuncData += FString::Printf(TEXT("(%s)"), *ChildsData);
-		}
-
-		if (bNegated)
-		{
-			FString DataToWrap = FuncData;
-			FuncData = FString::Printf(TEXT("not(%s)"), *DataToWrap);
-		}
+	if (bNegated)
+	{
+		FString DataToWrap = FuncData;
+		FuncData = FString::Printf(TEXT("not(%s)"), *DataToWrap);
 	}
 
 	return FString::Printf(TEXT("func(%s)"), *FuncData);
@@ -418,8 +454,16 @@ bool FActorIOKismetFunctionExpression::Evaluate(FExpressionEvaluationContext& In
 		}
 	};
 
-	FOutputDeviceNull Ar;
-	return IOSubsystem->ExecuteCommand(ClassPtr->GetDefaultObject(), *Cmd, Ar, IOSubsystem, ReturnPropertyAccessor);
+	FStringOutputDevice Ar;
+	bool bResult = IOSubsystem->ExecuteCommand(ClassPtr->GetDefaultObject(), *Cmd, Ar, IOSubsystem, ReturnPropertyAccessor);
+
+	// Log execution errors.
+	if (!Ar.IsEmpty())
+	{
+		IActorIO::ExecutionError(DebugIOActions, ELogVerbosity::Error, Ar);
+	}
+
+	return bResult;
 }
 
 FString FActorIOKismetFunctionExpression::CheckForErrors() const
@@ -465,6 +509,19 @@ void FActorIOKismetFunctionExpression::SetFunctionName(FName InFunctionName)
 	}
 }
 
+FString FActorIOKismetFunctionExpression::GetFunctionPath() const
+{
+	FString OutPath;
+	if (FunctionClass && FunctionName != NAME_None)
+	{
+		OutPath += FunctionClass->GetPathName();
+		OutPath += TEXT(':');
+		OutPath += FunctionName.ToString();
+	}
+	
+	return OutPath;
+}
+
 UFunction* FActorIOKismetFunctionExpression::ResolveUFunction() const
 {
 	if (FunctionClass && FunctionName != NAME_None)
@@ -481,7 +538,7 @@ bool FActorIOKismetFunctionExpression::CheckArgumentsNeedUpdate() const
 	if (!ExprContainer) return false;
 
 	const int32 SelfIdx = ExprContainer->GetExpressionIdx(this);
-
+	
 	UFunction* FunctionPtr = ResolveUFunction();
 	if (!FunctionPtr)
 	{

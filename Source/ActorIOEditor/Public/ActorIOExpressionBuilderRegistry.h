@@ -24,10 +24,10 @@ struct ACTORIOEDITOR_API FActorIOExpressionBuilderDesc
 	bool bCanAddToConditionContainer = true;
 
 	/**
-	 * Whether the expression should appear in the add menu of non-condition containers.
+	 * Whether the expression should appear in the add menu of regular action (non-condition) containers.
 	 * @see FActorIOExpressionContainer::IsConditionContainer
 	 */
-	bool bCanAddToNonConditionContainer = true;
+	bool bCanAddToActionContainer = true;
 };
 
 /**

@@ -78,6 +78,7 @@ public:
 	//~ Begin FActorIOExpressionBase Interface
 	virtual FName GetTypeName() const override { return FName("KismetFunction"); }
 	virtual bool InitFromString(const FString& Str) override;
+	virtual bool InitChildExpressionsFromString(const FString& Str) override;
 	virtual FString ToString() const override;
 	virtual bool Evaluate(FExpressionEvaluationContext& InContext, FString& OutReturnValue) override;
 	virtual FString CheckForErrors() const override;
@@ -90,10 +91,13 @@ public:
 	void SetFunctionName(FName InFunctionName);
 
 	/** @return Class that contains the function. */
-	const UClass* GetFunctionClass() const { return FunctionClass.Get(); }
+	UClass* GetFunctionClass() const { return FunctionClass.Get(); }
 
 	/** @return Name of the function to execute. */
 	FName GetFunctionName() const { return FunctionName; }
+
+	/** @return Path to the function including the class. Format is: /Path/To/Class:FunctionName */
+	FString GetFunctionPath() const;
 
 	/** @return UFunction that will be executed by the expression. */
 	UFunction* ResolveUFunction() const;

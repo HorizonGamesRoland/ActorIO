@@ -67,7 +67,7 @@ protected:
 	TSharedPtr<IPropertyUtilities> PropUtilities;
 
 	/** Whether the 'HideRootExpression' meta tag is applied to the property. */
-	bool bRootExpressionHidden;
+	bool bHideRootExpression;
 
 	/** Handle for when container references are fixed up for elements in the container. */
 	FDelegateHandle DelegateHandle_FixupContainerReferences;
@@ -197,6 +197,9 @@ protected:
 
 	/** Called when the negate button is clicked. */
 	void OnClick_Negate();
+
+	/** Called when the duplicate context menu action is clicked. */
+	void OnClick_Duplicate();
 };
 
 /**

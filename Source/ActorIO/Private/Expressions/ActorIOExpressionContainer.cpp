@@ -16,7 +16,7 @@ bool FActorIOExpressionContainer::InitFromString(const FString& Str)
 		Empty();
 	}
 
-	int32 ExprIdx = AddExpressionFromString(Str, INDEX_NONE);
+	const int32 ExprIdx = AddExpressionFromString(Str, INDEX_NONE);
 	return ExprIdx != INDEX_NONE;
 }
 
@@ -69,6 +69,7 @@ int32 FActorIOExpressionContainer::AddExpression(const TInstancedStruct<FActorIO
 		return INDEX_NONE;
 	}
 
+	ContainerChangeEvent.Broadcast();
 	return ExprIdx;
 }
 
@@ -89,7 +90,7 @@ int32 FActorIOExpressionContainer::AddExpressionFromString(const FString& Str, i
 		return INDEX_NONE;
 	}
 
-	int32 ExprIdx = AddExpression(Expr, ParentIdx, SlotIdx);
+	const int32 ExprIdx = AddExpression(Expr, ParentIdx, SlotIdx);
 	if (ExprIdx == INDEX_NONE)
 	{
 		return INDEX_NONE;
@@ -107,27 +108,31 @@ int32 FActorIOExpressionContainer::AddExpressionFromString(const FString& Str, i
 
 void FActorIOExpressionContainer::RemoveExpression(int32 ExprIdx)
 {
-	if (Expressions.IsValidIndex(ExprIdx))
+	if (!Expressions.IsValidIndex(ExprIdx))
 	{
-		RemoveChildExpressions(ExprIdx);
+		return;
+	}
 
-		if (Expressions[ExprIdx].IsValid())
+	RemoveChildExpressions(ExprIdx);
+
+	if (Expressions[ExprIdx].IsValid())
+	{
+		Expressions[ExprIdx]->SetContainer(nullptr);
+	}
+
+	Expressions.RemoveAt(ExprIdx);
+	ParentIndexMapping.RemoveAt(ExprIdx);
+
+	// Shift parent indices down to account for the removed element.
+	for (int32& ParentIdx : ParentIndexMapping)
+	{
+		if (ParentIdx > ExprIdx)
 		{
-			Expressions[ExprIdx]->SetContainer(nullptr);
-		}
-
-		Expressions.RemoveAt(ExprIdx);
-		ParentIndexMapping.RemoveAt(ExprIdx);
-
-		// Shift parent indices down to account for the removed element.
-		for (int32& ParentIdx : ParentIndexMapping)
-		{
-			if (ParentIdx > ExprIdx)
-			{
-				ParentIdx--;
-			}
+			ParentIdx--;
 		}
 	}
+
+	ContainerChangeEvent.Broadcast();
 }
 
 void FActorIOExpressionContainer::RemoveChildExpressions(int32 ExprIdx)
@@ -270,6 +275,7 @@ int32 FActorIOExpressionContainer::MoveExpressionTo(int32 ExprIdx, int32 ParentI
 	Expressions = MoveTemp(NewExpressions);
 	ParentIndexMapping = MoveTemp(NewParentMapping);
 
+	ContainerChangeEvent.Broadcast();
 	return OldToNew[ExprIdx];
 }
 

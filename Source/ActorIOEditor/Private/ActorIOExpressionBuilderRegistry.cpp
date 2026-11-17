@@ -9,7 +9,7 @@ FActorIOExpressionBuilderRegistry& FActorIOExpressionBuilderRegistry::Get()
 	return *FActorIOEditor::Get().GetExpressionBuilderRegistry();
 }
 
-void FActorIOExpressionBuilderRegistry::RegisterExpressionBuilder(FName TypeName, const FOnGetExpressionDetailBuilder& DetailBuilderDelegate, bool bCanAddToConditionContainer, bool bCanAddToNonConditionContainer)
+void FActorIOExpressionBuilderRegistry::RegisterExpressionBuilder(FName TypeName, const FOnGetExpressionDetailBuilder& DetailBuilderDelegate, bool bCanAddToConditionContainer, bool bCanAddToActionContainer)
 {
 	if (TypeName == NAME_None || !DetailBuilderDelegate.IsBound())
 	{
@@ -20,7 +20,7 @@ void FActorIOExpressionBuilderRegistry::RegisterExpressionBuilder(FName TypeName
 	FActorIOExpressionBuilderDesc Desc;
 	Desc.DetailBuilderDelegate = DetailBuilderDelegate;
 	Desc.bCanAddToConditionContainer = bCanAddToConditionContainer;
-	Desc.bCanAddToNonConditionContainer = bCanAddToNonConditionContainer;
+	Desc.bCanAddToActionContainer = bCanAddToActionContainer;
 
 	ExpressionBuilderMap.Add(TypeName, Desc);
 }

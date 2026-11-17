@@ -144,6 +144,9 @@ public:
 	 */
 	void FixupContainerReferences();
 
+	/** Event after an expression was added, removed, or moved in the tree. */
+	FSimpleMulticastDelegate& OnContainerChanged() { return ContainerChangeEvent; }
+
 	/** Event after container references were set for all expressions in the tree. */
 	FSimpleMulticastDelegate& OnFixupContainerReferences() { return FixupContainerReferencesEvent; }
 
@@ -202,7 +205,8 @@ protected:
 	UPROPERTY()
 	bool bIsConditionContainer;
 
-	// #todo: container change event?
+	/** Delegate called after an expression was added, removed, or moved in the tree. */
+	FSimpleMulticastDelegate ContainerChangeEvent;
 
 	/** Delegate called after container references were set for all expressions in the tree. */
 	FSimpleMulticastDelegate FixupContainerReferencesEvent;
