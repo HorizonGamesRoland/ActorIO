@@ -531,6 +531,9 @@ public:
 	/** @return The native return property, or optionally the first non ref 'out' property of the given UFunction. */
 	static FProperty* GetUFunctionReturnProperty(UFunction* FunctionPtr, bool bIncludeOutParams = true);
 
+	/** @return True if this property is a world context object.  */
+	static bool IsWorldContextProperty(FProperty* InProperty);
+
 	/** Perform basic checks to see if the given arguments can be imported into the function as parameters. */
 	static bool ValidateFunctionArguments(UFunction* FunctionPtr, const FString& InArguments, FText& OutError);
 

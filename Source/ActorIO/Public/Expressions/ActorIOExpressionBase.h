@@ -229,4 +229,7 @@ public:
 	 * Data:    "Hello World"
 	 */
 	static bool ParseBracket(const FString& Str, FString& OutPrefix, FString& OutData);
+
+	/** Turns Str into (Str) if it isn't already in brackets or bForceAppend is on. */
+	static void AppendBracket(FString& Str, bool bForceAppend);
 };

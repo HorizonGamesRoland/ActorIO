@@ -409,26 +409,25 @@ void UActorIOSubsystemBase::ProcessMessage(const FActorIOMessage& InMessage)
         }
     }
 
-    // Get the quoted name of the function to call on the target actor.
+    // Start building the command by getting the quoted name of the function.
     // Quotes are needed to support function names with whitespaces.
-    FString FunctionName = TargetFunction->FunctionToExec;
-    if (FunctionName.Len() > 0)
+    FString Command = TargetFunction->FunctionToExec;
     {
-        if (FunctionName[0] != '"')
+        if (Command.IsEmpty() || Command[0] != '"')
         {
-            FunctionName.InsertAt(0, '"');
+            Command.InsertAt(0, '"');
         }
 
-        const int32 LastCharIndex = FunctionName.Len() - 1;
-        if (FunctionName[LastCharIndex] != '"')
+        const int32 LastCharIndex = Command.Len() - 1;
+        if (Command[LastCharIndex] != '"')
         {
-            FunctionName.AppendChar('"');
+            Command.AppendChar('"');
         }
     }
 
-    // Build the final command that is executed on the target actor.
-    // Format is: FunctionName Arg1 Arg2 Arg3 (...)
-    FString Command = FunctionName + InMessage.Arguments;
+    // Append function arguments.
+    // Final format of the command is: FunctionName Arg1 Arg2 Arg3 (...)
+    Command += InMessage.Arguments;
 
     UE_CLOG(LogIOFinalCommand, LogActorIO, Log, TEXT("Executing command: %s (Target: %s)"), *Command, *TargetObject->GetName());
 
@@ -455,10 +454,10 @@ bool UActorIOSubsystemBase::ExecuteCommand(UObject* Target, const TCHAR* Str, FO
      *   - FindFunction and ProcessEvent are called on Target.
      *   - Add IsValid check for Target before finding UFunction.
      *   - Use Ar.Logf instead of UE_LOG(LogScriptCore) because LogScriptCore is static therefore its verbosity cannot be changed.
-     *   - Auto initialize blueprint generated '__WorldContext' property to support static functions.
+     *   - Auto initialize world context properties to support static functions.
      *   - Skip importing value for 'out' properties that are not passed by 'ref'.
      *   - Skip CPP param default value initialization because it only works in editor and not packaged games.
-     *   - Add return property accessor function
+     *   - Add return property accessor function.
      *   - Return success/failure properly.
      */
 
@@ -532,12 +531,15 @@ bool UActorIOSubsystemBase::ExecuteCommand(UObject* Target, const TCHAR* Str, FO
         }
 
         /**
-         * AUTO INITIALIZE BLUEPRINT GENERATED '__WORLDCONTEXT' PROPERTY TO SUPPORT STATIC FUNCTIONS
+         * AUTO INITIALIZE WORLD CONTEXT PROPERTIES TO SUPPORT STATIC FUNCTIONS
+         * 
+         * I'm not exactly sure why this is needed.
+         * The code above is intended to do the same thing, but it did not work for static functions.
          */
-        if (PropertyParam->GetName() == TEXT("__WorldContext"))
+        if (IActorIO::IsWorldContextProperty(PropertyParam) && Executor)
         {
             FObjectPropertyBase* Op = CastField<FObjectPropertyBase>(*It);
-            if (Op && Executor)
+            if (Op && Executor->IsA(Op->PropertyClass))
             {
                 Op->SetObjectPropertyValue(Op->ContainerPtrToValuePtr<uint8>(Parms), Executor);
                 continue;

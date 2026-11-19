@@ -338,9 +338,8 @@ TArray<FProperty*> IActorIO::GetUFunctionInputParams(UFunction* FunctionPtr, boo
             continue;
         }
 
-        // Skip blueprint generated '__WorldContext' property.
-        // The value for this will be auto initialized for us by the 'ActorIO::ExecuteCommand' function.
-        if (FunctionProp->GetName() == TEXT("__WorldContext") && bExcludeGeneratedWorldContextParam)
+        // Skip world context properties. The value for this is auto initialized by the 'ActorIO::ExecuteCommand' function.
+        if (bExcludeGeneratedWorldContextParam && IActorIO::IsWorldContextProperty(FunctionProp))
         {
             continue;
         }
@@ -376,6 +375,14 @@ FProperty* IActorIO::GetUFunctionReturnProperty(UFunction* FunctionPtr, bool bIn
     }
 
     return OutProperty;
+}
+
+bool IActorIO::IsWorldContextProperty(FProperty* InProperty)
+{
+    return InProperty && (InProperty->GetName() == TEXT("__WorldContext") ||
+        InProperty->GetName() == TEXT("WorldContextObject") ||
+        InProperty->GetName() == TEXT("WorldContext") ||
+        InProperty->GetName() == TEXT("WorldContextObj"));
 }
 
 bool IActorIO::ValidateFunctionArguments(UFunction* InFunctionPtr, const FString& InArguments, FText& OutError)

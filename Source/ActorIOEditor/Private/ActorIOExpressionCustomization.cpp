@@ -144,7 +144,7 @@ void FActorIOExpressionContainerCustomization::CustomizeHeader(TSharedRef<IPrope
 		.AutoWidth()
 		[
 			PropertyCustomizationHelpers::MakeCustomButton(FCoreStyle::Get().GetBrush("Icons.Info"), FSimpleDelegate::CreateSP(this, &FActorIOExpressionContainerCustomization::OnClick_DebugExpressions),
-				LOCTEXT("ExpressionEd_DebugExpression", "Debug Expression"), !bMultipleSelected)
+				LOCTEXT("ExpressionEd_DebugExpressions", "Debug Log Expressions"), !bMultipleSelected)
 		]
 	];
 }
@@ -1093,6 +1093,7 @@ TSharedRef<SWidget> FActorIOLiteralExpressionBuilder::GenerateVectorValueWidget(
 
 				FString ValueStr = Vector.ToString();
 				ValueStr.ReplaceInline(TEXT(" "), TEXT(","));
+				FActorIOExpressionParser::AppendBracket(ValueStr, true);
 				SetLiteralValue(ValueStr);
 			})
 			.OnYCommitted_Lambda([this](const float InNewValue, ETextCommit::Type InCommitType)
@@ -1103,6 +1104,7 @@ TSharedRef<SWidget> FActorIOLiteralExpressionBuilder::GenerateVectorValueWidget(
 
 				FString ValueStr = Vector.ToString();
 				ValueStr.ReplaceInline(TEXT(" "), TEXT(","));
+				FActorIOExpressionParser::AppendBracket(ValueStr, true);
 				SetLiteralValue(ValueStr);
 			});
 	}
@@ -1153,6 +1155,7 @@ TSharedRef<SWidget> FActorIOLiteralExpressionBuilder::GenerateVectorValueWidget(
 
 				FString ValueStr = Vector.ToString();
 				ValueStr.ReplaceInline(TEXT(" "), TEXT(","));
+				FActorIOExpressionParser::AppendBracket(ValueStr, true);
 				SetLiteralValue(ValueStr);
 			})
 			.OnYCommitted_Lambda([this](const float InNewValue, ETextCommit::Type InCommitType)
@@ -1163,6 +1166,7 @@ TSharedRef<SWidget> FActorIOLiteralExpressionBuilder::GenerateVectorValueWidget(
 
 				FString ValueStr = Vector.ToString();
 				ValueStr.ReplaceInline(TEXT(" "), TEXT(","));
+				FActorIOExpressionParser::AppendBracket(ValueStr, true);
 				SetLiteralValue(ValueStr);
 			})
 			.OnZCommitted_Lambda([this](const float InNewValue, ETextCommit::Type InCommitType)
@@ -1173,6 +1177,7 @@ TSharedRef<SWidget> FActorIOLiteralExpressionBuilder::GenerateVectorValueWidget(
 
 				FString ValueStr = Vector.ToString();
 				ValueStr.ReplaceInline(TEXT(" "), TEXT(","));
+				FActorIOExpressionParser::AppendBracket(ValueStr, true);
 				SetLiteralValue(ValueStr);
 			});
 	}
@@ -1225,6 +1230,7 @@ TSharedRef<SWidget> FActorIOLiteralExpressionBuilder::GenerateRotatorValueWidget
 
 			FString ValueStr = Rotator.ToString();
 			ValueStr.ReplaceInline(TEXT(" "), TEXT(","));
+			FActorIOExpressionParser::AppendBracket(ValueStr, true);
 			SetLiteralValue(ValueStr);
 		})
 		.OnPitchCommitted_Lambda([this](const float InNewValue, ETextCommit::Type InCommitType)
@@ -1235,6 +1241,7 @@ TSharedRef<SWidget> FActorIOLiteralExpressionBuilder::GenerateRotatorValueWidget
 
 			FString ValueStr = Rotator.ToString();
 			ValueStr.ReplaceInline(TEXT(" "), TEXT(","));
+			FActorIOExpressionParser::AppendBracket(ValueStr, true);
 			SetLiteralValue(ValueStr);
 		})
 		.OnYawCommitted_Lambda([this](const float InNewValue, ETextCommit::Type InCommitType)
@@ -1245,6 +1252,7 @@ TSharedRef<SWidget> FActorIOLiteralExpressionBuilder::GenerateRotatorValueWidget
 
 			FString ValueStr = Rotator.ToString();
 			ValueStr.ReplaceInline(TEXT(" "), TEXT(","));
+			FActorIOExpressionParser::AppendBracket(ValueStr, true);
 			SetLiteralValue(ValueStr);
 		});
 }

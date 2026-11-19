@@ -290,3 +290,17 @@ bool FActorIOExpressionParser::ParseBracket(const FString& Str, FString& OutPref
 	OutData = Str.Mid(OpenBracketIdx + 1, Str.Len() - (OpenBracketIdx + 2));
 	return true;
 }
+
+void FActorIOExpressionParser::AppendBracket(FString& Str, bool bForceAppend)
+{
+	if (bForceAppend || Str.IsEmpty() || Str[0] != '(')
+	{
+		Str.InsertAt(0, '(');
+	}
+
+	const int32 LastCharIndex = Str.Len() - 1;
+	if (bForceAppend || Str[LastCharIndex] != ')')
+	{
+		Str.AppendChar(')');
+	}
+}

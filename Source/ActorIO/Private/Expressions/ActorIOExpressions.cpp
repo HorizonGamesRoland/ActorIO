@@ -60,7 +60,14 @@ bool FActorIOLiteralExpression::Evaluate(FExpressionEvaluationContext& InContext
 	{
 		OutReturnValue = LiteralValue;
 	}
-	
+
+	// Always return an empty quoted string at the very least.
+	// This is needed to preserve parameter order when literals are used as function arguments.
+	if (OutReturnValue.IsEmpty())
+	{
+		OutReturnValue = TEXT("\"\"");
+	}
+
 	return true;
 }
 
@@ -126,10 +133,15 @@ TOptional<bool> FActorIOLiteralExpression::GetLiteralValueAsBool() const
 
 TOptional<FVector> FActorIOLiteralExpression::GetLiteralValueAsVector() const
 {
-	FVector VectorFromStr;
-	if (VectorFromStr.InitFromString(LiteralValue))
+	FString Prefix;
+	FString Data;
+	if (FActorIOExpressionParser::ParseBracket(LiteralValue, Prefix, Data))
 	{
-		return VectorFromStr;
+		FVector VectorFromStr;
+		if (VectorFromStr.InitFromString(Data))
+		{
+			return VectorFromStr;
+		}
 	}
 
 	return TOptional<FVector>();
@@ -137,10 +149,15 @@ TOptional<FVector> FActorIOLiteralExpression::GetLiteralValueAsVector() const
 
 TOptional<FVector2D> FActorIOLiteralExpression::GetLiteralValueAsVector2D() const
 {
-	FVector2D VectorFromStr;
-	if (VectorFromStr.InitFromString(LiteralValue))
+	FString Prefix;
+	FString Data;
+	if (FActorIOExpressionParser::ParseBracket(LiteralValue, Prefix, Data))
 	{
-		return VectorFromStr;
+		FVector2D VectorFromStr;
+		if (VectorFromStr.InitFromString(Data))
+		{
+			return VectorFromStr;
+		}
 	}
 
 	return TOptional<FVector2D>();
@@ -148,10 +165,15 @@ TOptional<FVector2D> FActorIOLiteralExpression::GetLiteralValueAsVector2D() cons
 
 TOptional<FRotator> FActorIOLiteralExpression::GetLiteralValueAsRotator() const
 {
-	FRotator RotatorFromStr;
-	if (RotatorFromStr.InitFromString(LiteralValue))
+	FString Prefix;
+	FString Data;
+	if (FActorIOExpressionParser::ParseBracket(LiteralValue, Prefix, Data))
 	{
-		return RotatorFromStr;
+		FRotator RotatorFromStr;
+		if (RotatorFromStr.InitFromString(Data))
+		{
+			return RotatorFromStr;
+		}
 	}
 
 	return TOptional<FRotator>();
@@ -194,17 +216,23 @@ TOptional<FString> FActorIOLiteralExpression::GetDefaultValueForPropType(const F
 	}
 	else if (InPropType == TEXT("FVector"))
 	{
-		OutValue = FVector::ZeroVector.ToString();
+		FString ValueStr = FVector::ZeroVector.ToString();
+		ValueStr.ReplaceInline(TEXT(" "), TEXT(","));
+		OutValue = TEXT("(") + ValueStr + TEXT(")");
 		return OutValue;
 	}
 	else if (InPropType == TEXT("FVector2D"))
 	{
-		OutValue = FVector2D::ZeroVector.ToString();
+		FString ValueStr = FVector2D::ZeroVector.ToString();
+		ValueStr.ReplaceInline(TEXT(" "), TEXT(","));
+		OutValue = TEXT("(") + ValueStr + TEXT(")");
 		return OutValue;
 	}
 	else if (InPropType == TEXT("FRotator"))
 	{
-		OutValue = FRotator::ZeroRotator.ToString();
+		FString ValueStr = FRotator::ZeroRotator.ToString();
+		ValueStr.ReplaceInline(TEXT(" "), TEXT(","));
+		OutValue = TEXT("(") + ValueStr + TEXT(")");
 		return OutValue;
 	}
 
@@ -410,10 +438,28 @@ bool FActorIOKismetFunctionExpression::Evaluate(FExpressionEvaluationContext& In
 	FActorIOExpressionContainer* ExprContainer = GetContainer();
 	if (!ExprContainer) return false;
 
-	int32 SelfIdx = ExprContainer->GetExpressionIdx(this);
-	TArray<int32> ChildExprIdxs = ExprContainer->GetChildExpressionIdxs(SelfIdx);
+	UActorIOSubsystemBase* IOSubsystem = UActorIOSubsystemBase::Get(InContext.Executor);
+	if (!IOSubsystem) return false;
 
-	FString Cmd = FunctionName.ToString();
+	// Start building the command by getting the quoted name of the function.
+	// Quotes are needed to support function names with whitespaces.
+	FString Command = FunctionName.ToString();
+	{
+		if (Command.IsEmpty() || Command[0] != '"')
+		{
+			Command.InsertAt(0, '"');
+		}
+
+		const int32 LastCharIndex = Command.Len() - 1;
+		if (Command[LastCharIndex] != '"')
+		{
+			Command.AppendChar('"');
+		}
+	}
+
+	// Go through child expressions and append their results for use as parameters.
+	const int32 SelfIdx = ExprContainer->GetExpressionIdx(this);
+	const TArray<int32> ChildExprIdxs = ExprContainer->GetChildExpressionIdxs(SelfIdx);
 	for (int32 Idx = 0; Idx != ChildExprIdxs.Num(); ++Idx)
 	{
 		FActorIOExpressionBase* Expr = ExprContainer->GetExpressionPtr(ChildExprIdxs[Idx]);
@@ -423,20 +469,16 @@ bool FActorIOKismetFunctionExpression::Evaluate(FExpressionEvaluationContext& In
 			return false;
 		}
 
-		Cmd += TEXT(" ");
-		Cmd += ReturnValue;
+		Command += TEXT(" ");
+		Command += ReturnValue;
 	}
 
-	UActorIOSubsystemBase* IOSubsystem = UActorIOSubsystemBase::Get(InContext.Executor);
-	if (!IOSubsystem)
-	{
-		return false;
-	}
-
+	// Property accessor to read the returned value.
 	const TFunction<void(FProperty*, uint8*)> ReturnPropertyAccessor = [&](FProperty* ReturnProperty, uint8* Container)
 	{
 		if (ReturnProperty)
 		{
+			// Handle bool properties separately to support negation.
 			if (const FBoolProperty* BoolProperty = CastField<FBoolProperty>(ReturnProperty))
 			{
 				bool bValue = BoolProperty->GetPropertyValue_InContainer(Container);
@@ -449,13 +491,13 @@ bool FActorIOKismetFunctionExpression::Evaluate(FExpressionEvaluationContext& In
 			}
 			else
 			{
-				ReturnProperty->ExportTextItem_InContainer(OutReturnValue, Container, nullptr, nullptr, PPF_None);
+				ReturnProperty->ExportTextItem_InContainer(OutReturnValue, Container, nullptr, nullptr, PPF_Delimited);
 			}
 		}
 	};
 
 	FStringOutputDevice Ar;
-	bool bResult = IOSubsystem->ExecuteCommand(ClassPtr->GetDefaultObject(), *Cmd, Ar, IOSubsystem, ReturnPropertyAccessor);
+	bool bResult = IOSubsystem->ExecuteCommand(ClassPtr->GetDefaultObject(), *Command, Ar, IOSubsystem, ReturnPropertyAccessor);
 
 	// Log execution errors.
 	if (!Ar.IsEmpty())
@@ -634,14 +676,6 @@ void FActorIOKismetFunctionExpression::UpdateArguments()
 			NewExpr.SetMetadata(TEXT("PropName"), PropName);
 			NewExpr.SetMetadata(TEXT("PropType"), PropType);
 			NewExpr.SetLiteralValueToDefault();
-
-			// Auto assign value for world context param.
-			// Not initializing blueprint generated "__WorldContext" because the I/O system takes care of that.
-			// It is also skipped by IActorIO::GetUFunctionInputParams, so it never shows up here.
-			if (PropName == TEXT("WorldContextObject") || PropName == TEXT("WorldContext") || PropName == TEXT("WorldContextObj"))
-			{
-				NewExpr.SetLiteralValue(TEXT("$Executor"));
-			}
 
 			ExprContainer->AddExpression(NewExprInstance, SelfIdx, ParamIdx);
 			bChildExprIdxsDirty = true;
