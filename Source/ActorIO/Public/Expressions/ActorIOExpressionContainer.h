@@ -186,7 +186,7 @@ protected:
 	 * Expressions are wrapped in TInstancedStruct, so that they can be allocated and stored dynamically.
 	 * Marked as EditAnywhere to generate an IPropertyHandle, used by the container property customization.
 	 */
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category="Expressions")
 	TArray<TInstancedStruct<FActorIOExpressionBase>> Expressions;
 
 	/**
