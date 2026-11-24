@@ -29,6 +29,7 @@
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "Editor.h"
 #include "ScopedTransaction.h"
+#include "Misc/EngineVersionComparison.h"
 
 #define LOCTEXT_NAMESPACE "ActorIOEditor"
 
@@ -143,8 +144,33 @@ void FActorIOExpressionContainerCustomization::CustomizeHeader(TSharedRef<IPrope
 		.VAlign(VAlign_Center)
 		.AutoWidth()
 		[
+#if UE_VERSION_NEWER_THAN(5, 5, ENGINE_PATCH_VERSION)
 			PropertyCustomizationHelpers::MakeCustomButton(FCoreStyle::Get().GetBrush("Icons.Info"), FSimpleDelegate::CreateSP(this, &FActorIOExpressionContainerCustomization::OnClick_DebugExpressions),
 				LOCTEXT("ExpressionEd_DebugExpressions", "Debug Log Expressions"), !bMultipleSelected)
+#else
+			SNew(SBox)
+			.HAlign(HAlign_Center)
+			.VAlign(VAlign_Center)
+			.WidthOverride(22.0f)
+			.HeightOverride(22.0f)
+			.ToolTipText(LOCTEXT("ExpressionEd_DebugExpressions", "Debug Log Expressions"))
+			[
+				SNew(SButton)
+				.ButtonStyle(FAppStyle::Get(), "SimpleButton")
+				.OnClicked_Lambda([this]() -> FReply
+				{
+					OnClick_DebugExpressions();
+					return FReply::Handled();
+				})
+				.ContentPadding(0.0f)
+				.IsFocusable(!bMultipleSelected) // #todo: check if this means the enabled state stuff
+				[
+					SNew(SImage)
+					.Image(FCoreStyle::Get().GetBrush("Icons.Info"))
+					.ColorAndOpacity(FSlateColor::UseForeground())
+				]
+			]
+#endif
 		]
 	];
 }
@@ -164,7 +190,7 @@ void FActorIOExpressionContainerCustomization::CustomizeChildren(TSharedRef<IPro
 	// This messes up the container pointer for some reason, so we are going to trigger a fixup now.
 	// In reality this should be handled by the paste action / property text import but overriding these are complicated.
 	TInstancedStruct<FActorIOExpressionBase>& RootExpr = ExprContainer->GetExpression(0);
-	if (RootExpr->GetContainer() != ExprContainer)
+	if (RootExpr.GetPtr()->GetContainer() != ExprContainer)
 	{
 		ExprContainer->FixupContainerReferences();
 	}
@@ -176,7 +202,7 @@ void FActorIOExpressionContainerCustomization::CustomizeChildren(TSharedRef<IPro
 			TInstancedStruct<FActorIOExpressionBase>& ChildExpr = ExprContainer->GetExpression(ChildIdx);
 			TSharedPtr<IPropertyHandle> PropChildExpr = GetExpressionProperty(ChildIdx);
 
-			TSharedRef<FActorIOExpressionDetailBuilder> Builder = FActorIODetailCustomizationHelper::NewExpressionDetailBuilderOfType(ChildExpr->GetTypeName());
+			TSharedRef<FActorIOExpressionDetailBuilder> Builder = FActorIODetailCustomizationHelper::NewExpressionDetailBuilderOfType(ChildExpr.GetPtr()->GetTypeName());
 			Builder->SetExpression(PropChildExpr, &ChildExpr);
 			Builder->SetParentCustomization(this);
 			StructBuilder.AddCustomBuilder(Builder);
@@ -185,7 +211,7 @@ void FActorIOExpressionContainerCustomization::CustomizeChildren(TSharedRef<IPro
 	else
 	{
 		TSharedPtr<IPropertyHandle> PropRootExpr = GetExpressionProperty(0);
-		TSharedRef<FActorIOExpressionDetailBuilder> Builder = FActorIODetailCustomizationHelper::NewExpressionDetailBuilderOfType(RootExpr->GetTypeName());
+		TSharedRef<FActorIOExpressionDetailBuilder> Builder = FActorIODetailCustomizationHelper::NewExpressionDetailBuilderOfType(RootExpr.GetPtr()->GetTypeName());
 		Builder->SetExpression(PropRootExpr, &RootExpr);
 		Builder->SetParentCustomization(this);
 		StructBuilder.AddCustomBuilder(Builder);
@@ -483,8 +509,32 @@ void FActorIOExpressionDetailBuilder::GenerateHeaderRowContent(FDetailWidgetRow&
 		.VAlign(VAlign_Center)
 		.AutoWidth()
 		[
+#if UE_VERSION_NEWER_THAN(5, 5, ENGINE_PATCH_VERSION)
 			PropertyCustomizationHelpers::MakeCustomButton(FCoreStyle::Get().GetBrush("Icons.Rotate180"), FSimpleDelegate::CreateSP(this, &FActorIOKismetFunctionExpressionBuilder::OnClick_Negate),
 				LOCTEXT("ExpressionEd_Negate", "Negate Expression"))
+#else
+			SNew(SBox)
+			.HAlign(HAlign_Center)
+			.VAlign(VAlign_Center)
+			.WidthOverride(22.0f)
+			.HeightOverride(22.0f)
+			.ToolTipText(LOCTEXT("ExpressionEd_Negate", "Negate Expression"))
+			[
+				SNew(SButton)
+				.ButtonStyle(FAppStyle::Get(), "SimpleButton")
+				.OnClicked_Lambda([this]() -> FReply
+				{
+					OnClick_Negate();
+					return FReply::Handled();
+				})
+				.ContentPadding(0.0f)
+				[
+					SNew(SImage)
+					.Image(FCoreStyle::Get().GetBrush("Icons.Rotate180"))
+					.ColorAndOpacity(FSlateColor::UseForeground())
+				]
+			]
+#endif
 		];
 	}
 
@@ -496,8 +546,32 @@ void FActorIOExpressionDetailBuilder::GenerateHeaderRowContent(FDetailWidgetRow&
 		.VAlign(VAlign_Center)
 		.AutoWidth()
 		[
+#if UE_VERSION_NEWER_THAN(5, 5, ENGINE_PATCH_VERSION)
 			PropertyCustomizationHelpers::MakeCustomButton(FCoreStyle::Get().GetBrush("EditableComboBox.Delete"), FSimpleDelegate::CreateSP(this, &FActorIOExpressionDetailBuilder::OnClick_Remove),
 				LOCTEXT("ExpressionEd_RemoveExpression", "Remove Expression"))
+#else
+			SNew(SBox)
+			.HAlign(HAlign_Center)
+			.VAlign(VAlign_Center)
+			.WidthOverride(22.0f)
+			.HeightOverride(22.0f)
+			.ToolTipText(LOCTEXT("ExpressionEd_RemoveExpression", "Remove Expression"))
+			[
+				SNew(SButton)
+				.ButtonStyle(FAppStyle::Get(), "SimpleButton")
+				.OnClicked_Lambda([this]() -> FReply
+				{
+					OnClick_Remove();
+					return FReply::Handled();
+				})
+				.ContentPadding(0.0f)
+				[
+					SNew(SImage)
+					.Image(FCoreStyle::Get().GetBrush("EditableComboBox.Delete"))
+					.ColorAndOpacity(FSlateColor::UseForeground())
+				]
+			]
+#endif
 		];
 	}
 
@@ -1298,7 +1372,7 @@ void FActorIOKismetFunctionExpressionBuilder::GenerateChildContent(IDetailChildr
 			TSharedPtr<IPropertyHandle> PropChildExpr = ParentCustomization->GetExpressionProperty(ChildExpressionIdxs[Idx]);
 
 			FString ChildExprPropName;
-			ChildExpr->GetMetadata(TEXT("PropName"), ChildExprPropName);
+			ChildExpr.GetPtr()->GetMetadata(TEXT("PropName"), ChildExprPropName);
 
 			// Find the function parameter that this child expression represents.
 			FProperty* Param = nullptr;
@@ -1316,7 +1390,7 @@ void FActorIOKismetFunctionExpressionBuilder::GenerateChildContent(IDetailChildr
 
 			const FText ChildExprDisplayName = Param ? Param->GetDisplayNameText() : LOCTEXT("ExpressionEd_UnknownParamName", "<Unknown>");
 
-			TSharedRef<FActorIOExpressionDetailBuilder> Builder = FActorIODetailCustomizationHelper::NewExpressionDetailBuilderOfType(ChildExpr->GetTypeName());
+			TSharedRef<FActorIOExpressionDetailBuilder> Builder = FActorIODetailCustomizationHelper::NewExpressionDetailBuilderOfType(ChildExpr.GetPtr()->GetTypeName());
 			Builder->SetExpression(PropChildExpr, &ChildExpr);
 			Builder->SetParentCustomization(ParentCustomization);
 			Builder->SetHeaderTextOverride(ChildExprDisplayName);
@@ -1679,7 +1753,7 @@ void FActorIOCompareExpressionBuilder::GenerateChildContent(IDetailChildrenBuild
 		TInstancedStruct<FActorIOExpressionBase>& ChildExpr = ExprContainer->GetExpression(ChildExpressionIdxs[0]);
 		TSharedPtr<IPropertyHandle> PropChildExpr = ParentCustomization->GetExpressionProperty(ChildExpressionIdxs[0]);
 
-		TSharedRef<FActorIOExpressionDetailBuilder> Builder = FActorIODetailCustomizationHelper::NewExpressionDetailBuilderOfType(ChildExpr->GetTypeName());
+		TSharedRef<FActorIOExpressionDetailBuilder> Builder = FActorIODetailCustomizationHelper::NewExpressionDetailBuilderOfType(ChildExpr.GetPtr()->GetTypeName());
 		Builder->SetExpression(PropChildExpr, &ChildExpr);
 		Builder->SetParentCustomization(ParentCustomization);
 		Builder->SetHeaderTextOverride(LOCTEXT("ExpressionEd_ComparisonValueA", "Value A"));
@@ -1729,7 +1803,7 @@ void FActorIOCompareExpressionBuilder::GenerateChildContent(IDetailChildrenBuild
 		TInstancedStruct<FActorIOExpressionBase>& ChildExpr = ExprContainer->GetExpression(ChildExpressionIdxs[1]);
 		TSharedPtr<IPropertyHandle> PropChildExpr = ParentCustomization->GetExpressionProperty(ChildExpressionIdxs[1]);
 
-		TSharedRef<FActorIOExpressionDetailBuilder> Builder = FActorIODetailCustomizationHelper::NewExpressionDetailBuilderOfType(ChildExpr->GetTypeName());
+		TSharedRef<FActorIOExpressionDetailBuilder> Builder = FActorIODetailCustomizationHelper::NewExpressionDetailBuilderOfType(ChildExpr.GetPtr()->GetTypeName());
 		Builder->SetExpression(PropChildExpr, &ChildExpr);
 		Builder->SetParentCustomization(ParentCustomization);
 		Builder->SetHeaderTextOverride(LOCTEXT("ExpressionEd_ComparisonValueB", "Value B"));
@@ -1884,7 +1958,7 @@ void FActorIOGroupExpressionBuilder::GenerateChildContent(IDetailChildrenBuilder
 		TInstancedStruct<FActorIOExpressionBase>& ChildExpr = ExprContainer->GetExpression(ChildIdx);
 		TSharedPtr<IPropertyHandle> PropChildExpr = ParentCustomization->GetExpressionProperty(ChildIdx);
 
-		TSharedRef<FActorIOExpressionDetailBuilder> Builder = FActorIODetailCustomizationHelper::NewExpressionDetailBuilderOfType(ChildExpr->GetTypeName());
+		TSharedRef<FActorIOExpressionDetailBuilder> Builder = FActorIODetailCustomizationHelper::NewExpressionDetailBuilderOfType(ChildExpr.GetPtr()->GetTypeName());
 		Builder->SetExpression(PropChildExpr, &ChildExpr);
 		Builder->SetParentCustomization(ParentCustomization);
 		ChildrenBuilder.AddCustomBuilder(Builder);

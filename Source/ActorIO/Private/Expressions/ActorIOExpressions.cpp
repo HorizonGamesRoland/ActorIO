@@ -672,7 +672,9 @@ void FActorIOKismetFunctionExpression::UpdateArguments()
 		if (MatchingChildIdx == INDEX_NONE)
 		{
 			TInstancedStruct<FActorIOExpressionBase> NewExprInstance;
-			FActorIOLiteralExpression& NewExpr = NewExprInstance.InitializeAs<FActorIOLiteralExpression>();
+			NewExprInstance.InitializeAs<FActorIOLiteralExpression>();
+
+			FActorIOLiteralExpression& NewExpr = NewExprInstance.GetMutable<FActorIOLiteralExpression>();
 			NewExpr.SetMetadata(TEXT("PropName"), PropName);
 			NewExpr.SetMetadata(TEXT("PropType"), PropType);
 			NewExpr.SetLiteralValueToDefault();
@@ -726,7 +728,9 @@ FActorIOCompareExpression::FActorIOCompareExpression()
 TInstancedStruct<FActorIOExpressionBase> FActorIOCompareExpression::MakeInstance(const FString& Keyword)
 {
 	TInstancedStruct<FActorIOExpressionBase> OutInstance;
-	FActorIOCompareExpression& CompareExpr = OutInstance.InitializeAs<FActorIOCompareExpression>();
+	OutInstance.InitializeAs<FActorIOCompareExpression>();
+
+	FActorIOCompareExpression& CompareExpr = OutInstance.GetMutable<FActorIOCompareExpression>();
 	TOptional<EActorIOComparisonOp> Op = FActorIOCompareExpression::OpFromKeyword(Keyword);
 	if (Op.IsSet()) CompareExpr.SetComparisonOp(Op.GetValue());
 	return OutInstance;
@@ -931,7 +935,9 @@ bool FActorIOCompareExpression::CheckArgumentCountValid() const
 TInstancedStruct<FActorIOExpressionBase> FActorIOGroupExpression::MakeInstance(const FString& Keyword)
 {
 	TInstancedStruct<FActorIOExpressionBase> OutInstance;
-	FActorIOGroupExpression& GroupExpr = OutInstance.InitializeAs<FActorIOGroupExpression>();
+	OutInstance.InitializeAs<FActorIOGroupExpression>();
+
+	FActorIOGroupExpression& GroupExpr = OutInstance.GetMutable<FActorIOGroupExpression>();
 	GroupExpr.SetNegated(Keyword == TEXT("or"));
 	return OutInstance;
 }
