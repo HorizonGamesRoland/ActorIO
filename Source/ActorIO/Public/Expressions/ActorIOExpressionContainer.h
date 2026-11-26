@@ -3,7 +3,7 @@
 #pragma once
 
 #include "ActorIO.h"
-#include "InstancedStruct.h"
+#include INSTANCED_STRUCT_H
 #include "Expressions/ActorIOExpressionBase.h"
 #include "ActorIOExpressionContainer.generated.h"
 
