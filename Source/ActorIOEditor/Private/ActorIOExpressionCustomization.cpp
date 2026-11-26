@@ -99,12 +99,15 @@ void FActorIOExpressionContainerCustomization::CustomizeHeader(TSharedRef<IPrope
 		SNew(SHorizontalBox)
 		+ SHorizontalBox::Slot()
 		.VAlign(VAlign_Center)
-		.MinWidth(120.0f)
 		[
-			SNew(STextBlock)
-			.Text(this, &FActorIOExpressionContainerCustomization::GetHeaderText)
-			.ToolTipText(this, &FActorIOExpressionContainerCustomization::GetHeaderTooltip)
-			.Font(IDetailLayoutBuilder::GetDetailFont())
+			SNew(SBox)
+			.MinDesiredWidth(120.0f) // Using slot MinWidth=120 would be easier, but that only exists in UE 5.5+
+			[
+				SNew(STextBlock)
+				.Text(this, &FActorIOExpressionContainerCustomization::GetHeaderText)
+				.ToolTipText(this, &FActorIOExpressionContainerCustomization::GetHeaderTooltip)
+				.Font(IDetailLayoutBuilder::GetDetailFont())
+			]
 		]
 		+ SHorizontalBox::Slot()
 		.Padding(4.0f, 1.0f, 0.0f, 1.0f)
@@ -157,13 +160,14 @@ void FActorIOExpressionContainerCustomization::CustomizeHeader(TSharedRef<IPrope
 			[
 				SNew(SButton)
 				.ButtonStyle(FAppStyle::Get(), "SimpleButton")
+				.IsEnabled(!bMultipleSelected)
 				.OnClicked_Lambda([this]() -> FReply
 				{
 					OnClick_DebugExpressions();
 					return FReply::Handled();
 				})
 				.ContentPadding(0.0f)
-				.IsFocusable(!bMultipleSelected) // #todo: check if this means the enabled state stuff
+				.IsFocusable(false)
 				[
 					SNew(SImage)
 					.Image(FCoreStyle::Get().GetBrush("Icons.Info"))
@@ -361,7 +365,9 @@ void FActorIOExpressionContainerCustomization::OnClick_AddExpression(FString InK
 
 	PropExpressionArray->NotifyPostChange(EPropertyChangeType::ArrayAdd);
 
-	PropStruct->SetExpanded(true);
+#if UE_VERSION_NEWER_THAN(5, 5, ENGINE_PATCH_VERSION)
+	PropStruct->SetExpanded(true); // Only available from UE 5.5+
+#endif
 }
 
 void FActorIOExpressionContainerCustomization::OnClick_ClearExpressions()
@@ -496,7 +502,11 @@ void FActorIOExpressionDetailBuilder::GenerateHeaderRowContent(FDetailWidgetRow&
 		.OnClicked(FOnClicked::CreateSP(this, &FActorIOExpressionDetailBuilder::OnClick_FixErrors))
 		[
 			SNew(SImage)
+#if UE_VERSION_NEWER_THAN(5, 5, ENGINE_PATCH_VERSION)
 			.Image(FAppStyle::GetBrush("Icons.Error.Solid"))
+#else
+			.Image(FAppStyle::GetBrush("Icons.ErrorWithColor"))
+#endif
 		]
 	];
 
@@ -528,6 +538,7 @@ void FActorIOExpressionDetailBuilder::GenerateHeaderRowContent(FDetailWidgetRow&
 					return FReply::Handled();
 				})
 				.ContentPadding(0.0f)
+				.IsFocusable(false)
 				[
 					SNew(SImage)
 					.Image(FCoreStyle::Get().GetBrush("Icons.Rotate180"))
@@ -565,6 +576,7 @@ void FActorIOExpressionDetailBuilder::GenerateHeaderRowContent(FDetailWidgetRow&
 					return FReply::Handled();
 				})
 				.ContentPadding(0.0f)
+				.IsFocusable(false)
 				[
 					SNew(SImage)
 					.Image(FCoreStyle::Get().GetBrush("EditableComboBox.Delete"))
