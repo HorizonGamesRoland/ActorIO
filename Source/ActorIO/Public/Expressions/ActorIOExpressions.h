@@ -66,7 +66,7 @@ protected:
  * If negated, UFunction with bool return value will be inverted.
  */
 USTRUCT()
-struct ACTORIO_API FActorIOKismetFunctionExpression : public FActorIOFunctionExpressionBase
+struct ACTORIO_API FActorIOBlueprintFunctionExpression : public FActorIOFunctionExpressionBase
 {
 	GENERATED_BODY()
 
@@ -76,7 +76,7 @@ public:
 	static TInstancedStruct<FActorIOExpressionBase> MakeInstance(const FString& Keyword);
 
 	//~ Begin FActorIOExpressionBase Interface
-	virtual FName GetTypeName() const override { return FName("KismetFunction"); }
+	virtual FName GetTypeName() const override { return FName("BlueprintFunction"); }
 	virtual bool InitFromString(const FString& Str) override;
 	virtual bool InitChildExpressionsFromString(const FString& Str) override;
 	virtual FString ToString() const override;

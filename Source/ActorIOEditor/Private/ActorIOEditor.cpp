@@ -50,7 +50,7 @@ void FActorIOEditor::StartupModule()
 	// Initialize expression detail builder registry.
 	ExpressionBuilderRegistry = MakeUnique<FActorIOExpressionBuilderRegistry>();
 	ExpressionBuilderRegistry->RegisterExpressionBuilder(TEXT("Literal"), FOnGetExpressionDetailBuilder::CreateStatic(FActorIOLiteralExpressionBuilder::MakeInstance), false, false);
-	ExpressionBuilderRegistry->RegisterExpressionBuilder(TEXT("KismetFunction"), FOnGetExpressionDetailBuilder::CreateStatic(FActorIOKismetFunctionExpressionBuilder::MakeInstance), true, true);
+	ExpressionBuilderRegistry->RegisterExpressionBuilder(TEXT("BlueprintFunction"), FOnGetExpressionDetailBuilder::CreateStatic(FActorIOBlueprintFunctionExpressionBuilder::MakeInstance), true, true);
 	ExpressionBuilderRegistry->RegisterExpressionBuilder(TEXT("Compare"), FOnGetExpressionDetailBuilder::CreateStatic(FActorIOCompareExpressionBuilder::MakeInstance), true, false);
 	ExpressionBuilderRegistry->RegisterExpressionBuilder(TEXT("Group"), FOnGetExpressionDetailBuilder::CreateStatic(FActorIOGroupExpressionBuilder::MakeInstance), true, false);
 

@@ -26,7 +26,6 @@
 #include "DetailLayoutBuilder.h"
 #include "IDetailChildrenBuilder.h"
 #include "IPropertyUtilities.h"
-#include "Kismet/BlueprintFunctionLibrary.h"
 #include "Editor.h"
 #include "ScopedTransaction.h"
 #include "Misc/EngineVersionComparison.h"
@@ -520,7 +519,7 @@ void FActorIOExpressionDetailBuilder::GenerateHeaderRowContent(FDetailWidgetRow&
 		.AutoWidth()
 		[
 #if UE_VERSION_NEWER_THAN(5, 5, ENGINE_PATCH_VERSION)
-			PropertyCustomizationHelpers::MakeCustomButton(FCoreStyle::Get().GetBrush("Icons.Rotate180"), FSimpleDelegate::CreateSP(this, &FActorIOKismetFunctionExpressionBuilder::OnClick_Negate),
+			PropertyCustomizationHelpers::MakeCustomButton(FCoreStyle::Get().GetBrush("Icons.Rotate180"), FSimpleDelegate::CreateSP(this, &FActorIOBlueprintFunctionExpressionBuilder::OnClick_Negate),
 				LOCTEXT("ExpressionEd_Negate", "Negate Expression"))
 #else
 			SNew(SBox)
@@ -1344,19 +1343,19 @@ TSharedRef<SWidget> FActorIOLiteralExpressionBuilder::GenerateRotatorValueWidget
 }
 
 //=======================================================
-//~ Begin FActorIOKismetFunctionExpressionBuilder
+//~ Begin FActorIOBlueprintFunctionExpressionBuilder
 //=======================================================
 
-TSharedRef<FActorIOExpressionDetailBuilder> FActorIOKismetFunctionExpressionBuilder::MakeInstance()
+TSharedRef<FActorIOExpressionDetailBuilder> FActorIOBlueprintFunctionExpressionBuilder::MakeInstance()
 {
-	return MakeShareable(new FActorIOKismetFunctionExpressionBuilder);
+	return MakeShareable(new FActorIOBlueprintFunctionExpressionBuilder);
 }
 
-void FActorIOKismetFunctionExpressionBuilder::GenerateHeaderRowContent(FDetailWidgetRow& NodeRow)
+void FActorIOBlueprintFunctionExpressionBuilder::GenerateHeaderRowContent(FDetailWidgetRow& NodeRow)
 {
 	FActorIOExpressionDetailBuilder::GenerateHeaderRowContent(NodeRow);
 
-	FUIAction Action_ReplaceFunction(FExecuteAction::CreateSP(this, &FActorIOKismetFunctionExpressionBuilder::OnClick_ReplaceFunction));
+	FUIAction Action_ReplaceFunction(FExecuteAction::CreateSP(this, &FActorIOBlueprintFunctionExpressionBuilder::OnClick_ReplaceFunction));
 	NodeRow.AddCustomContextMenuAction(Action_ReplaceFunction,
 		LOCTEXT("ExpressionEd_ReplaceFunction", "Replace Function"),
 		LOCTEXT("ExpressionEd_ReplaceFunctionTooltip", "Replace the selected function"),
@@ -1364,9 +1363,9 @@ void FActorIOKismetFunctionExpressionBuilder::GenerateHeaderRowContent(FDetailWi
 	);
 }
 
-void FActorIOKismetFunctionExpressionBuilder::GenerateChildContent(IDetailChildrenBuilder& ChildrenBuilder)
+void FActorIOBlueprintFunctionExpressionBuilder::GenerateChildContent(IDetailChildrenBuilder& ChildrenBuilder)
 {
-	FActorIOKismetFunctionExpression* FunctionExpr = Expr ? Expr->GetMutablePtr<FActorIOKismetFunctionExpression>() : nullptr;
+	FActorIOBlueprintFunctionExpression* FunctionExpr = Expr ? Expr->GetMutablePtr<FActorIOBlueprintFunctionExpression>() : nullptr;
 	FActorIOExpressionContainer* ExprContainer = FunctionExpr ? FunctionExpr->GetContainer() : nullptr;
 	if (!FunctionExpr || !ExprContainer) return;
 
@@ -1448,8 +1447,8 @@ void FActorIOKismetFunctionExpressionBuilder::GenerateChildContent(IDetailChildr
 			.MetaClass(UBlueprintFunctionLibrary::StaticClass())
 			.AllowNone(false)
 			.AllowAbstract(false)
-			.SelectedClass(this, &FActorIOKismetFunctionExpressionBuilder::OnGetFunctionClass)
-			.OnSetClass(this, &FActorIOKismetFunctionExpressionBuilder::OnSetFunctionClass)
+			.SelectedClass(this, &FActorIOBlueprintFunctionExpressionBuilder::OnGetFunctionClass)
+			.OnSetClass(this, &FActorIOBlueprintFunctionExpressionBuilder::OnSetFunctionClass)
 		];
 
 		ChildrenBuilder.AddCustomRow(LOCTEXT("ExpressionEd_SelectFuncNameSearchText", "Function"))
@@ -1468,9 +1467,9 @@ void FActorIOKismetFunctionExpressionBuilder::GenerateChildContent(IDetailChildr
 		[
 			SNew(SComboBox<FName>)
 			.OptionsSource(&SelectableFunctions)
-			.OnGenerateWidget(this, &FActorIOKismetFunctionExpressionBuilder::OnGenerateFunctionComboBoxWidget)
-			.OnComboBoxOpening(this, &FActorIOKismetFunctionExpressionBuilder::OnFunctionComboBoxOpening)
-			.OnSelectionChanged(this, &FActorIOKismetFunctionExpressionBuilder::OnFunctionComboBoxSelectionChanged)
+			.OnGenerateWidget(this, &FActorIOBlueprintFunctionExpressionBuilder::OnGenerateFunctionComboBoxWidget)
+			.OnComboBoxOpening(this, &FActorIOBlueprintFunctionExpressionBuilder::OnFunctionComboBoxOpening)
+			.OnSelectionChanged(this, &FActorIOBlueprintFunctionExpressionBuilder::OnFunctionComboBoxSelectionChanged)
 			[
 				SNew(STextBlock)
 				.Font(IDetailLayoutBuilder::GetDetailFont())
@@ -1482,11 +1481,11 @@ void FActorIOKismetFunctionExpressionBuilder::GenerateChildContent(IDetailChildr
 	}
 }
 
-void FActorIOKismetFunctionExpressionBuilder::RefreshHeader()
+void FActorIOBlueprintFunctionExpressionBuilder::RefreshHeader()
 {
 	FActorIOExpressionDetailBuilder::RefreshHeader();
 
-	FActorIOKismetFunctionExpression* FunctionExpr = Expr ? Expr->GetMutablePtr<FActorIOKismetFunctionExpression>() : nullptr;
+	FActorIOBlueprintFunctionExpression* FunctionExpr = Expr ? Expr->GetMutablePtr<FActorIOBlueprintFunctionExpression>() : nullptr;
 	if (!FunctionExpr) return;
 
 	if (!HeaderTextOverride.IsSet())
@@ -1514,7 +1513,7 @@ void FActorIOKismetFunctionExpressionBuilder::RefreshHeader()
 	}
 }
 
-void FActorIOKismetFunctionExpressionBuilder::RefreshError()
+void FActorIOBlueprintFunctionExpressionBuilder::RefreshError()
 {
 	FActorIOExpressionDetailBuilder::RefreshError();
 
@@ -1528,9 +1527,9 @@ void FActorIOKismetFunctionExpressionBuilder::RefreshError()
 	}
 }
 
-FReply FActorIOKismetFunctionExpressionBuilder::OnClick_FixErrors()
+FReply FActorIOBlueprintFunctionExpressionBuilder::OnClick_FixErrors()
 {
-	FActorIOKismetFunctionExpression* FunctionExpr = Expr ? Expr->GetMutablePtr<FActorIOKismetFunctionExpression>() : nullptr;
+	FActorIOBlueprintFunctionExpression* FunctionExpr = Expr ? Expr->GetMutablePtr<FActorIOBlueprintFunctionExpression>() : nullptr;
 	if (!FunctionExpr || !PropExpression.IsValid()) return FReply::Handled();
 
 	if (ErrorCode == TEXT("FunctionNotFound"))
@@ -1560,15 +1559,15 @@ FReply FActorIOKismetFunctionExpressionBuilder::OnClick_FixErrors()
 	return FReply::Handled();
 }
 
-const UClass* FActorIOKismetFunctionExpressionBuilder::OnGetFunctionClass() const
+const UClass* FActorIOBlueprintFunctionExpressionBuilder::OnGetFunctionClass() const
 {
-	FActorIOKismetFunctionExpression* FunctionExpr = Expr ? Expr->GetMutablePtr<FActorIOKismetFunctionExpression>() : nullptr;
+	FActorIOBlueprintFunctionExpression* FunctionExpr = Expr ? Expr->GetMutablePtr<FActorIOBlueprintFunctionExpression>() : nullptr;
 	return FunctionExpr ? FunctionExpr->GetFunctionClass() : nullptr;
 }
 
-void FActorIOKismetFunctionExpressionBuilder::OnSetFunctionClass(const UClass* SelectedClass)
+void FActorIOBlueprintFunctionExpressionBuilder::OnSetFunctionClass(const UClass* SelectedClass)
 {
-	FActorIOKismetFunctionExpression* FunctionExpr = Expr ? Expr->GetMutablePtr<FActorIOKismetFunctionExpression>() : nullptr;
+	FActorIOBlueprintFunctionExpression* FunctionExpr = Expr ? Expr->GetMutablePtr<FActorIOBlueprintFunctionExpression>() : nullptr;
 	if (!FunctionExpr || !PropExpression.IsValid()) return;
 
 	TArray<UObject*> OuterObjects;
@@ -1589,7 +1588,7 @@ void FActorIOKismetFunctionExpressionBuilder::OnSetFunctionClass(const UClass* S
 	PropExpressionArray->NotifyPostChange(EPropertyChangeType::ValueSet);
 }
 
-TSharedRef<SWidget> FActorIOKismetFunctionExpressionBuilder::OnGenerateFunctionComboBoxWidget(FName InName)
+TSharedRef<SWidget> FActorIOBlueprintFunctionExpressionBuilder::OnGenerateFunctionComboBoxWidget(FName InName)
 {
 	return SNew(STextBlock)
 		.Font(IDetailLayoutBuilder::GetDetailFont())
@@ -1597,14 +1596,14 @@ TSharedRef<SWidget> FActorIOKismetFunctionExpressionBuilder::OnGenerateFunctionC
 		.ToolTipText(GetFunctionTooltip(InName));
 }
 
-void FActorIOKismetFunctionExpressionBuilder::OnFunctionComboBoxOpening()
+void FActorIOBlueprintFunctionExpressionBuilder::OnFunctionComboBoxOpening()
 {
 	UpdateSelectableFunctions();
 }
 
-void FActorIOKismetFunctionExpressionBuilder::OnFunctionComboBoxSelectionChanged(FName InName, ESelectInfo::Type InSelectType)
+void FActorIOBlueprintFunctionExpressionBuilder::OnFunctionComboBoxSelectionChanged(FName InName, ESelectInfo::Type InSelectType)
 {
-	FActorIOKismetFunctionExpression* FunctionExpr = Expr ? Expr->GetMutablePtr<FActorIOKismetFunctionExpression>() : nullptr;
+	FActorIOBlueprintFunctionExpression* FunctionExpr = Expr ? Expr->GetMutablePtr<FActorIOBlueprintFunctionExpression>() : nullptr;
 	if (!FunctionExpr || !PropExpression.IsValid()) return;
 
 	TArray<UObject*> OuterObjects;
@@ -1625,14 +1624,14 @@ void FActorIOKismetFunctionExpressionBuilder::OnFunctionComboBoxSelectionChanged
 	PropExpressionArray->NotifyPostChange(EPropertyChangeType::ValueSet);
 }
 
-FText FActorIOKismetFunctionExpressionBuilder::GetFunctionDisplayName(FName InFunctionName) const
+FText FActorIOBlueprintFunctionExpressionBuilder::GetFunctionDisplayName(FName InFunctionName) const
 {
 	return FText::FromName(InFunctionName);
 }
 
-FSlateColor FActorIOKismetFunctionExpressionBuilder::GetFunctionDisplayColor(FName InFunctionName) const
+FSlateColor FActorIOBlueprintFunctionExpressionBuilder::GetFunctionDisplayColor(FName InFunctionName) const
 {
-	FActorIOKismetFunctionExpression* FunctionExpr = Expr ? Expr->GetMutablePtr<FActorIOKismetFunctionExpression>() : nullptr;
+	FActorIOBlueprintFunctionExpression* FunctionExpr = Expr ? Expr->GetMutablePtr<FActorIOBlueprintFunctionExpression>() : nullptr;
 	if (FunctionExpr)
 	{
 		const UClass* ClassPtr = FunctionExpr->GetFunctionClass();
@@ -1646,9 +1645,9 @@ FSlateColor FActorIOKismetFunctionExpressionBuilder::GetFunctionDisplayColor(FNa
 	return FSlateColor::UseForeground();
 }
 
-FText FActorIOKismetFunctionExpressionBuilder::GetFunctionTooltip(FName InFunctionName) const
+FText FActorIOBlueprintFunctionExpressionBuilder::GetFunctionTooltip(FName InFunctionName) const
 {
-	FActorIOKismetFunctionExpression* FunctionExpr = Expr ? Expr->GetMutablePtr<FActorIOKismetFunctionExpression>() : nullptr;
+	FActorIOBlueprintFunctionExpression* FunctionExpr = Expr ? Expr->GetMutablePtr<FActorIOBlueprintFunctionExpression>() : nullptr;
 	if (FunctionExpr)
 	{
 		const UClass* ClassPtr = FunctionExpr->GetFunctionClass();
@@ -1662,11 +1661,11 @@ FText FActorIOKismetFunctionExpressionBuilder::GetFunctionTooltip(FName InFuncti
 	return FText::GetEmpty();
 }
 
-void FActorIOKismetFunctionExpressionBuilder::UpdateSelectableFunctions()
+void FActorIOBlueprintFunctionExpressionBuilder::UpdateSelectableFunctions()
 {
 	SelectableFunctions.Reset();
 
-	FActorIOKismetFunctionExpression* FunctionExpr = Expr ? Expr->GetMutablePtr<FActorIOKismetFunctionExpression>() : nullptr;
+	FActorIOBlueprintFunctionExpression* FunctionExpr = Expr ? Expr->GetMutablePtr<FActorIOBlueprintFunctionExpression>() : nullptr;
 	FActorIOExpressionContainer* ExprContainer = FunctionExpr ? FunctionExpr->GetContainer() : nullptr;
 	if (!FunctionExpr || !ExprContainer) return;
 
@@ -1704,9 +1703,9 @@ void FActorIOKismetFunctionExpressionBuilder::UpdateSelectableFunctions()
 	}
 }
 
-void FActorIOKismetFunctionExpressionBuilder::OnClick_ReplaceFunction()
+void FActorIOBlueprintFunctionExpressionBuilder::OnClick_ReplaceFunction()
 {
-	FActorIOKismetFunctionExpression* FunctionExpr = Expr ? Expr->GetMutablePtr<FActorIOKismetFunctionExpression>() : nullptr;
+	FActorIOBlueprintFunctionExpression* FunctionExpr = Expr ? Expr->GetMutablePtr<FActorIOBlueprintFunctionExpression>() : nullptr;
 	if (!FunctionExpr || !PropExpression.IsValid()) return;
 
 	TArray<UObject*> OuterObjects;

@@ -317,9 +317,9 @@ protected:
 };
 
 /**
- * Expression row customization for FActorIOKismetFunctionExpression.
+ * Expression row customization for FActorIOBlueprintFunctionExpression.
  */
-class ACTORIOEDITOR_API FActorIOKismetFunctionExpressionBuilder : public FActorIOExpressionDetailBuilder
+class ACTORIOEDITOR_API FActorIOBlueprintFunctionExpressionBuilder : public FActorIOExpressionDetailBuilder
 {
 public:
 

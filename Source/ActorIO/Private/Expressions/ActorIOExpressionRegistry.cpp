@@ -15,7 +15,7 @@ FActorIOExpressionRegistry& FActorIOExpressionRegistry::Get()
 void FActorIOExpressionRegistry::Initialize()
 {
 	RegisterExpression(TEXT("Literal"), LOCTEXT("LiteralExpressionName", "Literal"), FOnGetExpressionInstance::CreateStatic(FActorIOLiteralExpression::MakeInstance), TEXT("val"));
-	RegisterExpression(TEXT("KismetFunction"), LOCTEXT("KismetFunctionExpressionName", "Kismet Function"), FOnGetExpressionInstance::CreateStatic(FActorIOKismetFunctionExpression::MakeInstance), TEXT("func"));
+	RegisterExpression(TEXT("BlueprintFunction"), LOCTEXT("BlueprintFunctionExpressionName", "Blueprint Function"), FOnGetExpressionInstance::CreateStatic(FActorIOBlueprintFunctionExpression::MakeInstance), TEXT("func"));
 	RegisterExpression(TEXT("Compare"), LOCTEXT("CompareExpressionName", "Compare"), FOnGetExpressionInstance::CreateStatic(FActorIOCompareExpression::MakeInstance), TEXT("eq,ne,lt,le,gt,ge"));
 	RegisterExpression(TEXT("Group"), LOCTEXT("GroupExpressionName", "Group"), FOnGetExpressionInstance::CreateStatic(FActorIOGroupExpression::MakeInstance), TEXT("and,or"));
 }

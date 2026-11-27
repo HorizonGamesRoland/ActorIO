@@ -276,17 +276,17 @@ bool FActorIOLiteralExpression::CheckValueValidForPropType(const FString& InProp
 }
 
 //=======================================================
-//~ Begin FActorIOKismetFunctionExpression
+//~ Begin FActorIOBlueprintFunctionExpression
 //=======================================================
 
-TInstancedStruct<FActorIOExpressionBase> FActorIOKismetFunctionExpression::MakeInstance(const FString& Keyword)
+TInstancedStruct<FActorIOExpressionBase> FActorIOBlueprintFunctionExpression::MakeInstance(const FString& Keyword)
 {
 	TInstancedStruct<FActorIOExpressionBase> OutInstance;
-	OutInstance.InitializeAs<FActorIOKismetFunctionExpression>();
+	OutInstance.InitializeAs<FActorIOBlueprintFunctionExpression>();
 	return OutInstance;
 }
 
-bool FActorIOKismetFunctionExpression::InitFromString(const FString& Str)
+bool FActorIOBlueprintFunctionExpression::InitFromString(const FString& Str)
 {
 	// Example valid strings:
 	// - func()
@@ -367,7 +367,7 @@ bool FActorIOKismetFunctionExpression::InitFromString(const FString& Str)
 	return true;
 }
 
-bool FActorIOKismetFunctionExpression::InitChildExpressionsFromString(const FString& Str)
+bool FActorIOBlueprintFunctionExpression::InitChildExpressionsFromString(const FString& Str)
 {
 	if (!Super::InitChildExpressionsFromString(Str))
 	{
@@ -405,7 +405,7 @@ bool FActorIOKismetFunctionExpression::InitChildExpressionsFromString(const FStr
 	return true;
 }
 
-FString FActorIOKismetFunctionExpression::ToString() const
+FString FActorIOBlueprintFunctionExpression::ToString() const
 {
 	FString FuncData = GetFunctionPath();
 	
@@ -424,7 +424,7 @@ FString FActorIOKismetFunctionExpression::ToString() const
 	return FString::Printf(TEXT("func(%s)"), *FuncData);
 }
 
-bool FActorIOKismetFunctionExpression::Evaluate(FExpressionEvaluationContext& InContext, FString& OutReturnValue)
+bool FActorIOBlueprintFunctionExpression::Evaluate(FExpressionEvaluationContext& InContext, FString& OutReturnValue)
 {
 	OutReturnValue.Empty();
 
@@ -508,7 +508,7 @@ bool FActorIOKismetFunctionExpression::Evaluate(FExpressionEvaluationContext& In
 	return bResult;
 }
 
-FString FActorIOKismetFunctionExpression::CheckForErrors() const
+FString FActorIOBlueprintFunctionExpression::CheckForErrors() const
 {
 	if (FunctionName != NAME_None)
 	{
@@ -528,7 +528,7 @@ FString FActorIOKismetFunctionExpression::CheckForErrors() const
 	return TEXT("");
 }
 
-void FActorIOKismetFunctionExpression::SetFunctionClass(UClass* InClassPtr, bool bResetFunctionName)
+void FActorIOBlueprintFunctionExpression::SetFunctionClass(UClass* InClassPtr, bool bResetFunctionName)
 {
 	if (FunctionClass != InClassPtr)
 	{
@@ -542,7 +542,7 @@ void FActorIOKismetFunctionExpression::SetFunctionClass(UClass* InClassPtr, bool
 	}
 }
 
-void FActorIOKismetFunctionExpression::SetFunctionName(FName InFunctionName)
+void FActorIOBlueprintFunctionExpression::SetFunctionName(FName InFunctionName)
 {
 	if (FunctionName != InFunctionName)
 	{
@@ -551,7 +551,7 @@ void FActorIOKismetFunctionExpression::SetFunctionName(FName InFunctionName)
 	}
 }
 
-FString FActorIOKismetFunctionExpression::GetFunctionPath() const
+FString FActorIOBlueprintFunctionExpression::GetFunctionPath() const
 {
 	FString OutPath;
 	if (FunctionClass && FunctionName != NAME_None)
@@ -564,7 +564,7 @@ FString FActorIOKismetFunctionExpression::GetFunctionPath() const
 	return OutPath;
 }
 
-UFunction* FActorIOKismetFunctionExpression::ResolveUFunction() const
+UFunction* FActorIOBlueprintFunctionExpression::ResolveUFunction() const
 {
 	if (FunctionClass && FunctionName != NAME_None)
 	{
@@ -574,7 +574,7 @@ UFunction* FActorIOKismetFunctionExpression::ResolveUFunction() const
 	return nullptr;
 }
 
-bool FActorIOKismetFunctionExpression::CheckArgumentsNeedUpdate() const
+bool FActorIOBlueprintFunctionExpression::CheckArgumentsNeedUpdate() const
 {
 	FActorIOExpressionContainer* ExprContainer = GetContainer();
 	if (!ExprContainer) return false;
@@ -618,7 +618,7 @@ bool FActorIOKismetFunctionExpression::CheckArgumentsNeedUpdate() const
 	return false;
 }
 
-void FActorIOKismetFunctionExpression::UpdateArguments()
+void FActorIOBlueprintFunctionExpression::UpdateArguments()
 {
 	FActorIOExpressionContainer* ExprContainer = GetContainer();
 	if (!ExprContainer) return;
