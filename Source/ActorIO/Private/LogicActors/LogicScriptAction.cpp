@@ -11,6 +11,15 @@ ALogicScriptAction::ALogicScriptAction()
 {
 	Actions.SetIsConditionContainer(false);
 	Actions.AddExpression(FActorIOGroupExpression::MakeInstance(TEXT("and")), INDEX_NONE);
+
+#if WITH_EDITORONLY_DATA
+	ConstructorHelpers::FObjectFinderOptional<UTexture2D> SpriteTexture(TEXT("/ActorIO/AssetIcons/S_ScriptAction"));
+	if (SpriteComponent && SpriteTexture.Succeeded())
+	{
+		SpriteComponent->SetSprite(SpriteTexture.Get());
+		SpriteComponent->SetRelativeScale3D_Direct(FVector(1.0f));
+	}
+#endif
 }
 
 void ALogicScriptAction::RegisterIOEvents(FActorIOEventList& EventRegistry)
