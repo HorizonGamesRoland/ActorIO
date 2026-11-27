@@ -8,7 +8,8 @@
 #include "LogicScriptCondition.generated.h"
 
 /**
- * 
+ * An actor that evaluates a list of conditions and fires the appropriate pass or fail output event.
+ * Each condition is an expression that can execute blueprint functions.
  */
 UCLASS()
 class ACTORIO_API ALogicScriptCondition : public ALogicActorBase

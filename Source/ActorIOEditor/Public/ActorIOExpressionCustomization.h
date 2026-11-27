@@ -5,7 +5,7 @@
 #include "IPropertyTypeCustomization.h"
 #include "IDetailCustomNodeBuilder.h"
 #include "IDetailDragDropHandler.h"
-#include "StructUtils/InstancedStruct.h"
+#include INSTANCED_STRUCT_H
 
 struct FActorIOExpressionBase;
 struct FActorIOExpressionContainer;

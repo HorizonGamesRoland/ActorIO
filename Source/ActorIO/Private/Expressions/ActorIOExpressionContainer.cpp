@@ -35,26 +35,26 @@ int32 FActorIOExpressionContainer::AddExpression(const TInstancedStruct<FActorIO
 {
 	if (ParentIdx == INDEX_NONE && Expressions.Num() > 0)
 	{
-		UE_LOG(LogActorIO, Error, TEXT("FActorIOExpressionContainer: Attempted to add an expression (%s) as root, but root already exists."), *Expr->GetTypeName().ToString());
+		UE_LOG(LogActorIO, Error, TEXT("FActorIOExpressionContainer: Attempted to add an expression (%s) as root, but root already exists."), *Expr.GetPtr()->GetTypeName().ToString());
 		return INDEX_NONE;
 	}
 
 	if (ParentIdx != INDEX_NONE && !Expressions.IsValidIndex(ParentIdx))
 	{
-		UE_LOG(LogActorIO, Error, TEXT("FActorIOExpressionContainer: Attempted to add an expression (%s) to an invalid parent (%d) index."), *Expr->GetTypeName().ToString(), ParentIdx);
+		UE_LOG(LogActorIO, Error, TEXT("FActorIOExpressionContainer: Attempted to add an expression (%s) to an invalid parent (%d) index."), *Expr.GetPtr()->GetTypeName().ToString(), ParentIdx);
 		return INDEX_NONE;
 	}
 
-	if (ParentIdx != INDEX_NONE && !Expressions[ParentIdx]->CanContainChildExpressions())
+	if (ParentIdx != INDEX_NONE && !Expressions[ParentIdx].GetPtr()->CanContainChildExpressions())
 	{
-		UE_LOG(LogActorIO, Error, TEXT("FActorIOExpressionContainer: Attempted to add an expression (%s) to a parent (%d) that has CanContainChildExpressions() == false."), *Expr->GetTypeName().ToString(), ParentIdx);
+		UE_LOG(LogActorIO, Error, TEXT("FActorIOExpressionContainer: Attempted to add an expression (%s) to a parent (%d) that has CanContainChildExpressions() == false."), *Expr.GetPtr()->GetTypeName().ToString(), ParentIdx);
 		return INDEX_NONE;
 	}
 
 	int32 ExprIdx = Expressions.Add(Expr);
 	ParentIndexMapping.Add(ParentIdx);
 
-	Expressions[ExprIdx]->SetContainer(this);
+	Expressions[ExprIdx].GetMutablePtr()->SetContainer(this);
 	if (ExprIdx != 0)
 	{
 		// Move the expression to its slot before initialization so that
@@ -62,9 +62,9 @@ int32 FActorIOExpressionContainer::AddExpression(const TInstancedStruct<FActorIO
 		ExprIdx = MoveExpressionTo(ExprIdx, ParentIdx, SlotIdx);
 	}
 
-	if (!Expressions[ExprIdx]->Init())
+	if (!Expressions[ExprIdx].GetMutablePtr()->Init())
 	{
-		UE_LOG(LogActorIO, Error, TEXT("FActorIOExpressionContainer: Expression (%s) Init() failed during add."), *Expr->GetTypeName().ToString());
+		UE_LOG(LogActorIO, Error, TEXT("FActorIOExpressionContainer: Expression (%s) Init() failed during add."), *Expr.GetPtr()->GetTypeName().ToString());
 		RemoveExpression(ExprIdx);
 		return INDEX_NONE;
 	}
@@ -96,9 +96,9 @@ int32 FActorIOExpressionContainer::AddExpressionFromString(const FString& Str, i
 		return INDEX_NONE;
 	}
 
-	if (!Expressions[ExprIdx]->InitFromString(Str))
+	if (!Expressions[ExprIdx].GetMutablePtr()->InitFromString(Str))
 	{
-		UE_LOG(LogActorIO, Error, TEXT("FActorIOExpressionContainer: Expression (%s) InitFromString() failed during add. String was: %s."), *Expr->GetTypeName().ToString(), *Str);
+		UE_LOG(LogActorIO, Error, TEXT("FActorIOExpressionContainer: Expression (%s) InitFromString() failed during add. String was: %s."), *Expr.GetPtr()->GetTypeName().ToString(), *Str);
 		RemoveExpression(ExprIdx);
 		return INDEX_NONE;
 	}
@@ -117,7 +117,7 @@ void FActorIOExpressionContainer::RemoveExpression(int32 ExprIdx)
 
 	if (Expressions[ExprIdx].IsValid())
 	{
-		Expressions[ExprIdx]->SetContainer(nullptr);
+		Expressions[ExprIdx].GetMutablePtr()->SetContainer(nullptr);
 	}
 
 	Expressions.RemoveAt(ExprIdx);
@@ -154,7 +154,7 @@ void FActorIOExpressionContainer::Empty()
 	{
 		if (Expr.IsValid())
 		{
-			Expr->SetContainer(nullptr);
+			Expr.GetMutablePtr()->SetContainer(nullptr);
 		}
 	}
 
@@ -398,7 +398,7 @@ void FActorIOExpressionContainer::FixupContainerReferences()
 	{
 		if (ExprInstance.IsValid())
 		{
-			ExprInstance->SetContainer(this);
+			ExprInstance.GetMutablePtr()->SetContainer(this);
 		}
 	}
 
@@ -480,7 +480,7 @@ bool FActorIOExpressionContainer::HasAnyErrors(FString& OutErrorCode) const
 			return true;
 		}
 
-		OutErrorCode = Expr->CheckForErrors();
+		OutErrorCode = Expr.GetPtr()->CheckForErrors();
 		if (!OutErrorCode.IsEmpty())
 		{
 			return true;

@@ -1,5 +1,6 @@
 ﻿// Copyright 2024-2026 Horizon Games and all contributors at https://github.com/HorizonGamesRoland/ActorIO/graphs/contributors
 
+using System.IO;
 using UnrealBuildTool;
 
 public class ActorIOEditor : ModuleRules
@@ -31,5 +32,27 @@ public class ActorIOEditor : ModuleRules
             "WorkspaceMenuStructure",
             "ToolWidgets",
         });
+
+        AddInstancedStructSupport(Target);
+    }
+
+    private void AddInstancedStructSupport(ReadOnlyTargetRules Target)
+    {
+        // Keep in sync with ActorIO.Build.cs
+        // Tried using a PublicIncludePath instead of this *beautiful* solution, but it did not work.
+
+        if (Target.Version.MajorVersion == 5 && Target.Version.MinorVersion >= 5)
+        {
+            // UE 5.5+:
+            // TInstancedStruct is moved to the CoreUObject module of the engine.
+            PrivateDefinitions.Add("INSTANCED_STRUCT_H=\"StructUtils/InstancedStruct.h\"");
+        }
+        else
+        {
+            // UE 5.0 - 5.4:
+            // TInstancedStruct is part of the StructUtils plugin.
+            PublicDependencyModuleNames.Add("StructUtils");
+            PrivateDefinitions.Add("INSTANCED_STRUCT_H=\"InstancedStruct.h\"");
+        }
     }
 }

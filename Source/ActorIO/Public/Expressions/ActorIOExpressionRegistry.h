@@ -3,7 +3,7 @@
 #pragma once
 
 #include "ActorIO.h"
-#include "StructUtils/InstancedStruct.h"
+#include INSTANCED_STRUCT_H
 
 struct FActorIOExpressionBase;
 

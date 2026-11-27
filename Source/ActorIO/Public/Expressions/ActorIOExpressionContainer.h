@@ -3,10 +3,9 @@
 #pragma once
 
 #include "ActorIO.h"
-#include "StructUtils/InstancedStruct.h"
+#include INSTANCED_STRUCT_H
+#include "Expressions/ActorIOExpressionBase.h"
 #include "ActorIOExpressionContainer.generated.h"
-
-struct FActorIOExpressionBase;
 
 /**
  * Container for storing expressions in a custom flat tree structure.

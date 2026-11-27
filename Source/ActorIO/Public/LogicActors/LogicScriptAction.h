@@ -8,7 +8,8 @@
 #include "LogicScriptAction.generated.h"
 
 /**
- * 
+ * An actor that executes a list of actions.
+ * Each action is an expression that can execute blueprint functions.
  */
 UCLASS()
 class ACTORIO_API ALogicScriptAction : public ALogicActorBase
